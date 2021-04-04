@@ -5,9 +5,8 @@
 #include "log.h"
 #include "riscv.h"
 struct proc pool[NPROC];
-char kstack[NPROC][PAGE_SIZE];
-__attribute__((aligned(4096))) char ustack[NPROC][PAGE_SIZE];
-char trapframe[NPROC][PAGE_SIZE];
+
+__attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
 
 extern char boot_stack_top[];
 
@@ -27,8 +26,6 @@ void procinit(void)
         init_spin_lock(&p->lock);
         p->state = UNUSED;
         p->kstack = (uint64)kstack[p - pool];
-        p->ustack = (uint64)ustack[p - pool];
-        p->trapframe = (struct trapframe *)trapframe[p - pool];
     }
     for (int i = 0; i < NCPU; i++)
     {
@@ -60,8 +57,8 @@ found:
     p->pid = allocpid();
     p->state = USED;
     memset(&p->context, 0, sizeof(p->context));
-    memset(p->trapframe, 0, PAGE_SIZE);
-    memset((void *)p->kstack, 0, PAGE_SIZE);
+    memset((void *)p->kstack, 0, KSTACK_SIZE);
+    debugf("memset done");
     p->context.ra = (uint64)usertrapret;
     p->context.sp = p->kstack + PAGE_SIZE;
 
@@ -69,6 +66,7 @@ found:
     p->priority = 16;
     p->cpu_time = 0;
     p->last_start_time = 0;
+    debugf("before return");
     return p;
 }
 // Return this CPU's cpu struct.
@@ -137,7 +135,7 @@ void scheduler(void)
             // debugf("pass = %p, priority=%d\n", pass,  next_proc->priority);
             next_proc->stride += pass;
             // debugf("run pid=%d, stride=%p\n", next_proc->pid, next_proc->stride);
-            // debugf("[cpu=%d] run pid=%d, entry=%p", cpuid(),next_proc->pid, next_proc->entry);
+            // debugcore("run pid=%d" ,next_proc->pid);
             swtch(&idle[cpuid()].context, &next_proc->context);
             // debugcore("pid=%d, locked=%d ,cpu=%d",next_proc->pid,next_proc->lock.locked, next_proc->lock.cpu->core_id)
             // debugcore("releasing next_proc");
@@ -168,13 +166,13 @@ void sched(void)
     p->cpu_time += runtime;
     // debugf("cputime, last runtime = %p, %p", p->cpu_time, runtime);
 
-    // kill proc running for more than 5 seconds
-    if (p->cpu_time > 5 * 1000)
-    {
-        infof("kill proc %d for running too long\n", p->pid);
-        p->state = UNUSED;
-        // exit(-1);
-    }
+    // // kill proc running for more than 5 seconds
+    // if (p->cpu_time > 5 * 1000)
+    // {
+    //     infof("kill proc %d for running too long\n", p->pid);
+    //     p->state = UNUSED;
+    //     // exit(-1);
+    // }
     swtch(&p->context, &idle[cpuid()].context);
 }
 

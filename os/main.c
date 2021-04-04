@@ -1,8 +1,14 @@
 #include "ucore.h"
 #include "riscv.h"
-extern char ekernel[];
+
 extern char s_bss[];
 extern char e_bss[];
+extern char s_text[];
+extern char e_text[];
+extern char s_rodata[];
+extern char e_rodata[];
+extern char s_data[];
+extern char e_data[];
 void clean_bss()
 {
     char *p;
@@ -15,6 +21,7 @@ void start_hart(uint64 hartid, uint64 start_addr, uint64 a1);
 void hart_bootcamp(uint64 hartid, uint64 a1)
 {
     w_tp(hartid);
+    kvminithart(); // turn on paging
     trapinit();
     timerinit();
     printf("[ucore] start bootcamp hart %d\n", hartid);
@@ -51,22 +58,36 @@ void main(uint64 hartid, uint64 a1)
         printf("\n");
         printf("[ucore] Boot hartid=%d\n", hartid);
         printf("[ucore] a1=%d\n", a1);
+        printf("[ucore] s_text=%p, e_text=%p\n", s_text, e_text);
+        printf("[ucore] s_rodata=%p, e_rodata=%p\n", s_rodata, e_rodata);
+        printf("[ucore] s_data=%p, e_data=%p\n", s_data, e_data);
+        printf("[ucore] s_bss=%p, e_bss=%p\n", s_bss, e_bss);
 
         clean_bss();
         init_cpu();
         printfinit();
         trapinit();
+        kinit();
+        printf("kinit\n");
+
+        kvminit();
+        kvminithart();
         batchinit();
+        printf("batchinit\n");
         procinit();
         timerinit();
+        printf("timerinit\n");
         init_scheduler();
+        printf("init_scheduler\n");
         run_all_app();
+        printf("run_all_app\n");
         init_booted();
+        debugf("INIT BOOT");
         booted[hartid] = 1;
 
         for (int i = 0; i < NCPU; i++)
         {
-            if (i != hartid)
+            if (i != hartid) // not this hart
             {
                 printf("[ucore] start hart %d\n", i);
                 start_hart(i, (uint64)_entry, 0);

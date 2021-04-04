@@ -2,8 +2,13 @@ OUTPUT_ARCH(riscv)
 ENTRY(_start)
 
 SECTIONS {
-    
-    .text : { *(.text.entry) *(.text) }
+    . = 0x1000;
+
+    .startup : {
+        *crt.S.o(.text)
+    }
+
+    .text : { *(.text) }
     .data : { *(.data .rodata) }
 
     /DISCARD/ : { *(.eh_*) }

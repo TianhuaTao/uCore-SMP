@@ -8,7 +8,7 @@
 	# kernel.ld causes this to be aligned
         # to a page boundary.
         #
-    .section .text
+	.section trampsec
 .globl trampoline
 trampoline:
 .align 4
@@ -60,19 +60,16 @@ uservec:
         sd t5, 272(a0)
         sd t6, 280(a0)
 
-	    # save the user a0 in p->trapframe->a0
         csrr t0, sscratch
         sd t0, 112(a0)
-
         csrr t1, sepc
         sd t1, 24(a0)
-
         ld sp, 8(a0)
         ld tp, 32(a0)
-        ld t1, 0(a0)
-        # csrw satp, t1
-        # sfence.vma zero, zero
         ld t0, 16(a0)
+        ld t1, 0(a0)
+        csrw satp, t1
+        sfence.vma zero, zero
         jr t0
 
 .globl userret

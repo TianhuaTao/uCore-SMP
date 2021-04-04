@@ -4,6 +4,7 @@
 #include "proc.h"
 #include "log.h"
 #include "timer.h"
+#include "riscv.h"
 #define min(a, b) a < b ? a : b;
 
 /**
@@ -14,30 +15,15 @@ inline int contains(char *sout, char *eout, char *sin, char *ein)
     return (sout <= sin && sin < eout) && (sout <= ein && ein <= eout) && sin <= ein;
 }
 
-uint64 sys_write(int fd, char *str, uint len)
+uint64 sys_write(int fd, char *addr, uint len) 
 {
     if (fd != 1)
         return -1;
-
-    struct proc *cur_pcb = curr_proc();
-    char *app_start = (char *)cur_pcb->entry;
-    char *app_end = app_start + 0x20000;
-    char *ustack_start = (char *)cur_pcb->ustack;
-    char *ustack_end = ustack_start + PAGE_SIZE;
-    // debugf( "sys_write str= [%p, %p)", str, str+len);
-    // debugf( "user_stack= [%p, %p)", ustack_start, ustack_end);
-    // debugf( "app_address= [%p, %p)", app_start, app_end);
-
-    if (!(
-            contains(app_start, app_end, str, str + len) ||
-            contains(ustack_start, ustack_end, str, str + len)))
-    {
-        return -1;
-    }
-
-    int size = min(strlen(str), len);
-    for (int i = 0; i < size; ++i)
-    {
+    struct proc *p = curr_proc();
+    char str[200];
+    int size = copyinstr(p->pagetable, str, (uint64) addr, MIN(len, 200));
+    // debug("size = %d\n", size);
+    for(int i = 0; i < size; ++i) {
         console_putchar(str[i]);
     }
     return size;
@@ -68,18 +54,99 @@ int64 sys_gettimeofday(uint64 *timeval, int tz){
     // timeval[0] -- sec
     // timeval[0] -- usec
     uint64 us = get_time_us();
-    timeval[0] = us / 1000000;
-    timeval[1] = us % 1000000;
-    // infof("us=%p, t0=%d, t1=%d\n", us, timeval[0],timeval[1]);
+    uint64 timeval_ker[2];
+    timeval_ker[0] = us / 1000000;
+    timeval_ker[1] = us % 1000000;
+    copyout(curr_proc()->pagetable, (uint64) timeval , (char*)timeval_ker, sizeof(timeval_ker));
+    // info("us=%p, t0=%d, t1=%d\n", us, timeval[0],timeval[1]);
 
     return 0;
 }
+
+int64 sys_mmap(void* start, uint64 len, int prot){
+    if(len ==0) return 0;
+
+    if(len >1024*1024*1024){
+        return -1;
+    }
+    uint64 aligned_len = PGROUNDUP(len);
+
+    uint64 offset = (uint64)start & 0xfff;
+    if (offset != 0) {
+        return -1;
+    }
+    if( (prot & ~0x7) != 0){
+        return -1;
+    }
+    if( (prot & 0x7) == 0){
+        return -1;
+    }
+    struct proc* curr_pcb = curr_proc();
+    uint64 map_size = 0;
+    while (aligned_len>0)
+    {
+        void* pa = kalloc();
+        // int PER_R = prot & 1;
+        // int PER_W = prot & 2;
+        // int PER_X = prot & 4;
+
+        if (map1page(curr_pcb->pagetable, (uint64)start,
+                        (uint64)pa, PTE_U|(prot<<1)) < 0) {
+            debugf("sys_mmap mappages fail\n");
+            return -1;
+        }
+        aligned_len-= PGSIZE;
+        start+=PGSIZE;
+        map_size+=PGSIZE;
+    }
+    
+    if(aligned_len!=0){
+        panic("aligned_len != 0");
+    }
+    debugf("map_size=%p\n", map_size);
+    return map_size;
+
+}
+
+int64 sys_munmap(void* start, uint64 len){
+    uint64 va = (uint64) start;
+    uint64 a;
+    pte_t *pte;
+    pagetable_t pagetable = curr_proc()->pagetable;
+
+    if (((uint64)start % PGSIZE) != 0){
+        return -1;
+    }
+    int npages= PGROUNDUP(len) / PGSIZE;
+
+    for (a = va; a < va + npages * PGSIZE; a += PGSIZE) {
+        if ((pte = walk(pagetable, a, 0)) == 0){
+            infof("uvmunmap: walk\n");
+            return -1;
+        }
+        if ((*pte & PTE_V) == 0){
+            infof("uvmunmap: not mapped\n");
+            return -1;
+        }
+        if (PTE_FLAGS(*pte) == PTE_V){
+            infof("uvmunmap: not a leaf\n");
+            return -1;
+        }
+        
+        uint64 pa = PTE2PA(*pte);
+        kfree((void *) pa);
+        
+        *pte = 0;
+    }
+    return npages* PGSIZE;
+}
+
 
 void syscall()
 {
     struct trapframe *trapframe = curr_proc()->trapframe;
     int id = trapframe->a7, ret;
-    tracef("syscall %d", id);
+    // debugf("syscall %d", id);
     uint64 args[7] = {trapframe->a0, trapframe->a1, trapframe->a2, trapframe->a3, trapframe->a4, trapframe->a5, trapframe->a6};
     switch (id)
     {
@@ -102,10 +169,16 @@ void syscall()
     case SYS_gettimeofday:
         ret =sys_gettimeofday((void*)args[0], args[1]);
         break;    
+    case SYS_mmap:
+            ret =sys_mmap((void*)args[0], args[1], args[2]);
+            break; 
+    case SYS_munmap:
+        ret = sys_munmap((void*)args[0], args[1]);
+        break;
     default:
         ret = -1;
         infof("unknown syscall %d\n", id);
     }
     trapframe->a0 = ret;
-    tracef("syscall ret %d", ret);
+    // debugf("syscall ret %d", ret);
 }

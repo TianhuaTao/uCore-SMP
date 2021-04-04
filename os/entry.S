@@ -2,6 +2,7 @@
     .globl _entry
 _entry:
     # a0: hartid
+    # every core has a boot stack of 16 KB
     la sp, boot_stack
     li t1, 1024*16   # t1 = 16KB
     addi t0, a0, 1  # t0 = hartid + 1
@@ -12,6 +13,6 @@ _entry:
     .section .bss.stack
     .globl boot_stack
 boot_stack:
-    .space 1024 * 16 * 4
+    .space 1024 * 16 * 8
     .globl boot_stack_top
 boot_stack_top:
