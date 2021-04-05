@@ -5,5 +5,7 @@ symbol-file kernel
 # set disassemble-next-line auto
 display/12i $pc-8
 set riscv use-compressed-breakpoints yes
-b *run_all_app
-b *0x802020f8
+break kerneltrap
+watch *0x80201f16
+# break *0x80201cfa
+# watch *0x80213f50+24

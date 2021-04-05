@@ -5,7 +5,7 @@
 
 #include "lock.h"
 
-#define NPROC (32)
+#define NPROC (256)
 #define KSTACK_SIZE (4096)
 #define USTACK_SIZE (4096)
 #define TRAPFRAME_SIZE (4096)
@@ -26,7 +26,7 @@ struct proc
 
   // p->lock must be held when using these:
   enum procstate state; // Process state
-  int killed;           // If non-zero, have been killed
+  // int killed;           // If non-zero, have been killed
   int pid;              // Process ID
   pagetable_t pagetable;       // User page table
   // these are private to the process, so p->lock need not be held.
@@ -34,6 +34,10 @@ struct proc
   uint64 kstack;               // Virtual address of kernel stack
   struct trapframe *trapframe; // data page for trampoline.S
   struct context context;      // swtch() here to run process
+  uint64 sz;
+  uint64 heap_sz;
+  struct proc *parent;         // Parent process
+  uint64 exit_code;
   uint64 entry;                // app bin start address
   uint64 stride;
   uint64 priority;
@@ -42,5 +46,6 @@ struct proc
 };
 
 struct proc *curr_proc();
+int spawn(char* filename);
 
 #endif // PROC_H

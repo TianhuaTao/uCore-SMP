@@ -42,6 +42,7 @@ SECTIONS
         f.write('        *(.data.app{})\n'.format(idx))
     f.write(
 '''
+        . = ALIGN(0x1000);
         *(.data.*)
         *(.sdata .sdata.*)
     }

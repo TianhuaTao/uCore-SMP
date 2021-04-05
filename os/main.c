@@ -9,6 +9,8 @@ extern char s_rodata[];
 extern char e_rodata[];
 extern char s_data[];
 extern char e_data[];
+extern char boot_stack[];
+extern char boot_stack_top[];
 void clean_bss()
 {
     char *p;
@@ -61,6 +63,7 @@ void main(uint64 hartid, uint64 a1)
         printf("[ucore] s_text=%p, e_text=%p\n", s_text, e_text);
         printf("[ucore] s_rodata=%p, e_rodata=%p\n", s_rodata, e_rodata);
         printf("[ucore] s_data=%p, e_data=%p\n", s_data, e_data);
+        printf("[ucore] s_bss_stack=%p, e_bss_stack=%p\n", boot_stack, boot_stack_top);
         printf("[ucore] s_bss=%p, e_bss=%p\n", s_bss, e_bss);
 
         clean_bss();
@@ -69,12 +72,12 @@ void main(uint64 hartid, uint64 a1)
         trapinit();
         kinit();
         printf("kinit\n");
+        procinit();
 
         kvminit();
         kvminithart();
         batchinit();
         printf("batchinit\n");
-        procinit();
         timerinit();
         printf("timerinit\n");
         init_scheduler();

@@ -13,7 +13,7 @@ void acquire(struct spinlock *slock)
 {
   push_off(); // disable interrupts to avoid deadlock.
   if (holding(slock))
-    panic("acquire");
+    panic("This cpu is acquiring a acquired lock");
 
   // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
   //   a5 = 1
@@ -77,18 +77,32 @@ void push_off(void)
 
   intr_off();
   if (mycpu()->noff == 0)
-    mycpu()->maintence = old;
+  {
+    mycpu()->maintence = old;  
+  }
   mycpu()->noff += 1;
 }
 
 void pop_off(void)
 {
   struct cpu *c = mycpu();
+
+
   if (intr_get())
     panic("pop_off - interruptible");
   if (c->noff < 1)
     panic("pop_off");
   c->noff -= 1;
-  if (c->noff == 0 && c->maintence)
+  if (c->noff == 0 && c->maintence){
+    // printf_k("intr_on\n");
     intr_on();
+    // asm volatile("csrr	a5,sstatus");
+    // asm volatile("ori	a5,a5,2");
+    // asm volatile("mv t5, a5");
+    // asm volatile("csrw sstatus,a5");
+    // asm volatile("mv t5, a5");
+                 // uint64 sp = r_sp();
+    // sp++;
+    // printf_k("sp=%p\n",sp);
+  }
 }

@@ -8,8 +8,19 @@ SECTIONS {
         *crt.S.o(.text)
     }
 
-    .text : { *(.text) }
-    .data : { *(.data .rodata) }
+    .text : { 
+        *(.text .text.*)
+    }
 
+    .bss : { 
+        *(.bss .bss.*)
+        *(.sbss .sbss.*)
+    }
+
+    .data : { 
+        *(.data .rodata) 
+        *(.sdata .sdata.*)
+    }
+    
     /DISCARD/ : { *(.eh_*) }
 }

@@ -11,6 +11,7 @@ extern char trampoline[], uservec[], userret[];
 // set up to take exceptions and traps while in the kernel.
 void trapinit(void)
 {
+    // intr_on();
    set_kerneltrap();
 }
 
@@ -21,22 +22,33 @@ void unknown_trap() {
 
 
 void kerneltrap() {
+    // uint64 sp = r_sp();
+    // uint64 a5 = r_a5();
+    uint64 stval = r_stval();
+    uint64 sepc = r_sepc();
+    uint64 cause = r_scause();
+    uint64 interupt = cause & (1ULL << 63);
+    // printf_k("ktrap sp=%p\n", sp);
+    // printf_k("ktrap sp+24=%p\n", sp+24);
+    // printf_k("ktrap *(sp+24)=%p\n", *(uint64*)(sp+24));
     if((r_sstatus() & SSTATUS_SPP) == 0)
         panic("kerneltrap: should not handle user traps");
 
-    uint64 cause = r_scause();
-    errorf("[core%d] scause=%d in application, stval=%p, sepc=%p, core dumped.\n",
-    cpuid(), cause,
-                    r_stval(), r_sepc());
+    (void)cause;
+    printf_k("[core%d] intr=%d ,scause=%d in application, stval=%p, sepc=%p, core dumped.\n",
+    cpuid(),interupt, cause,
+                    stval, sepc);
     panic("trap from kernel\n");
 }
 
 // set up to take exceptions and traps while in the kernel.
 void set_usertrap(void) {
+
         w_stvec(((uint64) TRAMPOLINE + (uservec - trampoline)) & ~0x3); // DIRECT
 }
 
 void set_kerneltrap(void) {
+    w_sie(r_sie() & ~SIE_STIE); // stop timer interupt
     w_stvec((uint64)kerneltrap & ~0x3); // DIRECT
 }
 
@@ -53,7 +65,7 @@ void usertrap() {
         panic("usertrap: not from user mode");
 
     uint64 cause = r_scause();
-    if(cause & (1ULL << 63)) {
+    if(cause & (1ULL << 63)) {  // interrput = 1
         cause &= ~(1ULL << 63);
         switch(cause) {
         case SupervisorTimer:
@@ -65,7 +77,7 @@ void usertrap() {
             unknown_trap();
             break;
         }
-    } else {
+    } else {    // interrput = 0
         switch(cause) {
         case UserEnvCall:
             trapframe->epc += 4;
@@ -108,6 +120,7 @@ void usertrapret() {
     set_usertrap();
     struct trapframe *trapframe = curr_proc()->trapframe;
     trapframe->kernel_satp = r_satp();                   // kernel page table
+    // debugf("xxxx curr_pid %d", curr_proc()->pid);
     trapframe->kernel_sp = curr_proc()->kstack + PGSIZE;// process's kernel stack
     trapframe->kernel_trap = (uint64) usertrap;
     trapframe->kernel_hartid = r_tp();// hartid for cpuid()

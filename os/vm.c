@@ -237,13 +237,14 @@ uvmcreate()
         return 0;
     memset(pagetable, 0, PGSIZE);
 
-    if (mappages(pagetable, TRAMPOLINE, PGSIZE,
-                 (uint64)trampoline, PTE_R | PTE_X) < 0)
-    {
-        uvmfree(pagetable, 0);
-        return 0;
-    }
-    debugf("map user trampoline\n") return pagetable;
+    // if (mappages(pagetable, TRAMPOLINE, PGSIZE,
+    //              (uint64)trampoline, PTE_R | PTE_X) < 0)
+    // {
+    //     uvmfree(pagetable, 0);
+    //     return 0;
+    // }
+    debugf("map user trampoline\n");
+    return pagetable;
 }
 
 // Allocate PTEs and physical memory to grow process from oldsz to
@@ -298,6 +299,22 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
+void debugwalk(pagetable_t pagetable, int depth) {
+    // there are 2^9 = 512 PTEs in a page table.
+    for (int i = 0; i < 512; i++) {
+        pte_t pte = pagetable[i];
+        if(pte != 0)
+            infof("{%d} pg[%d] = %p\n", depth, i, pte);
+        if ((pte & PTE_V) && (pte & (PTE_R | PTE_W | PTE_X)) == 0) {
+            // this PTE points to a lower-level page table.
+            uint64 child = PTE2PA(pte);
+            debugwalk((pagetable_t) child, depth + 1);
+        }
+    }
+}
+
+// Recursively free page-table pages.
+// All leaf mappings must already have been removed.
 void freewalk(pagetable_t pagetable)
 {
     // there are 2^9 = 512 PTEs in a page table.
@@ -311,10 +328,11 @@ void freewalk(pagetable_t pagetable)
             freewalk((pagetable_t)child);
             pagetable[i] = 0;
         }
-        else if (pte & PTE_V)
-        {
-            panic("freewalk: leaf");
-        }
+        // TODO: enable this
+        // else if (pte & PTE_V)
+        // {
+        //     panic("freewalk: leaf");
+        // }
     }
     kfree((void *)pagetable);
 }
@@ -338,6 +356,35 @@ void uvmclear(pagetable_t pagetable, uint64 va)
     if (pte == 0)
         panic("uvmclear");
     *pte &= ~PTE_U;
+}
+
+int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+{
+    pte_t *pte;
+    uint64 pa, i;
+    uint flags;
+    char *mem;
+
+    for(i = 0; i < sz; i += PGSIZE){
+        if((pte = walk(old, i, 0)) == 0)
+            panic("uvmcopy: pte should exist");
+        if((*pte & PTE_V) == 0)
+            panic("uvmcopy: page not present");
+        pa = PTE2PA(*pte);
+        flags = PTE_FLAGS(*pte);
+        if((mem = kalloc()) == 0)
+            goto err;
+        memmove(mem, (char*)pa, PGSIZE);
+        if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
+            kfree(mem);
+            goto err;
+        }
+    }
+    return 0;
+
+    err:
+    uvmunmap(new, 0, i / PGSIZE, 1);
+    return -1;
 }
 
 // Copy from kernel to user.

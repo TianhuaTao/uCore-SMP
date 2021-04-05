@@ -4,35 +4,39 @@
 #include "timer.h"
 #include "log.h"
 #include "riscv.h"
+#include "memory_layout.h"
 struct proc pool[NPROC];
 
 __attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
+extern char trampoline[];
 
 extern char boot_stack_top[];
-
+extern char boot_stack[];
 const int64 BIGSTRIDE = 0x7FFFFFFFLL;
+struct spinlock pool_lock;
 
 struct proc *curr_proc()
 {
     return mycpu()->proc;
 }
-struct proc idle[NCPU];
+// struct proc idle[NCPU];
 
 void procinit(void)
 {
     struct proc *p;
+    init_spin_lock(&pool_lock);
     for (p = pool; p < &pool[NPROC]; p++)
     {
         init_spin_lock(&p->lock);
         p->state = UNUSED;
         p->kstack = (uint64)kstack[p - pool];
     }
-    for (int i = 0; i < NCPU; i++)
-    {
-        idle[i].kstack = (uint64)boot_stack_top;
-        idle[i].pid = 0;
-        idle[i].killed = 0;
-    }
+    // for (int i = 0; i < NCPU; i++)
+    // {
+    //     idle[i].kstack = (uint64)boot_stack+ i* 4*1024;
+    //     idle[i].pid = i;
+    //     // idle[i].killed = 0;
+    // }
 }
 
 int allocpid()
@@ -41,26 +45,92 @@ int allocpid()
     return PID++;
 }
 
+pagetable_t
+proc_pagetable(struct proc *p)
+{
+    pagetable_t pagetable;
+
+    // An empty page table.
+    pagetable = uvmcreate();
+    if(pagetable == 0)
+        panic("");
+
+    if(mappages(pagetable, TRAMPOLINE, PGSIZE,
+                (uint64)trampoline, PTE_R | PTE_X) < 0){
+        uvmfree(pagetable, 0);
+        return 0;
+    }
+
+    if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+        panic("kalloc\n");
+    }
+    // map the trapframe just below TRAMPOLINE, for trampoline.S.
+    if(mappages(pagetable, TRAPFRAME, PGSIZE,
+                (uint64)(p->trapframe), PTE_R | PTE_W) < 0){;
+        panic("");
+    }
+
+    return pagetable;
+}
+
+// Free a process's page table, and free the
+// physical memory it refers to.
+void
+proc_freepagetable(pagetable_t pagetable, uint64 sz)
+{
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+    uvmunmap(pagetable, TRAPFRAME, 1, 0);
+    uvmfree(pagetable, sz);
+}
+
+static void
+freeproc(struct proc *p)
+{
+    if(p->trapframe)
+        kfree((void*)p->trapframe);
+    p->trapframe = 0;
+    if(p->pagetable)
+        proc_freepagetable(p->pagetable, p->sz);
+    p->pagetable = 0;
+    p->state = UNUSED;
+}
+
+
 struct proc *allocproc(void)
 {
     struct proc *p;
+    acquire(&pool_lock);
     for (p = pool; p < &pool[NPROC]; p++)
     {
         if (p->state == UNUSED)
         {
+            acquire(&p->lock);
+            release(&pool_lock);
             goto found;
         }
     }
+    release(&pool_lock);
+    debugf("no proc alloced");
     return 0;
 
 found:
     p->pid = allocpid();
     p->state = USED;
+    p->sz = 0;
+    p->heap_sz = 0;
+    p->exit_code = -1;
+    p->parent = 0;
+    p->ustack = 0;
+    p->pagetable = proc_pagetable(p);
+    if(p->pagetable == 0){
+        panic("");
+    }
     memset(&p->context, 0, sizeof(p->context));
     memset((void *)p->kstack, 0, KSTACK_SIZE);
     debugf("memset done");
-    p->context.ra = (uint64)usertrapret;
-    p->context.sp = p->kstack + PAGE_SIZE;
+    p->context.ra = (uint64)usertrapret;    // used in swtch()
+        p->context.sp = p->kstack + KSTACK_SIZE;
+
 
     p->stride = 0;
     p->priority = 16;
@@ -88,10 +158,9 @@ int cpuid()
     return id;
 }
 
-struct spinlock schd_lock;
 void init_scheduler()
 {
-    init_spin_lock(&schd_lock);
+    // init_spin_lock(&pool_lock);
 }
 void scheduler(void)
 {
@@ -100,9 +169,10 @@ void scheduler(void)
     {
         uint64 min_stride = ~0ULL;
         struct proc *next_proc = NULL;
-        // debugcore("acquiring schd_lock");
-        acquire(&schd_lock);
-        // debugcore("acquired schd_lock");
+        
+        // lock when picking proc
+        acquire(&pool_lock);
+        
         for (struct proc *p = pool; p < &pool[NPROC]; p++)
         {
             if (p->state == RUNNABLE && !p->lock.locked)
@@ -117,35 +187,55 @@ void scheduler(void)
 
         if (next_proc != NULL)
         {
-            // debugcore("acquiring next_proc %d" ,next_proc->pid);
+            // found a process to run, lock down the proc;
             acquire(&next_proc->lock);
-            // debugcore("acquired next_proc %d",next_proc->pid);
         }
-        // debugcore("releasing schd_lock");
-        release(&schd_lock);
-        // debugcore("released schd_lock");
+        // picking proc done
+        release(&pool_lock);
 
+        
         if (next_proc != NULL)
         {
+            
+
             struct cpu *mycore = mycpu();
-            next_proc->state = RUNNING;
             mycore->proc = next_proc;
+            next_proc->state = RUNNING;
+
+
+
             next_proc->last_start_time = get_time_ms();
             uint64 pass = BIGSTRIDE / (next_proc->priority);
-            // debugf("pass = %p, priority=%d\n", pass,  next_proc->priority);
             next_proc->stride += pass;
-            // debugf("run pid=%d, stride=%p\n", next_proc->pid, next_proc->stride);
-            // debugcore("run pid=%d" ,next_proc->pid);
-            swtch(&idle[cpuid()].context, &next_proc->context);
-            // debugcore("pid=%d, locked=%d ,cpu=%d",next_proc->pid,next_proc->lock.locked, next_proc->lock.cpu->core_id)
-            // debugcore("releasing next_proc");
+
+            // intr_on();
+            // asm volatile("mv t4, t4");
+            // intr_off();
+
+            // printf_k("go swtch to pid %d\n", next_proc->pid);
+
+            // intr_on();
+            // asm volatile("mv t5, t5");
+            // intr_off();
+
+            swtch(&mycpu()->context, &next_proc->context);
+            // printf_k("intr_on=%d\n", intr_get());
+            // printf_k("come back from pid %d\n", curr_proc()->pid);
+
+            // switch back to idle here, RUNNING in IDEL process
+            // uint64 sp = r_sp();
+            // uint64 magic_num = 0x80213f58;
+            // uint64* err_addr = (uint64*)magic_num;
+            // printf_k("err_addr=%p\n",err_addr);
+            // printf_k("before *(err_addr)=%p\n",*err_addr);
+            // *err_addr = 0x100;
+            // printf_k("after *(err_addr)=%p\n",*err_addr);
             release(&next_proc->lock);
-            // debugcore("released next_proc");
         }
         else
         {
             debugcore("no proc to run");
-            break;
+            // break;
         }
     }
 }
@@ -173,7 +263,8 @@ void sched(void)
     //     p->state = UNUSED;
     //     // exit(-1);
     // }
-    swtch(&p->context, &idle[cpuid()].context);
+    infof("before swtch");
+    swtch(&p->context, &mycpu()->context);
 }
 
 // Give up the CPU for one scheduling round.
@@ -182,12 +273,146 @@ void yield(void)
     mycpu()->proc->state = RUNNABLE;
     sched();
 }
-
-void exit(int code)
+int
+fork(void)
 {
+    int pid;
+    struct proc *np;
     struct proc *p = curr_proc();
+    debugf("inside fork");
+
+    // Allocate process.
+    if((np = allocproc()) == 0){
+        panic("allocproc\n");
+    }
+    debugf("inside fork allocproc done");
+    
+    // Copy user memory from parent to child.
+    if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+        panic("uvmcopy\n");
+    }
+    np->sz = p->sz;
+
+    // copy saved user registers.
+    *(np->trapframe) = *(p->trapframe);
+
+    // Cause fork to return 0 in the child.
+    np->trapframe->a0 = 0;
+    pid = np->pid;
+
+
+
+    np->parent = p;
+    np->state = RUNNABLE;
+    release(&np->lock);
+    return pid;
+}
+
+int exec(char* name) {
+    int id = get_id_by_name(name);
+    if(id < 0)
+        return -1;
+    struct proc *p = curr_proc();
+    proc_freepagetable(p->pagetable, p->sz);
+    p->sz = 0;
+    p->pagetable = proc_pagetable(p);
+    if(p->pagetable == 0){
+        panic("");
+    }
+    loader(id, p);
+    return 0;
+}
+
+int spawn(char* filename){
+    int pid;
+    struct proc *np;
+    struct proc *p = curr_proc();
+
+    // Allocate process.
+    if((np = allocproc()) == 0){
+        panic("allocproc\n");
+    }
+    // info("alloc\n");
+    // Copy user memory from parent to child.
+    if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+        panic("uvmcopy\n");
+    }
+    np->sz = p->sz;
+
+    // copy saved user registers.
+    *(np->trapframe) = *(p->trapframe);
+
+    // Cause fork to return 0 in the child.
+    np->trapframe->a0 = 0;
+    pid = np->pid;
+    np->parent = p;
+    np->state = RUNNABLE;
+
+    // info("fork done\n");
+
+    char name[200];
+    copyinstr(p->pagetable, name, (uint64)filename, 200);
+    infof("sys_exec %s\n", name);
+
+    int id = get_id_by_name(name);
+    // info("id=%d\n", id);
+    if(id < 0)
+        return -1;
+    // info("free\n");
+    proc_freepagetable(np->pagetable, np->sz);
+    np->sz = 0;
+    np->pagetable = proc_pagetable(np);
+    if(np->pagetable == 0){
+        panic("");
+    }
+    // info("load\n");
+    loader(id, np);
+    return pid;
+}
+
+int
+wait(int pid, int* code)
+{
+    struct proc *np;
+    int havekids;
+    struct proc *p = curr_proc();
+
+    for(;;){
+        // Scan through table looking for exited children.
+        havekids = 0;
+        for(np = pool; np < &pool[NPROC]; np++){
+            // info("pid=%d, np->pid=%d, p=%d, parent=%d,\n",pid,np->pid,p, np->parent);
+            if(np->state != UNUSED && np->parent == p && (pid <= 0 || np->pid == pid)){
+                havekids = 1;
+                if(np->state == ZOMBIE){
+                    // Found one.
+                    np->state = UNUSED;
+                    pid = np->pid;
+                    *code = np->exit_code;
+                    return pid;
+                }
+            }
+        }
+        if(!havekids){
+            infof("no kids\n");
+            return -1;
+        }
+
+        debugf("pid %d keep waiting", p->pid);
+        p->state = RUNNABLE;
+        sched();
+    }
+}
+
+void exit(int code) {
+    struct proc *p = curr_proc();
+    p->exit_code = code;
     infof("proc %d exit with %d\n", p->pid, code);
-    p->state = UNUSED;
-    // finished();
+    freeproc(p);
+    if(p->parent != 0) {
+        tracef("wait for parent to clean\n");
+        p->state = ZOMBIE;
+    }
+    debugf("before sched");
     sched();
 }

@@ -1,6 +1,7 @@
 #include "riscv.h"
 #include "defs.h"
 
+const uint64 TICKS_PER_SEC = 100;   // 10 ms
 const uint64 MSEC_PER_SEC = 1000;
 const uint64 USEC_PER_SEC = 1000000;
 const uint64 CPU_FREQ = 12500000;
@@ -18,7 +19,7 @@ void timerinit() {
 /// Set the next timer interrupt
 void set_next_timer() {
     // 100Hz @ QEMU
-    uint64 timebase = 125000;   // 10 ms
+    uint64 timebase = CPU_FREQ / TICKS_PER_SEC; 
     set_timer(get_cycle() + timebase);
 }
 

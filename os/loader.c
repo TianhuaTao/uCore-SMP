@@ -5,65 +5,80 @@
 #include "memory_layout.h"
 static int app_cur, app_num;
 static uint64 *app_info_ptr;
-extern char _app_num[];
+extern char _app_num[], _app_names[];
 const uint64 BASE_ADDRESS = 0x1000; // user text start
+char names[20][100];
 
-void batchinit()
-{
-    app_info_ptr = (uint64 *)_app_num;
+
+void batchinit() {
+    char* s;
+    app_info_ptr = (uint64 *) _app_num;
     app_cur = -1;
     app_num = *app_info_ptr;
+    app_info_ptr++;
+
+    s = _app_names;
+    for(int i = 0; i < app_num; ++i) {
+        int len = strlen(s);
+        strncpy(names[i], (const char*)s, len);
+        s += len + 1;
+        tracef("new name: %s\n", names[i]);
+    }
 }
 
-pagetable_t bin_loader(uint64 start, uint64 end, struct proc *p)
-{
-    pagetable_t pg = uvmcreate();
-    p->trapframe = (struct trapframe *)kalloc();
-    memset(p->trapframe, 0, PGSIZE);
-
-    if (mappages(pg, TRAPFRAME, PGSIZE,
-                 (uint64)p->trapframe, PTE_R | PTE_W) < 0)
-    {
-        panic("mappages fail\n");
+int get_id_by_name(char* name) {
+    for(int i = 0; i < app_num; ++i) {
+        if(strncmp(name, names[i], 100) == 0)
+            return i;
     }
-    debugf("TRAPFRAME va=%p -> [%p, %p]\n", TRAPFRAME, (uint64)p->trapframe, ((uint64)p->trapframe) + PGSIZE);
+    warnf("not find such app\n");
+    return -1;
+}
 
-    uint64 s = PGROUNDDOWN(start), e = PGROUNDUP(end);
-
-    if (mappages(pg, BASE_ADDRESS, e - s, s, PTE_U | PTE_R | PTE_W | PTE_X) != 0)
-    {
-        panic("wrong loader 1\n");
+void alloc_ustack(struct proc *p) {
+    if (mappages(p->pagetable, USTACK_BOTTOM, USTACK_SIZE, (uint64) kalloc(), PTE_U | PTE_R | PTE_W | PTE_X) != 0) {
+        panic("alloc_ustack");
     }
-    debugf("bin start va=%p -> [%p, %p]\n", BASE_ADDRESS, s, e);
-
-    p->pagetable = pg;
-    p->trapframe->epc = BASE_ADDRESS;
-    uint64 ustack_pa = (uint64)kalloc();
-    uint64 ustack_va = USTACK_BOTTOM;
-    mappages(pg, ustack_va, USTACK_SIZE, ustack_pa, PTE_U | PTE_R | PTE_W | PTE_X);
-    debugf("ustack va=%p -> [%p, %p]\n", ustack_va, ustack_pa, USTACK_SIZE + ustack_pa);
-
-    p->ustack = ustack_va;
+    p->ustack = USTACK_BOTTOM;
     p->trapframe->sp = p->ustack + USTACK_SIZE;
-    if (p->trapframe->sp > BASE_ADDRESS)
-    {
+    if(p->trapframe->sp > BASE_ADDRESS) {
         panic("error memory_layout");
     }
-    // debugf("return bin_loader");
-    return pg;
 }
 
-int run_all_app()
-{
-    for (int i = 0; i < app_num; ++i)
-    {
-        app_cur++;
-        app_info_ptr++;
-        struct proc *p = allocproc();
-        debugf("after allocproc");
-        debugf("load app %d", app_cur);
-        bin_loader(app_info_ptr[0], app_info_ptr[1], p);
-        p->state = RUNNABLE;
+
+void bin_loader(uint64 start, uint64 end, struct proc *p) {
+    infof("load range = [%p, %p)\n", start, end);
+    uint64 s = PGROUNDDOWN(start), e = PGROUNDUP(end), length = e - s;
+    for(uint64 va = BASE_ADDRESS, pa = s; pa < e; va += PGSIZE, pa += PGSIZE) {
+        void* page = kalloc();
+        if(page == 0) {
+            panic("bin_loader kalloc");
+        }
+        memmove(page, (const void*)pa, PGSIZE);
+        if (mappages(p->pagetable, va, PGSIZE, (uint64)page, PTE_U | PTE_R | PTE_W | PTE_X) != 0)
+            panic("bin_loader mappages");
     }
+
+    p->trapframe->epc = BASE_ADDRESS;
+    alloc_ustack(p);
+    p->sz = USTACK_SIZE + length;
+}
+
+
+void loader(int id, void* p) {
+    infof("loader %s\n", names[id]);
+    bin_loader(app_info_ptr[id], app_info_ptr[id+1], p);
+}
+
+int run_all_app() {
+    struct proc *p = allocproc();
+    p->parent = 0;
+    int id = get_id_by_name("user_shell");
+    if(id < 0)
+        panic("no user shell");
+    loader(id, p);
+    p->state = RUNNABLE;
+    release(&p->lock);
     return 0;
 }
