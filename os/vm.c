@@ -144,11 +144,11 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     uint64 a, last;
     pte_t *pte;
 
-    debugf("va=%p->pa=%p, size=%p, UXWR=%d%d%d%d", va, pa, size,
-           HAS_BIT(perm, PTE_U),
-           HAS_BIT(perm, PTE_X),
-           HAS_BIT(perm, PTE_W),
-           HAS_BIT(perm, PTE_R));
+    // debugf("va=%p->pa=%p, size=%p, UXWR=%d%d%d%d", va, pa, size,
+    //        HAS_BIT(perm, PTE_U),
+    //        HAS_BIT(perm, PTE_X),
+    //        HAS_BIT(perm, PTE_W),
+    //        HAS_BIT(perm, PTE_R));
     a = PGROUNDDOWN(va);
     last = PGROUNDDOWN(va + size - 1);
     // int cnt =0 ;
@@ -178,11 +178,11 @@ int map1page(pagetable_t pagetable, uint64 va, uint64 pa, int perm)
     uint64 a;
     pte_t *pte;
     uint64 size = PGSIZE;
-    debugf("va=%p->pa=%p, size=%p, UXWR=%d%d%d%d", va, pa, size,
-           HAS_BIT(perm, PTE_U),
-           HAS_BIT(perm, PTE_X),
-           HAS_BIT(perm, PTE_W),
-           HAS_BIT(perm, PTE_R));
+    // debugf("va=%p->pa=%p, size=%p, UXWR=%d%d%d%d", va, pa, size,
+    //        HAS_BIT(perm, PTE_U),
+    //        HAS_BIT(perm, PTE_X),
+    //        HAS_BIT(perm, PTE_W),
+    //        HAS_BIT(perm, PTE_R));
     a = PGROUNDDOWN(va);
 
     if ((pte = walk(pagetable, a, 1)) == 0)
@@ -243,7 +243,7 @@ uvmcreate()
     //     uvmfree(pagetable, 0);
     //     return 0;
     // }
-    debugf("map user trampoline\n");
+    // debugf("map user trampoline\n");
     return pagetable;
 }
 

@@ -11,8 +11,9 @@ int getchar() {
 
 int putchar(int c)
 {
-    char byte = c;
-    return write(stdout, &byte, 1);
+    static char put[2] = {0, 0};
+    put[0] = c;
+    return write(stdout, put, 1);
 }
 
 int puts(const char* s)

@@ -4,6 +4,8 @@
 #include "types.h"
 struct context;
 struct proc;
+struct file;
+struct pipe;
 
 // panic.c
 void loop();
@@ -16,7 +18,7 @@ void shutdown();
 void set_timer(uint64 stime);
 
 // console.c
-
+void consoleinit(void);
 void consputc(int);
 
 // printf.c
@@ -65,6 +67,7 @@ int exec(char*);
 int wait(int, int*);
 struct proc* allocproc();
 void init_scheduler();
+int fdalloc(struct file *);
 
 
 // kalloc.c
@@ -93,12 +96,23 @@ int map1page(pagetable_t pagetable, uint64 va, uint64 pa, int perm);
 pte_t *walk(pagetable_t pagetable, uint64 va, int alloc);
 void
 kvminithart();
+void debugwalk(pagetable_t, int);
+
 
 // timer.c
 uint64 get_cycle();
 void timerinit();
 void set_next_timer();
 uint64 get_time_ms();
+// pipe.c
+int pipealloc(struct file *, struct file *);
+void pipeclose(struct pipe *, int);
+int piperead(struct pipe *, uint64, int);
+int pipewrite(struct pipe *, uint64, int);
+
+// file.c
+void fileclose(struct file *);
+struct file* filealloc();
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))

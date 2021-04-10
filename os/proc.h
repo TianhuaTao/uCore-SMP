@@ -4,11 +4,12 @@
 #include "ucore.h"
 
 #include "lock.h"
-
+#include "file.h"
 #define NPROC (256)
 #define KSTACK_SIZE (4096)
 #define USTACK_SIZE (4096)
 #define TRAPFRAME_SIZE (4096)
+#define FD_MAX (16)
 enum procstate
 {
   UNUSED,
@@ -43,7 +44,10 @@ struct proc
   uint64 priority;
   uint64 cpu_time;        // ms, user and kernel
   uint64 last_start_time; // ms
+  struct file* files[16];
+  struct mailbox mb;
 };
+struct proc* findproc(int pid);
 
 struct proc *curr_proc();
 int spawn(char* filename);

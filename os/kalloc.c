@@ -68,8 +68,9 @@ kalloc(void)
     if (l)
     {
         kmem.freelist = l->next;
-        memset((char *)l, 5, PGSIZE); // fill with junk
     }
     release(&kmem.lock);
+    if(l)
+        memset((char *)l, 5, PGSIZE); // fill with junk
     return (void *)l;
 }

@@ -19,7 +19,7 @@ void timerinit() {
 /// Set the next timer interrupt
 void set_next_timer() {
     // 100Hz @ QEMU
-    uint64 timebase = CPU_FREQ / TICKS_PER_SEC; 
+    const uint64 timebase = CPU_FREQ / TICKS_PER_SEC; 
     set_timer(get_cycle() + timebase);
 }
 

@@ -7,7 +7,7 @@ static int app_cur, app_num;
 static uint64 *app_info_ptr;
 extern char _app_num[], _app_names[];
 const uint64 BASE_ADDRESS = 0x1000; // user text start
-char names[20][100];
+char names[40][100];
 
 
 void batchinit() {

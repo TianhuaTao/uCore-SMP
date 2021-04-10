@@ -58,23 +58,23 @@ enum LOG_COLOR
 
 #if defined(USE_LOG_WARN)
 
-#define warnf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", YELLOW, "WARN", ##__VA_ARGS__);
+#define warnf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", YELLOW, "WARN", ##__VA_ARGS__)
 #else
 #define warnf(fmt, ...)
 #endif //
 
 #if defined(USE_LOG_ERROR)
 
-#define errorf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", RED, "ERROR", ##__VA_ARGS__);
+#define errorf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", RED, "ERROR", ##__VA_ARGS__)
 #else
 #define errorf(fmt, ...)
 #endif //
 
 #if defined(USE_LOG_DEBUG)
 
-#define debugf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", GREEN, "DEBUG", ##__VA_ARGS__);
+#define debugf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", GREEN, "DEBUG", ##__VA_ARGS__)
 
-#define debugcore(fmt, ...) printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", GREEN, "DEBUG", cpuid(), ##__VA_ARGS__);
+#define debugcore(fmt, ...) printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", GREEN, "DEBUG", cpuid(), ##__VA_ARGS__)
 #define phex(var_name) debugf(#var_name "=%p", var_name)
 
 #else
@@ -84,14 +84,14 @@ enum LOG_COLOR
 
 #if defined(USE_LOG_TRACE)
 
-#define tracef(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", GRAY, "TRACE", ##__VA_ARGS__);
+#define tracef(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", GRAY, "TRACE", ##__VA_ARGS__)
 #else
 #define tracef(fmt, ...)
 #endif //
 
 #if defined(USE_LOG_INFO)
 
-#define infof(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", BLUE, "INFO", ##__VA_ARGS__);
+#define infof(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", BLUE, "INFO", ##__VA_ARGS__)
 #else
 #define infof(fmt, ...)
 #endif //

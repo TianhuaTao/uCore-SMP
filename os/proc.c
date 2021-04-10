@@ -4,6 +4,7 @@
 #include "timer.h"
 #include "log.h"
 #include "riscv.h"
+#include "file.h"
 #include "memory_layout.h"
 struct proc pool[NPROC];
 
@@ -20,6 +21,20 @@ struct proc *curr_proc()
     return mycpu()->proc;
 }
 // struct proc idle[NCPU];
+
+struct proc* findproc(int pid)
+{
+    struct proc *p = NULL;
+    acquire(&pool_lock);
+    for(p = pool; p < &pool[NPROC]; p++) {
+        if(p->state != UNUSED && p->pid == pid) {
+            break;
+        }
+    }
+    release(&pool_lock);
+    return p;
+}
+
 
 void procinit(void)
 {
@@ -41,6 +56,7 @@ void procinit(void)
 
 int allocpid()
 {
+    // TODO: add lock
     static int PID = 1;
     return PID++;
 }
@@ -93,6 +109,12 @@ freeproc(struct proc *p)
         proc_freepagetable(p->pagetable, p->sz);
     p->pagetable = 0;
     p->state = UNUSED;
+    for(int i = 0; i < FD_MAX; ++i) {
+        if(p->files[i] != 0) {
+            fileclose(p->files[i]);
+            p->files[i] = 0;
+        }
+    }
 }
 
 
@@ -127,7 +149,7 @@ found:
     }
     memset(&p->context, 0, sizeof(p->context));
     memset((void *)p->kstack, 0, KSTACK_SIZE);
-    debugf("memset done");
+    // debugf("memset done");
     p->context.ra = (uint64)usertrapret;    // used in swtch()
         p->context.sp = p->kstack + KSTACK_SIZE;
 
@@ -136,7 +158,10 @@ found:
     p->priority = 16;
     p->cpu_time = 0;
     p->last_start_time = 0;
-    debugf("before return");
+    if(init_mailbox(&p->mb)==0){
+        panic("init mailbox failed");
+    } 
+    // debugf("before return");
     return p;
 }
 // Return this CPU's cpu struct.
@@ -234,7 +259,7 @@ void scheduler(void)
         }
         else
         {
-            debugcore("no proc to run");
+            // debugcore("no proc to run");
             // break;
         }
     }
@@ -263,7 +288,7 @@ void sched(void)
     //     p->state = UNUSED;
     //     // exit(-1);
     // }
-    infof("before swtch");
+    // infof("before swtch");
     swtch(&p->context, &mycpu()->context);
 }
 
@@ -279,16 +304,17 @@ fork(void)
     int pid;
     struct proc *np;
     struct proc *p = curr_proc();
-    debugf("inside fork");
+    // debugf("inside fork");
 
     // Allocate process.
     if((np = allocproc()) == 0){
         panic("allocproc\n");
     }
-    debugf("inside fork allocproc done");
+    // debugf("inside fork allocproc done");
     
     // Copy user memory from parent to child.
     if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+        release(&np->lock);
         panic("uvmcopy\n");
     }
     np->sz = p->sz;
@@ -296,6 +322,11 @@ fork(void)
     // copy saved user registers.
     *(np->trapframe) = *(p->trapframe);
 
+    for(int i = 0; i < FD_MAX; ++i)
+        if(p->files[i] != 0 && p->files[i]->type != FD_NONE) {
+            p->files[i]->ref++;
+            np->files[i] = p->files[i];
+        }
     // Cause fork to return 0 in the child.
     np->trapframe->a0 = 0;
     pid = np->pid;
@@ -303,6 +334,8 @@ fork(void)
 
 
     np->parent = p;
+
+
     np->state = RUNNABLE;
     release(&np->lock);
     return pid;
@@ -367,6 +400,7 @@ int spawn(char* filename){
     }
     // info("load\n");
     loader(id, np);
+    release(&np->lock);
     return pid;
 }
 
@@ -398,7 +432,7 @@ wait(int pid, int* code)
             return -1;
         }
 
-        debugf("pid %d keep waiting", p->pid);
+        // debugf("pid %d keep waiting", p->pid);
         p->state = RUNNABLE;
         sched();
     }
@@ -415,4 +449,16 @@ void exit(int code) {
     }
     debugf("before sched");
     sched();
+}
+
+int fdalloc(struct file* f) {
+    struct proc* p = curr_proc();
+    // fd = 0 is reserved for stdio/stdout
+    for(int i = 1; i < FD_MAX; ++i) {
+        if(p->files[i] == 0) {
+            p->files[i] = f;
+            return i;
+        }
+    }
+    return -1;
 }

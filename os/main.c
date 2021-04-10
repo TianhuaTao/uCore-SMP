@@ -19,6 +19,7 @@ void clean_bss()
 }
 
 volatile static int first_hart = 1;
+volatile static int all_started = 0;
 void start_hart(uint64 hartid, uint64 start_addr, uint64 a1);
 void hart_bootcamp(uint64 hartid, uint64 a1)
 {
@@ -39,6 +40,7 @@ void wait_all_boot()
         while (!booted[i])
             ;
     }
+    all_started = 1;
 }
 void init_booted()
 {
@@ -103,6 +105,11 @@ void main(uint64 hartid, uint64 a1)
     {
         hart_bootcamp(hartid, a1);
     }
+    while (!all_started)
+    {
+        ;   // wait until all hard started
+    }
+    
     tracef("start scheduler!");
     scheduler();
     debugf("core %d halt", cpuid());

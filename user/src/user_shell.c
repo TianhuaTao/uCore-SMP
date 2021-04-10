@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+
 const unsigned char LF = 0x0a;
 const unsigned char CR = 0x0d;
 const unsigned char DL = 0x7f;
 const unsigned char BS = 0x08;
 
 char line[100] = {};
+
 int top = 0;
 
 void push(char c) {
@@ -68,6 +70,7 @@ int main() {
             default:
                 putchar(c);
                 push(c);
+                break;
         }
     }
     return 0;
