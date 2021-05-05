@@ -14,6 +14,7 @@ struct inode
     int ref;    // Reference count
     int valid;  // inode has been read from disk?
     short type; // copy of disk inode
+    short num_link;
     uint size;
     uint addrs[NDIRECT + 1];
 };

@@ -6,6 +6,10 @@ void init_spin_lock(struct spinlock *slock)
   slock->locked = 0;
   slock->cpu = NULL;
 }
+void init_mutex(struct mutex *mutex){
+    init_spin_lock(&mutex->guard_lock);
+    mutex->locked = FALSE;
+}
 
 // Acquire the lock.
 // Loops (spins) until the lock is acquired.
@@ -37,7 +41,7 @@ void release(struct spinlock *slock)
   if (!holding(slock))
     panic("release");
 
-  slock->cpu = 0;
+  slock->cpu = NULL;
 
   // Tell the C compiler and the CPU to not move loads or stores
   // past this point, to ensure that all the stores in the critical
@@ -94,8 +98,6 @@ void pop_off(void)
     panic("pop_off");
   c->noff -= 1;
   if (c->noff == 0 && c->maintence){
-
     intr_on();
-
   }
 }

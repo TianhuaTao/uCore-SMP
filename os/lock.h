@@ -12,6 +12,11 @@ struct spinlock
     struct cpu *cpu;
 };
 
+struct mutex
+{
+    uint locked; // Is the lock held?
+    struct spinlock guard_lock; 
+};
 
 
 void acquire(struct spinlock *slock);
@@ -21,5 +26,5 @@ void pop_off(void);
 int holding(struct spinlock *lk);
 
 void init_spin_lock(struct spinlock *slock);
-
+void init_mutex(struct mutex *mutex);
 #endif // LOCK_H

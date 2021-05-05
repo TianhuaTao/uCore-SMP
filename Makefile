@@ -1,3 +1,4 @@
+.PHONY: clean build_kernel all
 all: build_kernel
 
 U = user
@@ -83,7 +84,6 @@ build/kernel: $(OBJS) os/kernel_app.ld os/link_app.S
 
 clean: 
 	rm -rf $(BUILDDIR) nfs/fs os/kernel_app.ld os/link_app.S
-
 
 # BOARD
 BOARD		?= qemu

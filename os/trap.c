@@ -8,41 +8,17 @@
 extern char trampoline[], uservec[], userret[];
 void kernelvec();
 
-// set up to take exceptions and traps while in the kernel.
-// void trapinit(void)
-// {
-//     // intr_on();
-//    set_kerneltrap();
-// }
+
 void trapinit() {
     set_kerneltrap();
     w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
 }
+
 void unknown_trap() {
     printf("unknown trap: %p, stval = %p\n", r_scause(), r_stval());
     exit(-1);
 }
 
-
-// void kerneltrap() {
-//     // uint64 sp = r_sp();
-//     // uint64 a5 = r_a5();
-//     uint64 stval = r_stval();
-//     uint64 sepc = r_sepc();
-//     uint64 cause = r_scause();
-//     uint64 interupt = cause & (1ULL << 63);
-//     // printf_k("ktrap sp=%p\n", sp);
-//     // printf_k("ktrap sp+24=%p\n", sp+24);
-//     // printf_k("ktrap *(sp+24)=%p\n", *(uint64*)(sp+24));
-//     if((r_sstatus() & SSTATUS_SPP) == 0)
-//         panic("kerneltrap: should not handle user traps");
-
-//     (void)cause;
-//     printf_k("[core%d] intr=%d ,scause=%d in application, stval=%p, sepc=%p, core dumped.\n",
-//     cpuid(),interupt, cause,
-//                     stval, sepc);
-//     panic("trap from kernel\n");
-// }
 
 // set up to take exceptions and traps while in the kernel.
 void set_usertrap(void) {
@@ -50,10 +26,6 @@ void set_usertrap(void) {
     intr_off();
 }
 
-// void set_kerneltrap(void) {
-//     w_sie(r_sie() & ~SIE_STIE); // stop timer interupt
-//     w_stvec((uint64)kerneltrap & ~0x3); // DIRECT
-// }
 void set_kerneltrap(void) {
     w_stvec((uint64) kernelvec & ~0x3);     // DIRECT
     intr_on();
@@ -104,17 +76,6 @@ void usertrap() {
 
     uint64 cause = r_scause();
     if(cause & (1ULL << 63)) {  // interrput = 1
-        // cause &= ~(1ULL << 63);
-        // switch(cause) {
-        // case SupervisorTimer:
-        //     // infof("time interrupt!\n");
-        //     set_next_timer();
-        //     yield();
-        //     break;
-        // default:
-        //     unknown_trap();
-        //     break;
-        // }
         devintr(cause & 0xff);
 
     } else {    // interrput = 0
