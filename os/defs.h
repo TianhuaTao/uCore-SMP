@@ -21,7 +21,6 @@ void shutdown();
 void set_timer(uint64 stime);
 
 
-
 // printf.c
 void printf(char *, ...);
 void printf_k(char *fmt, ...);

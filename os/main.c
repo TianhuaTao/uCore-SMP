@@ -52,7 +52,6 @@ void init_booted()
 }
 
 extern char _entry[];
-
 void main(uint64 hartid, uint64 a1)
 {
     if (first_hart)
