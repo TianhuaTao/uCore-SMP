@@ -144,7 +144,7 @@ int init_mailbox(struct mailbox *mb) {
     if (buf_pa == 0) {
         return 0;
     }
-    init_spin_lock(&mb->lock);
+    init_spin_lock_with_name(&mb->lock, "mailbox.lock");
     mb->mailbuf = buf_pa;
     for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
         mb->length[i] = 0;

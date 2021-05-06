@@ -45,7 +45,7 @@ void procinit(void)
     init_spin_lock_with_name(&pool_lock, "pool_lock");
     for (p = pool; p < &pool[NPROC]; p++)
     {
-        init_spin_lock(&p->lock);
+        init_spin_lock_with_name(&p->lock, "proc.lock");
         p->state = UNUSED;
         p->waiting_target = NULL;
         p->kstack = (uint64)kstack[p - pool];
@@ -419,8 +419,8 @@ void sleep(void *waiting_target, struct spinlock *lk) {
     // guaranteed that we won't miss any wakeup
     // (wakeup locks p->lock),
     // so it's okay to release lk.
-
     acquire(&p->lock); //DOC: sleeplock1
+
     release(lk);
 
     // Go to sleep.

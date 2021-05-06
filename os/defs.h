@@ -29,6 +29,7 @@ printfinit(void);
 
 // trap.c
 void trapinit();
+void trapinit_hart();
 void usertrapret();
 void set_usertrap();
 void set_kerneltrap();

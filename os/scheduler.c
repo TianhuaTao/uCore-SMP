@@ -55,7 +55,7 @@ void scheduler(void)
         else
         {
             // debugcore("no proc to run");
-            break;
+            // break;
         }
     }
 }

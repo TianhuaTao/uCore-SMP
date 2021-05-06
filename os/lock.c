@@ -15,7 +15,7 @@ void init_spin_lock_with_name(struct spinlock *slock, const char *name){
     slock->name = name;
 }
 void init_mutex(struct mutex *mutex){
-    init_spin_lock(&mutex->guard_lock);
+    init_spin_lock_with_name(&mutex->guard_lock, "mutex.guard_lock");
     mutex->locked = FALSE;
 }
 

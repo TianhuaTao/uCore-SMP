@@ -67,7 +67,7 @@ extern int debug_core_color[];
 
 #if defined(USE_LOG_ERROR)
 
-#define errorf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", RED, "ERROR", ##__VA_ARGS__)
+#define errorf(fmt, ...) printf("\x1b[%dm[%s] %s %d: " fmt "\x1b[0m\n", RED, "ERROR", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define errorf(fmt, ...)
 #endif //

@@ -15,7 +15,7 @@ pipealloc(struct file *f0, struct file *f1)
     pi->writeopen = 1;
     pi->nwrite = 0;
     pi->nread = 0;
-    init_spin_lock(&pi->lock);
+    init_spin_lock_with_name(&pi->lock, "pipe.lock");
     f0->type = FD_PIPE;
     f0->readable = 1;
     f0->writable = 0;

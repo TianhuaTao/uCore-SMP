@@ -31,11 +31,13 @@ read_superblock(int dev, struct superblock *sb) {
 
 // Init fs
 void fsinit() {
+    printf("[ucore] Initialize File System...\n");
     int dev = ROOTDEV;
     read_superblock(dev, &sb);
     if (sb.magic != FSMAGIC) {
         panic("invalid file system");
     }
+    printf("[ucore] File System Initialized\n");
 }
 
 // Zero a block.
