@@ -4,6 +4,7 @@
 #include "types.h"
 #include "lock.h"
 #include "fs.h"
+#include "lock.h"
 // pipe.h
 #define PIPESIZE 512
 // in-memory copy of an inode
@@ -12,6 +13,7 @@ struct inode
     uint dev;   // Device number
     uint inum;  // Inode number
     int ref;    // Reference count
+    struct mutex lock;
     int valid;  // inode has been read from disk?
     short type; // copy of disk inode
     short num_link;
@@ -68,7 +70,11 @@ struct mailbox
 };
 
 int init_mailbox(struct mailbox *mb);
+#define FILE_MAX (128 * 16)
 
-extern struct file filepool[128 * 16]; // NPROC * PROC_MAX
+// extern struct {
+//     struct file files[FILE_MAX];
+//     struct spinlock lock;
+// } filepool; // NPROC * PROC_MAX
 
 #endif //!__FILE_H__

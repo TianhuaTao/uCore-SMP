@@ -1,10 +1,18 @@
 #include "lock.h"
 #include "ucore.h"
 #include "riscv.h"
+#include "proc.h"
 void init_spin_lock(struct spinlock *slock)
 {
   slock->locked = 0;
   slock->cpu = NULL;
+  slock->name = "unnamed";
+}
+
+void init_spin_lock_with_name(struct spinlock *slock, const char *name){
+    slock->locked = 0;
+    slock->cpu = NULL;
+    slock->name = name;
 }
 void init_mutex(struct mutex *mutex){
     init_spin_lock(&mutex->guard_lock);
@@ -16,9 +24,10 @@ void init_mutex(struct mutex *mutex){
 void acquire(struct spinlock *slock)
 {
   push_off(); // disable interrupts to avoid deadlock.
-  if (holding(slock))
-    panic("This cpu is acquiring a acquired lock");
-
+  if (holding(slock)){
+      errorf("lock \"%s\" is held by core %d, cannot be acquired", slock->name, slock->cpu - cpus);
+      panic("This cpu is acquiring a acquired lock");
+  }
   // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
   //   a5 = 1
   //   s1 = &slock->locked
@@ -90,8 +99,6 @@ void push_off(void)
 void pop_off(void)
 {
   struct cpu *c = mycpu();
-
-
   if (intr_get())
     panic("pop_off - interruptible");
   if (c->noff < 1)
@@ -101,3 +108,23 @@ void pop_off(void)
     intr_on();
   }
 }
+
+void acquire_mutex_sleep(struct mutex *mu){
+    acquire(&mu->guard_lock);
+    while (mu->locked) {
+        sleep(mu, &mu->guard_lock);
+    }
+    mu->locked = 1;
+    // mu->pid = myproc()->pid;
+    release(&mu->guard_lock);
+}
+void release_mutex_sleep(struct mutex *mu){
+    acquire(&mu->guard_lock);
+    mu->locked = 0;
+    // mu->pid = 0;
+    wakeup(mu);
+    release(&mu->guard_lock);
+}
+
+
+ 

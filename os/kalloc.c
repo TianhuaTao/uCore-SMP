@@ -24,7 +24,7 @@ struct
  */
 void kinit()
 {
-    init_spin_lock(&kmem.lock);
+    init_spin_lock_with_name(&kmem.lock, "kmem.lock");
     freerange(ekernel, (void *)PHYSTOP);
     kmem.free_page_count = 0;
 }

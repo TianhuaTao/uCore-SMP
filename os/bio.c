@@ -27,9 +27,9 @@ struct {
 } bcache;
 
 void binit(void) {
-    // TODO: init lock
+
     struct buf *b;
-    init_spin_lock(&bcache.lock);
+    init_spin_lock_with_name(&bcache.lock, "bcache.lock");
     // Create linked list of buffers
     bcache.head.prev = &bcache.head;
     bcache.head.next = &bcache.head;
@@ -45,7 +45,6 @@ void binit(void) {
 // If not found, allocate a buffer.
 static struct buf *
 bget(uint dev, uint blockno) {
-    // TODO: lock
     struct buf *b;
     acquire(&bcache.lock);
     // Is the block already cached?
@@ -53,7 +52,7 @@ bget(uint dev, uint blockno) {
         if (b->dev == dev && b->blockno == blockno) {
             b->refcnt++;
             release(&bcache.lock);
-            // TODO: acquiresleep(&b->lock);
+            acquire_mutex_sleep(&b->mu);
             return b;
         }
     }
@@ -65,6 +64,8 @@ bget(uint dev, uint blockno) {
             b->blockno = blockno;
             b->valid = 0;
             b->refcnt = 1;
+            release(&bcache.lock);
+            acquire_mutex_sleep(&b->mu);
             return b;
         }
     }
@@ -79,13 +80,10 @@ const int W = 1;
 struct buf *
 bread(uint dev, uint blockno) {
     struct buf *b;
-
-
     b = bget(dev, blockno);
 
     if (!b->valid) {
         virtio_disk_rw(b, R);
-
         b->valid = 1;
     }
     return b;
@@ -113,12 +111,12 @@ void brelse(struct buf *b) {
     }
 }
 
-void bpin(struct buf *b) {
-    // TODO: lock
-    b->refcnt++;
-}
+// void bpin(struct buf *b) {
+//     // TODO: lock
+//     b->refcnt++;
+// }
 
-void bunpin(struct buf *b) {
-    // TODO: lock
-    b->refcnt--;
-}
+// void bunpin(struct buf *b) {
+//     // TODO: lock
+//     b->refcnt--;
+// }

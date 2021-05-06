@@ -99,6 +99,6 @@ void syscall()
     trapframe->a0 = ret;
     if (id != SYS_write && id != SYS_read)
     {
-        debugcore("syscall ret %d\n", ret);
+        debugcore("syscall %d ret %d\n", id, ret);
     }
 }

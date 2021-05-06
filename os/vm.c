@@ -310,7 +310,7 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
-void freewalk(pagetable_t pagetable)
+void free_pagetable_pages(pagetable_t pagetable)
 {
     // there are 2^9 = 512 PTEs in a page table.
     for (int i = 0; i < 512; i++)
@@ -320,12 +320,12 @@ void freewalk(pagetable_t pagetable)
         {
             // this PTE points to a lower-level page table.
             uint64 child = PTE2PA(pte);
-            freewalk((pagetable_t)child);
+            free_pagetable_pages((pagetable_t)child);
             pagetable[i] = 0;
         }
         else if (pte & PTE_V)
         {
-            panic("freewalk: valid page");
+            panic("free_pagetable_pages is containing a valid page");
         }
     }
     recycle_physical_page((void *)pagetable);
@@ -333,21 +333,22 @@ void freewalk(pagetable_t pagetable)
 
 // Free user memory pages,
 // then free page-table pages.
-void uvmfree(pagetable_t pagetable, uint64 sz)
+// If sz == 0, only free pagetable pages
+void free_user_mem_and_pagetables(pagetable_t pagetable, uint64 sz)
 {
-    debugcore("uvmfree");
     // TODO: fix this
     if (sz > 0)
     {
         // free ustack
-        debugcore("uvmfree free stack");
+        debugcore("free_user_mem_and_pagetables free stack");
         uvmunmap(pagetable, USER_STACK_BOTTOM - USTACK_SIZE, USTACK_SIZE / PGSIZE, TRUE);
         sz -= USTACK_SIZE;
+        
         // free bin
-        debugcore("uvmfree free bin");
+        debugcore("free_user_mem_and_pagetables free bin");
         uvmunmap(pagetable, USER_TEXT_START, PGROUNDUP(sz) / PGSIZE, 1);
     }
-    freewalk(pagetable);
+    free_pagetable_pages(pagetable);
 }
 
 // mark a PTE invalid for user access.

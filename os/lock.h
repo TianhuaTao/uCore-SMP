@@ -10,6 +10,8 @@ struct spinlock
 {
     uint locked;
     struct cpu *cpu;
+
+    const char *name;
 };
 
 struct mutex
@@ -26,5 +28,8 @@ void pop_off(void);
 int holding(struct spinlock *lk);
 
 void init_spin_lock(struct spinlock *slock);
+void init_spin_lock_with_name(struct spinlock *slock, const char* name);
 void init_mutex(struct mutex *mutex);
+void acquire_mutex_sleep(struct mutex *mu);
+void release_mutex_sleep(struct mutex *mu);
 #endif // LOCK_H

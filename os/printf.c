@@ -21,8 +21,8 @@ void set_printf_use_lock(int value){
  */
 void printfinit(void)
 {
-  init_spin_lock(&printf_setting.lock);
-  printf_setting.use_lock = 1;
+    init_spin_lock_with_name(&printf_setting.lock, "printf_setting.lock");
+    printf_setting.use_lock = 1;
 }
 
 static void

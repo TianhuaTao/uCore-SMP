@@ -43,7 +43,8 @@ struct proc
   uint64 priority;
   uint64 cpu_time;        // ms, user and kernel
   uint64 last_start_time; // ms
-  struct file* files[16];
+  void *waiting_target;
+  struct file *files[16];
   struct mailbox mb;
 };
 struct proc* findproc(int pid);
@@ -52,4 +53,8 @@ struct proc *curr_proc();
 int spawn(char* filename);
 extern struct proc pool[NPROC];
 extern struct spinlock pool_lock;
+
+void sleep(void *waiting_target, struct spinlock *lk);
+void wakeup(void *waiting_target);
+
 #endif // PROC_H

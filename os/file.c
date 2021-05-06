@@ -1,41 +1,50 @@
-#include "types.h"
 #include "file.h"
-#include "proc.h"
 #include "defs.h"
-#include "fs.h"
 #include "fcntl.h"
+#include "fs.h"
+#include "proc.h"
+#include "types.h"
 
-#define FILE_MAX (128*16)
-struct file filepool[FILE_MAX];
+struct {
+    struct file files[FILE_MAX];
+    struct spinlock lock;
+} filepool;
 
-void
-fileclose(struct file *f)
-{
-    if(f->ref < 1)
-        panic("fileclose");
-    if(--f->ref > 0) {
-        return;
-    }
-
-    if(f->type == FD_PIPE){
-        pipeclose(f->pipe, f->writable);
-    } else if(f->type == FD_INODE) {
-        iput(f->ip);
-    }
-    f->off = 0;
-    f->readable = 0;
-    f->writable = 0;
-    f->ref = 0;
-    f->type = FD_NONE;
+void fileinit() {
+    init_spin_lock_with_name(&filepool.lock, "filepool.lock");
 }
 
-struct file* filealloc() {
-    for(int i = 0; i < FILE_MAX; ++i) {
-        if(filepool[i].ref == 0) {
-            filepool[i].ref = 1;
-            return &filepool[i];
+void fileclose(struct file *f) {
+    struct file ff;
+    acquire(&filepool.lock);
+    if (f->ref < 1)
+        panic("fileclose");
+    if (--f->ref > 0) {
+        release(&filepool.lock);
+        return;
+    }
+    ff = *f;
+    f->ref = 0;
+    f->type = FD_NONE;
+    release(&filepool.lock);
+
+    if (ff.type == FD_PIPE) {
+        pipeclose(ff.pipe, ff.writable);
+    } else if (ff.type == FD_INODE) {
+        iput(ff.ip);
+    }
+}
+
+struct file *filealloc() {
+    acquire(&filepool.lock);
+    for (int i = 0; i < FILE_MAX; ++i) {
+        if (filepool.files[i].ref == 0) {
+            filepool.files[i].ref = 1;
+            release(&filepool.lock);
+            return &filepool.files[i];
         }
     }
+    release(&filepool.lock);
     return 0;
 }
 
@@ -48,7 +57,6 @@ create(char *path, short type) {
     dp = root_dir();
     ivalid(dp);
 
-
     if ((ip = dirlookup(dp, path, 0)) != 0) {
         warnf("create a exist file\n");
         iput(dp);
@@ -59,22 +67,17 @@ create(char *path, short type) {
         return 0;
     }
 
-
     if ((ip = ialloc(dp->dev, type)) == 0)
         panic("create: ialloc");
 
-
     tracef("create dinod and inode type = %d\n", type);
-    
-    ivalid(ip);
 
+    ivalid(ip);
 
     iupdate(ip);
 
-
-    if(dirlink(dp, path, ip->inum) < 0)
+    if (dirlink(dp, path, ip->inum) < 0)
         panic("create: dirlink");
-
 
     iput(dp);
     return ip;
@@ -89,9 +92,7 @@ int fileopen(char *path, uint64 omode) {
 
     if (omode & O_CREATE) {
 
-
         ip = create(path, T_FILE);
-
 
         if (ip == NULL) {
             return -1;
@@ -122,7 +123,7 @@ int fileopen(char *path, uint64 omode) {
     return fd;
 }
 
-uint64 filewrite(struct file* f, uint64 va, uint64 len) {
+uint64 filewrite(struct file *f, uint64 va, uint64 len) {
     int r;
     ivalid(f->ip);
     if ((r = writei(f->ip, 1, va, f->off, len)) > 0)
@@ -130,7 +131,7 @@ uint64 filewrite(struct file* f, uint64 va, uint64 len) {
     return r;
 }
 
-uint64 fileread(struct file* f, uint64 va, uint64 len) {
+uint64 fileread(struct file *f, uint64 va, uint64 len) {
     int r;
     ivalid(f->ip);
     if ((r = readi(f->ip, 1, va, f->off, len)) > 0)
@@ -138,19 +139,17 @@ uint64 fileread(struct file* f, uint64 va, uint64 len) {
     return r;
 }
 
-int init_mailbox(struct mailbox* mb){
-    void* buf_pa = alloc_physical_page();
-    if(buf_pa == 0 ){
+int init_mailbox(struct mailbox *mb) {
+    void *buf_pa = alloc_physical_page();
+    if (buf_pa == 0) {
         return 0;
     }
     init_spin_lock(&mb->lock);
-    mb->mailbuf  =buf_pa;
-    for (int i = 0; i < MAX_MAIL_IN_BOX; i++)
-    {
+    mb->mailbuf = buf_pa;
+    for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
         mb->length[i] = 0;
         mb->valid[i] = 0;
     }
     mb->head = 0;
     return 1;
 }
-

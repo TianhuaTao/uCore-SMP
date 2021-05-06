@@ -44,7 +44,6 @@ void scheduler(void)
             next_proc->state = RUNNING;
 
 
-
             next_proc->last_start_time = get_time_ms();
             uint64 pass = BIGSTRIDE / (next_proc->priority);
             next_proc->stride += pass;
@@ -56,7 +55,7 @@ void scheduler(void)
         else
         {
             // debugcore("no proc to run");
-            // break;
+            break;
         }
     }
 }

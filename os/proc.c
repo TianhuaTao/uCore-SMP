@@ -42,18 +42,19 @@ struct proc *findproc(int pid)
 void procinit(void)
 {
     struct proc *p;
-    init_spin_lock(&pool_lock);
+    init_spin_lock_with_name(&pool_lock, "pool_lock");
     for (p = pool; p < &pool[NPROC]; p++)
     {
         init_spin_lock(&p->lock);
         p->state = UNUSED;
+        p->waiting_target = NULL;
         p->kstack = (uint64)kstack[p - pool];
         // must after kinit()
         p->trapframe = alloc_physical_page();
     }
 
     next_pid.pid = 1;
-    init_spin_lock(&next_pid.lock);
+    init_spin_lock_with_name(&next_pid.lock, "next_pid.lock");
 }
 
 
@@ -79,7 +80,7 @@ proc_pagetable(struct proc *p)
     if (mappages(pagetable, TRAMPOLINE, PGSIZE,
                  (uint64)trampoline, PTE_R | PTE_X) < 0)
     {
-        uvmfree(pagetable, 0);
+        free_user_mem_and_pagetables(pagetable, 0);
         return 0;
     }
 
@@ -105,7 +106,7 @@ void proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
     uvmunmap(pagetable, TRAMPOLINE, 1, FALSE);
     uvmunmap(pagetable, TRAPFRAME, 1, FALSE);
-    uvmfree(pagetable, sz);
+    free_user_mem_and_pagetables(pagetable, sz);
 }
 
 static void
@@ -113,14 +114,16 @@ freeproc(struct proc *p)
 {
     if (p->trapframe)
         recycle_physical_page((void *)p->trapframe);
-    p->trapframe = 0;
+    p->trapframe = NULL;
     if (p->pagetable)
         proc_freepagetable(p->pagetable, p->total_size);
-    p->pagetable = 0;
+    p->pagetable = NULL;
     p->state = UNUSED;
+
+    // close files
     for (int i = 0; i < FD_MAX; ++i)
     {
-        if (p->files[i] != 0)
+        if (p->files[i] != NULL)
         {
             fileclose(p->files[i]);
             p->files[i] = 0;
@@ -389,4 +392,47 @@ int fdalloc(struct file *f)
         }
     }
     return -1;
+}
+
+void wakeup(void *waiting_target) {
+    struct proc *p;
+
+    for (p = pool; p < &pool[NPROC]; p++) {
+        if (p != curr_proc()) {
+            acquire(&p->lock);
+            if (p->state == SLEEPING && p->waiting_target == waiting_target) {
+                p->state = RUNNABLE;
+            }
+            release(&p->lock);
+        }
+    }
+}
+
+// Atomically release lock and sleep on chan.
+// Reacquires lock when awakened.
+void sleep(void *waiting_target, struct spinlock *lk) {
+    struct proc *p = curr_proc();
+
+    // Must acquire p->lock in order to
+    // change p->state and then call sched.
+    // Once we hold p->lock, we can be
+    // guaranteed that we won't miss any wakeup
+    // (wakeup locks p->lock),
+    // so it's okay to release lk.
+
+    acquire(&p->lock); //DOC: sleeplock1
+    release(lk);
+
+    // Go to sleep.
+    p->waiting_target = waiting_target;
+    p->state = SLEEPING;
+
+    sched();
+
+    // Tidy up.
+    p->waiting_target = NULL;
+
+    // Reacquire original lock.
+    release(&p->lock);
+    acquire(lk);
 }
