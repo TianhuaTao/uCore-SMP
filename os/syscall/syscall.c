@@ -5,19 +5,12 @@
 #include <utils/log.h>
 #include <arch/timer.h>
 #include <arch/riscv.h>
-#include "fcntl.h"
+#include <file/fcntl.h>
 #include <proc/proc.h>
 #include <fs/fs.h>
 #include <file/file.h>
 #include "syscall_impl.h"
 
-/**
- * return TRUE if [sout, eout) contains [sin, ein)
- */
-inline int contains(char *sout, char *eout, char *sin, char *ein)
-{
-    return (sout <= sin && sin < eout) && (sout <= ein && ein <= eout) && sin <= ein;
-}
 
 void syscall()
 {

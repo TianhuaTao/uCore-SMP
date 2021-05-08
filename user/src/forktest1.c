@@ -17,9 +17,11 @@ int main() {
 
     int exit_code = 0;
     for (int i = 0; i < MAX_CHILD; ++i) {
-        if (wait(-1, &exit_code) <= 0) {
+        pid_t p = wait(-1, &exit_code);
+        if (p <= 0) {
             panic("wait stopped early");
         }
+        printf("child %d exited with code %d\n", p, exit_code);
     }
     if (wait(-1, &exit_code) > 0) {
         panic("wait got too many");

@@ -88,6 +88,7 @@ uint64 sys_sched_yield() {
     yield();
     return 0;
 }
+
 uint64 sys_getpid() {
     return curr_proc()->pid;
 }
@@ -131,8 +132,6 @@ int64 sys_gettimeofday(uint64 *timeval, int tz) {
     timeval_ker[0] = us / 1000000;
     timeval_ker[1] = us % 1000000;
     copyout(curr_proc()->pagetable, (uint64)timeval, (char *)timeval_ker, sizeof(timeval_ker));
-    // info("us=%p, t0=%d, t1=%d\n", us, timeval[0],timeval[1]);
-
     return 0;
 }
 uint64 sys_close(int fd) {

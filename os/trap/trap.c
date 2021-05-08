@@ -216,12 +216,12 @@ void kerneltrap() {
     {
         kernel_exception_handler(scause, stval, sepc);
     }
-    // TODO: yield
-    // printf_k("scause=%p sepc=%p\n", scause,sepc);
-    // debugcore("kernel trap scause=%p sepc=%p ",scause, sepc);
+
     // the yield() may have caused some traps to occur,
     // so restore trap registers for use by kernelvec.S's sepc instruction.
     w_sepc(sepc);
     w_sstatus(sstatus);
     debugcore("About to return from kernel trap handler");
+
+    // go back to kernelvec.S
 }

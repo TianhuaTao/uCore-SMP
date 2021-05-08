@@ -12,6 +12,6 @@ typedef long long int64;
 typedef uint64 pte_t;
 typedef uint64 pde_t;
 typedef uint64 *pagetable_t;// 512 PTEs
-#define NULL ((void *)0)
+
 
 #endif // TYPES_H

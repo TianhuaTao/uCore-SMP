@@ -103,6 +103,10 @@ freeproc(struct proc *p) {
     if (p->pagetable)
         proc_free_mem_and_pagetable(p->pagetable, p->total_size);
     p->pagetable = NULL;
+
+    p->state = UNUSED;
+    p->parent = NULL;
+    // TODO: set more fields to zero
 }
 
 struct proc *allocproc(void) {
@@ -116,8 +120,7 @@ struct proc *allocproc(void) {
         }
     }
     release(&pool_lock);
-    debugf("no proc alloced");
-    return 0;
+    return NULL;
 
 found:
     p->pid = alloc_pid();
@@ -190,6 +193,11 @@ void sched(void) {
     mycpu()->base_interrupt_status = base_interrupt_status;
 }
 
+/**
+ * @brief For debugging.
+ * 
+ * @param proc 
+ */
 void print_proc(struct proc *proc) {
     printf_k("* ---------- PROC INFO ----------\n");
     printf_k("* pid: %d\n", proc->pid);
@@ -224,33 +232,36 @@ void yield(void) {
     release(&p->lock);
 }
 
-int fork(void) {
+int fork() {
     int pid;
     struct proc *np;
     struct proc *p = curr_proc();
-    debugf("inside fork");
 
     // Allocate process.
-    if ((np = allocproc()) == 0) {
-        panic("allocproc\n");
+    if ((np = allocproc()) == NULL) {
+        warnf("No proc can be allocated");
+        return -1;
     }
-    // debugf("inside fork allocproc done");
 
     // Copy user memory from parent to child.
     if (uvmcopy(p->pagetable, np->pagetable, p->total_size) < 0) {
+        freeproc(np);
         release(&np->lock);
-        panic("uvmcopy\n");
+        return -1;
     }
     np->total_size = p->total_size;
 
     // copy saved user registers.
     *(np->trapframe) = *(p->trapframe);
 
-    for (int i = 0; i < FD_MAX; ++i)
-        if (p->files[i] != 0 && p->files[i]->type != FD_NONE) {
+    // file descriptors
+    // TODO: fix this
+    for (int i = 0; i < FD_MAX; ++i){
+        if (p->files[i] != NULL && p->files[i]->type != FD_NONE) {
             p->files[i]->ref++;
             np->files[i] = p->files[i];
         }
+}
     // Cause fork to return 0 in the child.
     np->trapframe->a0 = 0;
     pid = np->pid;
@@ -349,6 +360,7 @@ int wait(int pid, int *code) {
                         np->state = UNUSED;
                         pid = np->pid;
                         *code = np->exit_code;
+                        freeproc(np);
                         release(&np->lock);
                         release(&p->lock);
                         return pid;
@@ -359,7 +371,7 @@ int wait(int pid, int *code) {
                 
         }
         if (!havekids) {
-            infof("no kids\n");
+            debugcore("no kids\n");
             release(&p->lock);
             return -1;
         }
@@ -391,8 +403,7 @@ void exit(int code) {
 
     close_proc_files(p);
 
-    freeproc(p);
-    p->state = UNUSED;
+    // freeproc(p);
 
     if (p->parent != NULL) {
         p->state = ZOMBIE;

@@ -12,7 +12,7 @@
 #define FD_MAX (16)
 enum procstate
 {
-  UNUSED,
+  UNUSED=0,
   USED,
   SLEEPING,
   RUNNABLE,
