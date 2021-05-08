@@ -15,7 +15,7 @@ set(ASM_DIR asm)
 set(BIN_DIR target)
 
 # Toolchain
-set(PREFIX ${ARCH}-linux-musl-)
+set(PREFIX ${ARCH}-unknown-elf-)
 
 if (${ARCH} STREQUAL riscv32)
     set(CMAKE_C_FLAGS       "-march=rv32imac -mabi=ilp32 -mcmodel=medany")

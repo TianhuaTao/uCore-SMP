@@ -17,8 +17,8 @@ MKDIR_P = mkdir -p
 
 
 BUILDDIR = build
-C_SRCS = $(wildcard $K/*.c)
-AS_SRCS = $(wildcard $K/*.S)
+C_SRCS = $(wildcard $K/*.c) $(wildcard $K/*/*.c)
+AS_SRCS = $(wildcard $K/*.S) $(wildcard $K/*/*.S)
 C_OBJS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(C_SRCS))))
 AS_OBJS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(AS_SRCS))))
 

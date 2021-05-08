@@ -10,8 +10,8 @@ else ifeq ($(MODE), debug)
 cmake_build_args += -DCMAKE_BUILD_TYPE=Debug
 endif
 
-OBJCOPY := $(ARCH)-linux-musl-objcopy
-OBJDUMP := $(ARCH)-linux-musl-objdump
+OBJCOPY := $(ARCH)-unknown-elf-objcopy
+OBJDUMP := $(ARCH)-unknown-elf-objdump
 CP := cp
 
 elf:

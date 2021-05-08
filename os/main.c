@@ -1,5 +1,5 @@
-#include "ucore.h"
-#include "riscv.h"
+#include <ucore/ucore.h>
+#include <arch/riscv.h>
 
 extern char s_bss[];
 extern char e_bss[];
@@ -79,11 +79,7 @@ void main(uint64 hartid, uint64 a1)
         plicinithart();  // ask PLIC for device interrupts
         binit();         // buffer cache
 
-
         virtio_disk_init();
-        // debugcore("ss");
-        // fsinit();
-        // debugcore("ssssss");
 
         kvminit();
         kvminithart();
