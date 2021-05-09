@@ -61,6 +61,7 @@ void main(uint64 hartid, uint64 a1)
         first_hart = FALSE;
         printf("\n");
         printf("[ucore] Boot hartid=%d\n", hartid);
+        printf("[ucore] Core count: %d\n", NCPU);
         printf("[ucore] a1=%d\n", a1);
         printf("[ucore] s_text=%p, e_text=%p\n", s_text, e_text);
         printf("[ucore] s_rodata=%p, e_rodata=%p\n", s_rodata, e_rodata);

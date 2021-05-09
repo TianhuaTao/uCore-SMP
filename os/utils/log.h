@@ -6,10 +6,10 @@ void printf(char *, ...);
 // Please use one of these
 
 // #define LOG_LEVEL_NONE
-#define LOG_LEVEL_CRITICAL
+// #define LOG_LEVEL_CRITICAL
 // #define LOG_LEVEL_DEBUG
 // #define LOG_LEVEL_INFO
-// #define LOG_LEVEL_TRACE
+#define LOG_LEVEL_TRACE
 // #define LOG_LEVEL_ALL
 
 #if defined(LOG_LEVEL_CRITICAL)
@@ -95,8 +95,15 @@ extern int debug_core_color[];
 #if defined(USE_LOG_TRACE)
 
 #define tracef(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", GRAY, "TRACE", ##__VA_ARGS__)
+
+#define tracecore(fmt, ...) \
+    do {  \
+        uint64 hartid = cpuid();      \
+        printf("\x1b[%dm[TRACE %d] " fmt "\x1b[0m\n", debug_core_color[hartid], hartid, ##__VA_ARGS__); \
+    } while (0)
 #else
 #define tracef(fmt, ...)
+#define tracecore(fmt, ...)
 #endif //
 
 #if defined(USE_LOG_INFO)

@@ -108,9 +108,10 @@ void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
     case InstructionPageFault:
     case LoadFault:
     case LoadPageFault:
+        trapframe = curr_proc()->trapframe;
         infof(
             "scause = %d in application, bad addr = %p, bad instruction = %p, core dumped.\n",
-            cause,
+            scause,
             r_stval(),
             trapframe->epc);
         exit(-2);

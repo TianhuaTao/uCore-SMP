@@ -20,7 +20,8 @@ void syscall()
     uint64 args[7] = {trapframe->a0, trapframe->a1, trapframe->a2, trapframe->a3, trapframe->a4, trapframe->a5, trapframe->a6};
     if (id != SYS_write && id != SYS_read)
     {
-        debugcore("syscall %d args:%p %p %p %p %p %p %p", id, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        // debugcore("syscall %d args:%p %p %p %p %p %p %p", id, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        tracecore("syscall %d args:%p %p %p %p %p %p %p", id, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
     }
     switch (id)
     {
@@ -93,5 +94,6 @@ void syscall()
     if (id != SYS_write && id != SYS_read)
     {
         debugcore("syscall %d ret %d\n", id, ret);
+        tracecore("syscall %d ret %d\n", id, ret);
     }
 }

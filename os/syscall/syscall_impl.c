@@ -272,8 +272,8 @@ int sys_mailread(void *buf, int len) {
         inbox->valid[inbox->head] = 0;
         inbox->head += 1;
         inbox->head = (inbox->head) % MAX_MAIL_IN_BOX;
-        release(&inbox->lock)
-            infof("read mail %d bytes\n", copy_len);
+        release(&inbox->lock);
+        infof("read mail %d bytes\n", copy_len);
         return copy_len;
     } else {
         // mail box is empty
