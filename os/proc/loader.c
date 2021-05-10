@@ -23,7 +23,7 @@ void batchinit()
         int len = strlen(s);
         strncpy(names[i], (const char *)s, len);
         s += len + 1;
-        tracef("new name: %s\n", names[i]);
+        tracef("app name: %s", names[i]);
     }
 }
 

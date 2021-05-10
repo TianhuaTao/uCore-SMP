@@ -399,7 +399,6 @@ void exit(int code) {
     struct proc *p = curr_proc();
     acquire(&p->lock);
     p->exit_code = code;
-    infof("proc %d exit with %d\n", p->pid, code);
 
     close_proc_files(p);
 
@@ -407,8 +406,10 @@ void exit(int code) {
 
     if (p->parent != NULL) {
         p->state = ZOMBIE;
+    }else{
+        // TODO: ???
     }
-    debugf("before sched");
+    infof("proc %d exit with %d\n", p->pid, code);
     sched();
 }
 
