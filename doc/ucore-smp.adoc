@@ -1,0 +1,17 @@
+= uCore-SMP Documentation and Specification
+:author: Tianhua Tao
+:email: taotianhua@outlook.com
+:revnumber: 0.0.1
+:sectnums:
+:xrefstyle: short
+:toc: macro
+
+// table of contents
+toc::[]
+
+== Introduction
+
+
+
+== Syscall
+

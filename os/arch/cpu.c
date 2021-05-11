@@ -19,6 +19,8 @@ int cpuid() {
     return id;
 }
 
+// Barrier
+// Will not return until all cores halted
 void wait_all_halt() {
     for (int i = 0; i < NCPU; i++) {
         while (!halted[i])
@@ -26,8 +28,8 @@ void wait_all_halt() {
     }
 }
 
-volatile int booted[NCPU];
-volatile int halted[NCPU];
+volatile int booted[NCPU];  // whether a core is booted
+volatile int halted[NCPU];  // whether a core is halted
 
 /**
  * set halted of this core to True
@@ -41,7 +43,7 @@ void init_cpu() {
     for (int i = 0; i < NCPU; i++) {
         cpus[i].proc = NULL;
         cpus[i].noff = 0;
-        cpus[i].base_interrupt_status = 0;
+        cpus[i].base_interrupt_status = FALSE;
         cpus[i].core_id = i;
     }
 }

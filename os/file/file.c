@@ -6,7 +6,7 @@
 #include <ucore/types.h>
 
 struct {
-    struct file files[FILE_MAX];
+    struct file files[FILE_MAX];    // system level files
     struct spinlock lock;
 } filepool;
 

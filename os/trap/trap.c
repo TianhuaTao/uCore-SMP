@@ -16,10 +16,7 @@ void trapinit_hart() {
 void trapinit() {
 }
 
-void unknown_trap() {
-    printf("unknown trap: %p, stval = %p\n", r_scause(), r_stval());
-    exit(-1);
-}
+
 
 // set up to take exceptions and traps while in the kernel.
 void set_usertrap(void) {
@@ -62,9 +59,9 @@ void kernel_interrupt_handler(uint64 cause) {
     }
 }
 
-void user_interrupt_handler(uint64 cause) {
+void user_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
     int irq;
-    switch (cause) {
+    switch (scause& 0xff) {
     case SupervisorTimer:
         set_next_timer();
         // if form user, allow yield
@@ -88,40 +85,50 @@ void user_interrupt_handler(uint64 cause) {
         }
         break;
     default:
-        unknown_trap();
+        infof("Unknown interrupt in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-1);
         break;
     }
 }
 void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
-    struct trapframe *trapframe;
-    switch (scause) {
+    struct trapframe *trapframe = curr_proc()->trapframe;
+    switch (scause & 0xff) {
     case UserEnvCall:
-        trapframe = curr_proc()->trapframe;
-
         trapframe->epc += 4;
         intr_on();
         syscall();
         break;
-    case StoreFault:
+    case StoreAccessFault:
+        infof("StoreAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-8);
+        break;
     case StorePageFault:
-    case InstructionFault:
+        infof("StorePageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-7);
+        break;
+    case InstructionAccessFault:
+        infof("InstructionAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-6);
+        break;
     case InstructionPageFault:
-    case LoadFault:
+        infof("InstructionPageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-5);
+        break;
+    case LoadAccessFault:
+        infof("LoadAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-4);
+        break;
     case LoadPageFault:
-        trapframe = curr_proc()->trapframe;
-        infof(
-            "scause = %d in application, bad addr = %p, bad instruction = %p, core dumped.\n",
-            scause,
-            r_stval(),
-            trapframe->epc);
+        infof("LoadPageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         exit(-2);
         break;
     case IllegalInstruction:
-        infof("IllegalInstruction in application, core dumped.\n");
+        errorf("IllegalInstruction in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         exit(-3);
         break;
     default:
-        unknown_trap();
+        errorf("Unknown exception in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-1);
         break;
     }
 }
@@ -137,7 +144,7 @@ void usertrap() {
     uint64 stval = r_stval();
 
     KERNEL_ASSERT(!intr_get(), "");
-    debugcore("Enter user trap handler scause=%p", scause);
+    // debugcore("Enter user trap handler scause=%p", scause);
 
     w_stvec((uint64)kernelvec & ~0x3); // DIRECT
     // debugcore("usertrap");
@@ -146,7 +153,7 @@ void usertrap() {
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) == 0, "usertrap: not from user mode");
 
     if (scause & (1ULL << 63)) { // interrput = 1
-        user_interrupt_handler(scause & 0xff);
+        user_interrupt_handler(scause , stval, sepc);
     } else { // interrput = 0
         user_exception_handler(scause, stval, sepc);
     }
@@ -157,7 +164,7 @@ void usertrap() {
 // return to user space
 //
 void usertrapret() {
-    debugcore("About to return to user mode");
+    // debugcore("About to return to user mode");
 
     // print_cpu(mycpu());
     // we're about to switch the destination of traps from
@@ -194,7 +201,50 @@ void usertrapret() {
 }
 
 void kernel_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
-    errorf("invalid trap from kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    switch (scause & 0xff) {
+    case InstructionMisaligned:
+        errorf("InstructionMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case InstructionAccessFault:
+        errorf("SupervisorEnvCall in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case IllegalInstruction:
+        errorf("IllegalInstruction in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case Breakpoint:
+        errorf("Breakpoint in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case LoadMisaligned:
+        errorf("LoadMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case LoadAccessFault:
+        errorf("LoadAccessFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case StoreMisaligned:
+        errorf("StoreMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case StoreAccessFault:
+        errorf("StoreAccessFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case SupervisorEnvCall:
+        errorf("SupervisorEnvCall in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case MachineEnvCall:
+        errorf("MachineEnvCall in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case InstructionPageFault:
+        errorf("InstructionPageFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case LoadPageFault:
+        errorf("LoadPageFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    case StorePageFault:
+        errorf("StorePageFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    default:
+        errorf("Unknown exception in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;
+    }
     panic("kernel exception");
 }
 
@@ -208,7 +258,7 @@ void kerneltrap() {
 
     KERNEL_ASSERT(!intr_get(), "Interrupt can not be turned on in trap handler");
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) != 0, "kerneltrap: not from supervisor mode");
-    debugcore("Enter kernel trap handler, scause=%p", scause);
+    // debugcore("Enter kernel trap handler, scause=%p", scause);
 
     if (scause & (1ULL << 63)) // interrput
     {
@@ -222,7 +272,7 @@ void kerneltrap() {
     // so restore trap registers for use by kernelvec.S's sepc instruction.
     w_sepc(sepc);
     w_sstatus(sstatus);
-    debugcore("About to return from kernel trap handler");
+    // debugcore("About to return from kernel trap handler");
 
     // go back to kernelvec.S
 }

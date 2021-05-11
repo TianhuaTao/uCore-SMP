@@ -6,7 +6,7 @@
 
 int main() {
     int exit_code;
-    int fd = open("test\0", O_CREATE | O_WRONLY, O_RDWR);
+    int fd = open("test", O_CREATE | O_WRONLY, O_RDWR);
     printf("open OK, fd = %d\n", fd);
     char str[100] = "hello world!\0";
     int len = strlen(str);
@@ -14,7 +14,7 @@ int main() {
     close(fd);
     puts("write over.");
     if(fork() == 0) {
-        int fd = open("test\0", O_RDONLY, O_RDWR);
+        int fd = open("test", O_RDONLY, O_RDWR);
         char str[100];
         str[read(fd, str, len)] = 0;
         puts(str);

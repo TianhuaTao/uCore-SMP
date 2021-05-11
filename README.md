@@ -10,13 +10,10 @@ git clone https://github.com/TianhuaTao/uCore-SMP.git
 cd uCore-SMP
 
 # make user programs (e.g. shell)
-cd user
-make
+make user
 
 # make kernel
-cd ../
 make
-```
 
 Run with QEMU:
 

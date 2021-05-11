@@ -41,6 +41,7 @@ struct cpu
   int core_id;
 };
 
+// debug print
 void print_cpu(struct cpu *c);
 extern struct cpu cpus[NCPU];
 

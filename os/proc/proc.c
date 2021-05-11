@@ -188,7 +188,7 @@ void sched(void) {
 
     base_interrupt_status = mycpu()->base_interrupt_status;
     // debugcore("in sched before swtch base_interrupt_status=%d", base_interrupt_status);
-    swtch(&p->context, &mycpu()->context);
+    swtch(&p->context, &mycpu()->context); // will goto scheduler()
     // debugcore("in sched after swtch");
     mycpu()->base_interrupt_status = base_interrupt_status;
 }
@@ -273,20 +273,7 @@ int fork() {
     return pid;
 }
 
-int exec(char *name) {
-    int id = get_id_by_name(name);
-    if (id < 0)
-        return -1;
-    struct proc *p = curr_proc();
-    proc_free_mem_and_pagetable(p->pagetable, p->total_size);
-    p->total_size = 0;
-    p->pagetable = proc_pagetable(p);
-    if (p->pagetable == 0) {
-        panic("");
-    }
-    loader(id, p);
-    return 0;
-}
+
 
 int spawn(char *filename) {
     int pid;
@@ -407,7 +394,8 @@ void exit(int code) {
     if (p->parent != NULL) {
         p->state = ZOMBIE;
     }else{
-        // TODO: ???
+        p->state = UNUSED;
+        freeproc(p);
     }
     infof("proc %d exit with %d\n", p->pid, code);
     sched();

@@ -1,9 +1,8 @@
 #include <unistd.h>
 
-extern int main();
+extern int main(int argc, char *argv[]);
 
-int __start_main(long* p)
+void __start_main(int argc, char* argv[])
 {
-    exit(main());
-    return 0;
+    exit(main(argc, argv));
 }

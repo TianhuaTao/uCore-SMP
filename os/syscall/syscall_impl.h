@@ -9,7 +9,7 @@ uint64 sys_exit(int code);
 uint64 sys_sched_yield();
 uint64 sys_getpid();
 uint64 sys_clone();
-uint64 sys_exec(uint64 va);
+uint64 sys_exec(uint64 va, const char **argv);
 uint64 sys_wait(int pid, uint64 va);
 uint64 sys_times();
 int64 sys_setpriority(int64 priority);

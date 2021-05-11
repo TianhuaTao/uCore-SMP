@@ -1,4 +1,4 @@
-.PHONY: clean build_kernel all
+.PHONY: clean build_kernel all user
 all: build_kernel
 
 U = user
@@ -114,3 +114,6 @@ debug: build/kernel .gdbinit
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB) &
 	sleep 1
 	$(GDB)
+
+user:
+	make -C user

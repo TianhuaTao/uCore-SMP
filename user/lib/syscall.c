@@ -40,7 +40,12 @@ int wait(int pid, int* code) {
 }
 
 int exec(char* name) {
-    return syscall(SYS_execve, name);
+    return syscall(SYS_execve, name, 0);
+}
+
+int execv(const char *pathname, char *const argv[])
+{
+    return syscall(SYS_execve, pathname, argv);
 }
 
 uint64 get_time() {

@@ -97,12 +97,40 @@ uint64 sys_clone() {
     return fork();
 }
 
-uint64 sys_exec(uint64 va) {
+uint64 sys_exec(uint64 va, const char** argv_va) {
     struct proc *p = curr_proc();
     char name[200];
+    char argv_str[MAX_EXEC_ARG_COUNT][MAX_EXEC_ARG_LENGTH];
     copyinstr(p->pagetable, name, va, 200);
-    infof("sys_exec %s\n", name);
-    return exec(name);
+    infof("sys_exec %s", name);
+
+    int argc = 0;
+    const char *argv[MAX_EXEC_ARG_COUNT];
+    // tracecore("argv_va=%d argc=%d", argv_va, argc);
+    if (argv_va == NULL) {
+        // nothing
+    } else {
+        const char **argv_pa = (const char **)virt_addr_to_physical(p->pagetable, (uint64)argv_va);
+        if(argv_pa == NULL){
+            // invalid argv_va
+            // TODO: kill
+            return -1;
+        }
+        while(*argv_pa){
+            const char *argv_one_va = *argv_pa;
+
+            if (copyinstr(p->pagetable, argv_str[argc], (uint64)argv_one_va, MAX_EXEC_ARG_LENGTH) < 0) {
+                // TODO: failed, exit
+                return -1;
+            }
+            argv[argc] = argv_str[argc];
+            argc++;
+            argv_pa++;
+        }
+    }
+    tracecore("argv_va=%d argc=%d", argv_va, argc);
+
+    return exec(name, argc, argv);
 }
 
 uint64 sys_wait(int pid, uint64 va) {
@@ -135,7 +163,7 @@ int64 sys_gettimeofday(uint64 *timeval, int tz) {
     return 0;
 }
 uint64 sys_close(int fd) {
-    if (fd == 0 || fd == 1 || fd == 2)
+    if (fd == STDIN || fd == STDOUT || fd == STDERR)
         return 0;
     struct proc *p = curr_proc();
     struct file *f = p->files[fd];
@@ -144,7 +172,7 @@ uint64 sys_close(int fd) {
     //     panic("fileclose: unknown file type\n");
     // }
     fileclose(f);
-    p->files[fd] = 0;
+    p->files[fd] = NULL;
     return 0;
 }
 
