@@ -1,11 +1,11 @@
-#include <proc/proc.h>
-#include <ucore/defs.h>
-#include <file/file.h>
-#include <utils/log.h>
-#include <mem/memory_layout.h>
 #include <arch/riscv.h>
 #include <arch/timer.h>
+#include <file/file.h>
+#include <mem/memory_layout.h>
+#include <proc/proc.h>
 #include <trap/trap.h>
+#include <ucore/defs.h>
+#include <utils/log.h>
 struct proc pool[NPROC];
 
 __attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
@@ -20,7 +20,13 @@ struct
     struct spinlock lock;
 } next_pid;
 struct proc *curr_proc() {
-    return mycpu()->proc;
+    // if the timer were to interrupt and cause the thread to yield and then move to a different CPU
+    // a previously returned value would no longer be correct.
+    push_off();
+    struct cpu *c = mycpu();
+    struct proc *p = c->proc;
+    pop_off();
+    return p;
 }
 
 struct proc *findproc(int pid) {
@@ -41,10 +47,9 @@ void procinit(void) {
     for (p = pool; p < &pool[NPROC]; p++) {
         init_spin_lock_with_name(&p->lock, "proc.lock");
         p->state = UNUSED;
-        p->waiting_target = NULL;
-        p->kstack = (uint64)kstack[p - pool];
+        // p->waiting_target = NULL;
+        // p->kstack = (uint64)kstack[p - pool];
         // must after kinit()
-        p->trapframe = alloc_physical_page();
     }
 
     next_pid.pid = 1;
@@ -58,8 +63,7 @@ int alloc_pid() {
     release(&next_pid.lock);
     return pid;
 }
-pagetable_t
-proc_pagetable(struct proc *p) {
+pagetable_t proc_pagetable(struct proc *p) {
     pagetable_t pagetable;
 
     // An empty page table.
@@ -127,16 +131,22 @@ found:
     p->state = USED;
     p->total_size = 0;
     p->heap_sz = 0;
+    p->killed = FALSE;
+    p->waiting_target = NULL;
     p->exit_code = -1;
     p->parent = NULL;
     p->ustack_bottom = 0;
     p->pagetable = proc_pagetable(p);
-    if (p->pagetable == 0) {
-        panic("");
+    if (p->pagetable == NULL) {
+        errorf("failed to create user pagetable");
+        freeproc(p);
+        release(&p->lock);
+        return NULL;
     }
     memset(&p->context, 0, sizeof(p->context));
+    p->kstack = (uint64)kstack[p - pool];
     memset((void *)p->kstack, 0, KSTACK_SIZE);
-    // debugf("memset done");
+
     p->context.ra = (uint64)forkret; // used in swtch()
     p->context.sp = p->kstack + KSTACK_SIZE;
 
@@ -144,9 +154,14 @@ found:
     p->priority = 16;
     p->cpu_time = 0;
     p->last_start_time = 0;
-    if (init_mailbox(&p->mb) == 0) {
-        panic("init mailbox failed");
+    for (int i = 0; i < FD_MAX; i++) {
+        p->files[i] = NULL;
     }
+    p->cwd = NULL;
+    p->name[0] = '\0';
+    // if (init_mailbox(&p->mb) == 0) {
+    //     panic("init mailbox failed");
+    // }
     // debugf("before return");
     return p;
 }
@@ -200,8 +215,8 @@ void sched(void) {
  */
 void print_proc(struct proc *proc) {
     printf_k("* ---------- PROC INFO ----------\n");
-    printf_k("* pid: %d\n", proc->pid);
-    printf_k("* status: ");
+    printf_k("* pid:                %d\n", proc->pid);
+    printf_k("* status:             ");
     if (proc->state == UNUSED) {
         printf_k("UNUSED\n");
     } else if (proc->state == USED) {
@@ -217,8 +232,33 @@ void print_proc(struct proc *proc) {
     } else {
         printf_k("UNKNOWN\n");
     }
-    printf_k("* locked: %d\n", proc->lock.locked);
-    printf_k("* waiting target: %p\n", proc->waiting_target);
+    printf_k("* locked:             %d\n", proc->lock.locked);
+    printf_k("* killed:             %d\n", proc->killed);
+    printf_k("* pagetable:          %p\n", proc->pagetable);
+    printf_k("* waiting target:     %p\n", proc->waiting_target);
+    printf_k("* exit_code:          %d\n", proc->exit_code);
+    printf_k("*\n");
+
+    printf_k("* parent:             %p\n", proc->parent);
+    printf_k("* ustack_bottom:      %p\n", proc->ustack_bottom);
+    printf_k("* kstack:             %p\n", proc->kstack);
+    printf_k("* trapframe:          %p\n", proc->trapframe);
+    printf_k("*     ra:             %p\n", proc->trapframe->ra);
+    printf_k("*     sp:             %p\n", proc->trapframe->sp);
+    printf_k("*     epc:            %p\n", proc->trapframe->epc);
+    printf_k("* context:            \n");
+    printf_k("*     ra:             %p\n", proc->context.ra);
+    printf_k("*     sp:             %p\n", proc->context.sp);
+    printf_k("* total_size:         %p\n", proc->total_size);
+    printf_k("* heap_sz:            %p\n", proc->heap_sz);
+    printf_k("* stride:             %p\n", proc->stride);
+    printf_k("* priority:           %p\n", proc->priority);
+    printf_k("* cpu_time:           %p\n", proc->cpu_time);
+    printf_k("* last_time:          %p\n", proc->last_start_time);
+    printf_k("* files:              ...\n");
+    printf_k("* cwd:                %p\n", proc->cwd);
+    printf_k("* name:               %s\n", proc->name);
+
     printf_k("* -------------------------------\n");
     printf_k("\n");
 }
@@ -256,12 +296,12 @@ int fork() {
 
     // file descriptors
     // TODO: fix this
-    for (int i = 0; i < FD_MAX; ++i){
+    for (int i = 0; i < FD_MAX; ++i) {
         if (p->files[i] != NULL && p->files[i]->type != FD_NONE) {
             p->files[i]->ref++;
             np->files[i] = p->files[i];
         }
-}
+    }
     // Cause fork to return 0 in the child.
     np->trapframe->a0 = 0;
     pid = np->pid;
@@ -273,55 +313,53 @@ int fork() {
     return pid;
 }
 
+// int spawn(char *filename) {
+//     int pid;
+//     struct proc *np;
+//     struct proc *p = curr_proc();
 
+//     // Allocate process.
+//     if ((np = allocproc()) == 0) {
+//         panic("allocproc\n");
+//     }
+//     // info("alloc\n");
+//     // Copy user memory from parent to child.
+//     if (uvmcopy(p->pagetable, np->pagetable, p->total_size) < 0) {
+//         panic("uvmcopy\n");
+//     }
+//     np->total_size = p->total_size;
 
-int spawn(char *filename) {
-    int pid;
-    struct proc *np;
-    struct proc *p = curr_proc();
+//     // copy saved user registers.
+//     *(np->trapframe) = *(p->trapframe);
 
-    // Allocate process.
-    if ((np = allocproc()) == 0) {
-        panic("allocproc\n");
-    }
-    // info("alloc\n");
-    // Copy user memory from parent to child.
-    if (uvmcopy(p->pagetable, np->pagetable, p->total_size) < 0) {
-        panic("uvmcopy\n");
-    }
-    np->total_size = p->total_size;
+//     // Cause fork to return 0 in the child.
+//     np->trapframe->a0 = 0;
+//     pid = np->pid;
+//     np->parent = p;
+//     np->state = RUNNABLE;
 
-    // copy saved user registers.
-    *(np->trapframe) = *(p->trapframe);
+//     // info("fork done\n");
 
-    // Cause fork to return 0 in the child.
-    np->trapframe->a0 = 0;
-    pid = np->pid;
-    np->parent = p;
-    np->state = RUNNABLE;
+//     char name[200];
+//     copyinstr(p->pagetable, name, (uint64)filename, 200);
+//     infof("sys_exec %s\n", name);
 
-    // info("fork done\n");
-
-    char name[200];
-    copyinstr(p->pagetable, name, (uint64)filename, 200);
-    infof("sys_exec %s\n", name);
-
-    int id = get_id_by_name(name);
-    // info("id=%d\n", id);
-    if (id < 0)
-        return -1;
-    // info("free\n");
-    proc_free_mem_and_pagetable(np->pagetable, np->total_size);
-    np->total_size = 0;
-    np->pagetable = proc_pagetable(np);
-    if (np->pagetable == 0) {
-        panic("");
-    }
-    // info("load\n");
-    loader(id, np);
-    release(&np->lock);
-    return pid;
-}
+//     int id = get_id_by_name(name);
+//     // info("id=%d\n", id);
+//     if (id < 0)
+//         return -1;
+//     // info("free\n");
+//     proc_free_mem_and_pagetable(np->pagetable, np->total_size);
+//     np->total_size = 0;
+//     np->pagetable = proc_pagetable(np);
+//     if (np->pagetable == 0) {
+//         panic("");
+//     }
+//     // info("load\n");
+//     loader(id, np);
+//     release(&np->lock);
+//     return pid;
+// }
 
 /**
  * wait for child process with pid to exit
@@ -337,7 +375,7 @@ int wait(int pid, int *code) {
         havekids = FALSE;
         for (np = pool; np < &pool[NPROC]; np++) {
             // info("pid=%d, np->pid=%d, p=%d, parent=%d,\n",pid,np->pid,p, np->parent);
-            if (np->parent == p){
+            if (np->parent == p) {
                 KERNEL_ASSERT(np->state != UNUSED, "");
                 acquire(&np->lock);
                 if (pid <= 0 || np->pid == pid) {
@@ -355,7 +393,6 @@ int wait(int pid, int *code) {
                 }
                 release(&np->lock);
             }
-                
         }
         if (!havekids) {
             debugcore("no kids\n");
@@ -393,7 +430,7 @@ void exit(int code) {
 
     if (p->parent != NULL) {
         p->state = ZOMBIE;
-    }else{
+    } else {
         p->state = UNUSED;
         freeproc(p);
     }

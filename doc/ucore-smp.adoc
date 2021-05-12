@@ -15,3 +15,37 @@ toc::[]
 
 == Syscall
 
+=== exec
+
+[source, C]
+----
+int exec(char *path, const char **argv);
+----
+
+Start to execute the program at path `path`. `argv` will be passed to new program's `main()` function. `argv` should be a `NULL` terminated array of `char*` so that kernel will count the number of arguments and pass as `argc` to `main()`.
+
+Note: New program's entrance is `int main(int argc, char* argv[]);`.
+
+*Returns* -1 on error. Else no return.
+
+=== exit
+
+[source, C]
+----
+uint64 exit(int code);
+----
+
+Exit the running process with code `code`.
+
+*Returns* 0. The syscall does not return.
+
+=== read
+
+[source, C]
+----
+int64 read(int fd, char *dst, uint64 len);
+----
+
+Read at most `len` bytes from file `fd` into `dst`.
+
+*Returns* bytes count read. Or -1 if failed.

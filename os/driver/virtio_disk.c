@@ -195,7 +195,7 @@ alloc3_desc(int *idx) {
 extern int PID;
 
 void virtio_disk_rw(struct buf *b, int write) {
-    debugcore("virtio_disk_rw\n");
+    debugcore("virtio_disk_rw");
     uint64 sector = b->blockno * (BSIZE / 512);
 
     acquire(&disk.vdisk_lock);
@@ -270,7 +270,7 @@ void virtio_disk_rw(struct buf *b, int write) {
 }
 
 void virtio_disk_intr() {
-    debugcore("virtio_disk_intr\n");
+    debugcore("virtio_disk_intr");
 
     acquire(&disk.vdisk_lock);
     // the device won't raise another interrupt until we tell it

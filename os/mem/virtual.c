@@ -426,12 +426,10 @@ err:
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
-int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
-{
+int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len) {
     uint64 n, va0, pa0;
 
-    while (len > 0)
-    {
+    while (len > 0) {
         va0 = PGROUNDDOWN(dstva);
         pa0 = walkaddr(pagetable, va0);
         if (pa0 == 0)
@@ -451,12 +449,10 @@ int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 // Copy from user to kernel.
 // Copy len bytes to dst from virtual address srcva in a given page table.
 // Return 0 on success, -1 on error.
-int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
-{
+int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len) {
     uint64 n, va0, pa0;
 
-    while (len > 0)
-    {
+    while (len > 0) {
         va0 = PGROUNDDOWN(srcva);
         pa0 = walkaddr(pagetable, va0);
         if (pa0 == 0)
@@ -477,77 +473,68 @@ int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 // Copy bytes to dst from virtual address srcva in a given page table,
 // until a '\0', or max.
 // Return 0 on success, -1 on error.
-int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
-{
+int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max) {
     uint64 n, va0, pa0;
-    int got_null = 0, len = 0;
+    int got_null = 0;
 
-    while (got_null == 0 && max > 0)
-    {
+    while (got_null == 0 && max > 0) {
         va0 = PGROUNDDOWN(srcva);
         pa0 = walkaddr(pagetable, va0);
-        // debugf("srcva=%p ,va0=%p, pa0=%p\n",srcva, va0 ,pa0);
-        if (pa0 == 0)
+        if (pa0 == 0){
+            debugcore("bad addr");
             return -1;
+        }
         n = PGSIZE - (srcva - va0);
         if (n > max)
             n = max;
 
         char *p = (char *)(pa0 + (srcva - va0));
-        while (n > 0)
-        {
-            if (*p == '\0')
-            {
+        while (n > 0) {
+            if (*p == '\0') {
                 *dst = '\0';
                 got_null = 1;
                 break;
-            }
-            else
-            {
+            } else {
                 *dst = *p;
             }
             --n;
             --max;
             p++;
             dst++;
-            len++;
         }
 
         srcva = va0 + PGSIZE;
     }
-    return len;
+    if (got_null) {
+        return 0;
+    } else {
+        debugcore("no null");
+        return -1;
+    }
 }
 
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
 // Returns 0 on success, -1 on error.
-int either_copyout(int user_dst, uint64 dst, char *src, uint64 len)
-{
+int either_copyout(void *dst, void *src, size_t len, int is_user_dst) {
     struct proc *p = curr_proc();
-    if (user_dst)
-    {
-        return copyout(p->pagetable, dst, src, len);
-    }
-    else
-    {
-        memmove((void *)dst, src, len);
+    if (is_user_dst) {
+        return copyout(p->pagetable, (uint64)dst, src, len);
+    } else {
+        memmove(dst, src, len);
         return 0;
     }
 }
 
 // Copy from either a user address, or kernel address,
-// depending on usr_src.
+// depending on is_user_src.
 // Returns 0 on success, -1 on error.
-int either_copyin(int user_src, uint64 src, char *dst, uint64 len)
-{
+int either_copyin(void *dst, void *src, size_t len, int is_user_src) {
     struct proc *p = curr_proc();
-    if (user_src)
-    {
-        return copyin(p->pagetable, dst, src, len);
-    }
-    else
-    {
-        memmove(dst, (char *)src, len);
+    if (is_user_src) {
+        return copyin(p->pagetable, dst, (uint64)src, len);
+    } else {
+        memmove(dst, src, len);
         return 0;
     }
 }

@@ -1,58 +1,16 @@
 #include "syscall_impl.h"
 #include <arch/timer.h>
 #include <proc/proc.h>
+#include <file/file.h>
 #define min(a, b) a < b ? a : b;
-uint64 console_write(uint64 va, uint64 len) {
-    struct proc *p = curr_proc();
-    char str[200];
-    int size = copyinstr(p->pagetable, str, va, MIN(len, 200));
-    for (int i = 0; i < size; ++i) {
-        console_putchar(str[i]);
-    }
-    return size;
-}
 
-uint64 console_read(uint64 va, uint64 len) {
-    struct proc *p = curr_proc();
-    char str[200];
-    for (int i = 0; i < MIN(len, 200); ++i) {
-        int c;
-        do {
-            c = console_getchar();
-        } while (c == -1);
-        str[i] = c;
-    }
-    copyout(p->pagetable, va, str, len);
-    return len;
-}
 
-uint64 sys_read(int fd, uint64 dst_va, uint64 len) {
-    // stdin
-    if (fd == STDIN) {
-        return console_read(dst_va, len);
-    }
-    if (fd >= FD_MAX || fd < 0 || fd == STDOUT || fd == STDERR) {
-        return -1;
-    }
-    struct proc *current_proc = curr_proc();
-    struct file *f = current_proc->files[fd];
-    if (f == NULL) {
-        return -1;
-    }
-    if (f->type == FD_PIPE) {
-        return piperead(f->pipe, dst_va, len);
-    } else if (f->type == FD_INODE) {
-        return fileread(f, dst_va, len);
-    }
-    errorf("unknown file type %d\n", f->type);
-    panic("sysread: unknown file type\n");
-    return -1;
-}
-int sys_spawn(char *filename) {
-    return spawn(filename);
-}
-uint64
-sys_pipe(uint64 fdarray) {
+
+
+// int sys_spawn(char *filename) {
+//     return spawn(filename);
+// }
+uint64 sys_pipe(uint64 fdarray) {
     infof("init pipe\n");
     struct proc *p = curr_proc();
     uint64 fd0, fd1;
@@ -78,13 +36,11 @@ sys_pipe(uint64 fdarray) {
 }
 
 uint64 sys_exit(int code) {
-    infof("sys_exit");
     exit(code);
     return 0;
 }
 
 uint64 sys_sched_yield() {
-    infof("sched_yield");
     yield();
     return 0;
 }
@@ -97,7 +53,77 @@ uint64 sys_clone() {
     return fork();
 }
 
-uint64 sys_exec(uint64 va, const char** argv_va) {
+/**
+ * @brief Create directory at given path
+ * 
+ * @param path_va Points to the path at user space
+ * @return int64 0 if successfull, otherwise failed 
+ */
+int64 sys_mkdir(char *path_va) {
+    struct proc *p = curr_proc();
+    char path[MAXPATH];
+    struct inode *ip;
+
+    if (copyinstr(p->pagetable, path, (uint64)path_va, MAXPATH) != 0) {
+        return -2;
+    }
+    ip = create(path, T_DIR, 0, 0);
+
+    if (ip == NULL) {
+        return -1;
+    }
+    iunlockput(ip);
+
+    return 0;
+}
+
+int64 sys_chdir(char *path_va) {
+    char path[MAXPATH];
+    struct inode *ip;
+    struct proc *p = curr_proc();
+
+    if (copyinstr(p->pagetable, path, (uint64)path_va, MAXPATH)!= 0){
+        return -2;
+    }
+    ip = namei(path);
+    if(ip==NULL){
+        return -1;
+    }
+    ilock(ip);
+    if (ip->type != T_DIR) {
+        iunlockput(ip);
+        return -1;
+    }
+    iunlock(ip);
+    iput(p->cwd);
+
+    p->cwd = ip;
+    return 0;
+}
+
+int
+sys_mknod(char *path_va, short major, short minor) {
+    struct proc *p = curr_proc();
+    struct inode *ip;
+    char path[MAXPATH];
+
+    if (copyinstr(p->pagetable, path, (uint64)path_va, MAXPATH) != 0) {
+        debugcore("can not copyinstr");
+        return -1;
+    }
+    ip = create(path, T_DEVICE, major, minor);
+
+    if (ip == NULL) {
+        debugcore("can not create inode");
+        return -1;
+    }
+
+    iunlockput(ip);
+
+    return 0;
+}
+
+uint64 sys_exec(uint64 va, const char **argv_va) {
     struct proc *p = curr_proc();
     char name[200];
     char argv_str[MAX_EXEC_ARG_COUNT][MAX_EXEC_ARG_LENGTH];
@@ -111,12 +137,12 @@ uint64 sys_exec(uint64 va, const char** argv_va) {
         // nothing
     } else {
         const char **argv_pa = (const char **)virt_addr_to_physical(p->pagetable, (uint64)argv_va);
-        if(argv_pa == NULL){
+        if (argv_pa == NULL) {
             // invalid argv_va
             // TODO: kill
             return -1;
         }
-        while(*argv_pa){
+        while (*argv_pa) {
             const char *argv_one_va = *argv_pa;
 
             if (copyinstr(p->pagetable, argv_str[argc], (uint64)argv_one_va, MAX_EXEC_ARG_LENGTH) < 0) {
@@ -133,9 +159,9 @@ uint64 sys_exec(uint64 va, const char** argv_va) {
     return exec(name, argc, argv);
 }
 
-uint64 sys_wait(int pid, uint64 va) {
+int sys_wait(int pid, uint64 exitcode_va) {
     struct proc *p = curr_proc();
-    int *code = (int *)virt_addr_to_physical(p->pagetable, va);
+    int *code = (int *)virt_addr_to_physical(p->pagetable, exitcode_va);
     return wait(pid, code);
 }
 
@@ -143,13 +169,35 @@ uint64 sys_times() {
     return get_time_ms();
 }
 
+/**
+ * @brief Set priority of current process
+ * 
+ * @param priority >=2
+ * @return int64 return the priority set, or -1 if failed
+ */
 int64 sys_setpriority(int64 priority) {
     if (2 <= priority) {
-        struct proc *cur_pcb = curr_proc();
-        cur_pcb->priority = priority;
+        struct proc *p = curr_proc();
+        acquire(&p->lock);
+        p->priority = priority;
+        release(&p->lock);
         return priority;
     }
     return -1;
+}
+
+/**
+ * @brief Get priority of current process
+ * 
+ * @return int64 priority
+ */
+int64 sys_getpriority() {
+    int64 priority;
+    struct proc *p = curr_proc();
+    acquire(&p->lock);
+    priority = p->priority;
+    release(&p->lock);
+    return priority;
 }
 
 int64 sys_gettimeofday(uint64 *timeval, int tz) {
@@ -162,27 +210,42 @@ int64 sys_gettimeofday(uint64 *timeval, int tz) {
     copyout(curr_proc()->pagetable, (uint64)timeval, (char *)timeval_ker, sizeof(timeval_ker));
     return 0;
 }
+
+/**
+ * @brief Close a file
+ * 
+ * @param fd file descriptor
+ * @return uint64 0 if successful, nonzero if not
+ */
 uint64 sys_close(int fd) {
-    if (fd == STDIN || fd == STDOUT || fd == STDERR)
-        return 0;
+    // TODO: validate fd
     struct proc *p = curr_proc();
+
+    // invalid fd
+    if (fd < 0 || fd >= FD_MAX) {
+        return -1;
+    }
+
     struct file *f = p->files[fd];
-    // if(f->type != FD_PIPE) {
-    //     errorf("unknown file type %d\n", f->type);
-    //     panic("fileclose: unknown file type\n");
-    // }
-    fileclose(f);
+
+    // invalid fd
+    if (f == NULL) {
+        return -1;
+    }
+
     p->files[fd] = NULL;
+
+    fileclose(f);
     return 0;
 }
 
-uint64 sys_openat(uint64 va, uint64 omode, uint64 _flags) {
+int sys_open(uint64 va, int flags) {
     debugcore("sys_openat");
     // print_cpu(mycpu());
     struct proc *p = curr_proc();
     char path[200];
     copyinstr(p->pagetable, path, va, 200);
-    return fileopen(path, omode);
+    return fileopen(path, flags);
 }
 
 int64 sys_mmap(void *start, uint64 len, int prot) {
@@ -262,132 +325,132 @@ int64 sys_munmap(void *start, uint64 len) {
     }
     return npages * PGSIZE;
 }
-int sys_mailread(void *buf, int len) {
-    infof("mailread\n");
-    if (len > 256) {
-        len = 256;
-    }
-    if (len < 0) {
+// int sys_mailread(void *buf, int len) {
+//     infof("mailread\n");
+//     if (len > 256) {
+//         len = 256;
+//     }
+//     if (len < 0) {
+//         return -1;
+//     }
+//     struct proc *p = curr_proc();
+
+//     struct mailbox *inbox = &(p->mb);
+
+//     acquire(&inbox->lock);
+//     if (len == 0) {
+//         for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
+//             if (inbox->valid[i]) {
+//                 release(&inbox->lock);
+//                 return 0;
+//             }
+//         }
+//         release(&inbox->lock);
+//         return -1;
+//     }
+
+//     // read head mail
+//     int head_idx = inbox->head;
+//     if (inbox->valid[head_idx]) {
+//         int msg_len = inbox->length[head_idx];
+//         int copy_len = min(msg_len, len);
+//         int eret = copyout(p->pagetable, (uint64)buf, inbox->mailbuf[head_idx], copy_len);
+//         if (eret < 0) {
+//             infof("copyout failed\n");
+//             release(&inbox->lock);
+//             return -1;
+//         }
+//         inbox->valid[inbox->head] = 0;
+//         inbox->head += 1;
+//         inbox->head = (inbox->head) % MAX_MAIL_IN_BOX;
+//         release(&inbox->lock);
+//         infof("read mail %d bytes\n", copy_len);
+//         return copy_len;
+//     } else {
+//         // mail box is empty
+//         release(&inbox->lock);
+//         infof("mail box is empty\n");
+//         return -1;
+//     }
+// }
+
+// int sys_mailwrite(int pid, void *buf, int len) {
+//     infof("mailwrite\n");
+//     if (len > 256) {
+//         len = 256;
+//     }
+//     if (len < 0) {
+//         return -1;
+//     }
+//     struct proc *cur_p = curr_proc();
+
+//     struct proc *p = findproc(pid);
+//     if (p == 0) {
+//         return -1;
+//     }
+//     struct mailbox *dest = &(p->mb);
+
+//     acquire(&dest->lock);
+
+//     if (len == 0) {
+//         for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
+//             if (!(dest->valid[i])) {
+//                 // empty slot
+//                 release(&dest->lock);
+//                 return 0;
+//             }
+//         }
+//         release(&dest->lock);
+//         return -1;
+//     }
+
+//     // write mail
+//     int head_idx = dest->head;
+//     for (int j = 0; j < MAX_MAIL_IN_BOX; j++) {
+//         if (dest->valid[j] != 0) {
+//             // not empty, find next
+//         } else {
+//             // empty, write to this one
+//             int eret = copyin(cur_p->pagetable, dest->mailbuf[j], (uint64)buf, len);
+//             if (eret < 0) {
+//                 infof("copyin failed\n");
+//                 release(&dest->lock);
+//                 return -1;
+//             }
+//             dest->valid[j] = 1;
+//             dest->length[j] = len;
+//             release(&dest->lock);
+//             return len;
+//         }
+//         head_idx += 1;
+//         head_idx = head_idx % MAX_MAIL_IN_BOX;
+//     }
+
+//     // all filled
+//     release(&dest->lock);
+//     return -1;
+// }
+ssize_t sys_read(int fd, void* dst_va, size_t len) {
+    if (fd >= FD_MAX || fd < 0) {
         return -1;
     }
-    struct proc *p = curr_proc();
-
-    struct mailbox *inbox = &(p->mb);
-
-    acquire(&inbox->lock);
-    if (len == 0) {
-        for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
-            if (inbox->valid[i]) {
-                release(&inbox->lock);
-                return 0;
-            }
-        }
-        release(&inbox->lock);
-        return -1;
-    }
-
-    // read head mail
-    int head_idx = inbox->head;
-    if (inbox->valid[head_idx]) {
-        int msg_len = inbox->length[head_idx];
-        int copy_len = min(msg_len, len);
-        int eret = copyout(p->pagetable, (uint64)buf, inbox->mailbuf[head_idx], copy_len);
-        if (eret < 0) {
-            infof("copyout failed\n");
-            release(&inbox->lock);
-            return -1;
-        }
-        inbox->valid[inbox->head] = 0;
-        inbox->head += 1;
-        inbox->head = (inbox->head) % MAX_MAIL_IN_BOX;
-        release(&inbox->lock);
-        infof("read mail %d bytes\n", copy_len);
-        return copy_len;
-    } else {
-        // mail box is empty
-        release(&inbox->lock);
-        infof("mail box is empty\n");
-        return -1;
-    }
-}
-
-int sys_mailwrite(int pid, void *buf, int len) {
-    infof("mailwrite\n");
-    if (len > 256) {
-        len = 256;
-    }
-    if (len < 0) {
-        return -1;
-    }
-    struct proc *cur_p = curr_proc();
-
-    struct proc *p = findproc(pid);
-    if (p == 0) {
-        return -1;
-    }
-    struct mailbox *dest = &(p->mb);
-
-    acquire(&dest->lock);
-
-    if (len == 0) {
-        for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
-            if (!(dest->valid[i])) {
-                // empty slot
-                release(&dest->lock);
-                return 0;
-            }
-        }
-        release(&dest->lock);
-        return -1;
-    }
-
-    // write mail
-    int head_idx = dest->head;
-    for (int j = 0; j < MAX_MAIL_IN_BOX; j++) {
-        if (dest->valid[j] != 0) {
-            // not empty, find next
-        } else {
-            // empty, write to this one
-            int eret = copyin(cur_p->pagetable, dest->mailbuf[j], (uint64)buf, len);
-            if (eret < 0) {
-                infof("copyin failed\n");
-                release(&dest->lock);
-                return -1;
-            }
-            dest->valid[j] = 1;
-            dest->length[j] = len;
-            release(&dest->lock);
-            return len;
-        }
-        head_idx += 1;
-        head_idx = head_idx % MAX_MAIL_IN_BOX;
-    }
-
-    // all filled
-    release(&dest->lock);
-    return -1;
-}
-
-uint64 sys_write(int fd, uint64 va, uint64 len) {
-    if (fd == 1) {
-        return console_write(va, len);
-    }
-    if (fd >= FD_MAX) {
-        return -1;
-    }
-    infof("fd=%d\n", fd);
     struct proc *p = curr_proc();
     struct file *f = p->files[fd];
-    if (f == 0) {
+    if (f == NULL) {
         return -1;
     }
-    if (f->type == FD_PIPE) {
-        debugf("write to pipe at %p\n", f->pipe);
-        return pipewrite(f->pipe, va, len);
-    } else if (f->type == FD_INODE) {
-        return filewrite(f, va, len);
+    return fileread(f, dst_va, len);
+}
+
+ssize_t sys_write(int fd, void *src_va, size_t len) {
+    if (fd >= FD_MAX || fd < 0) {
+        return -1;
     }
-    errorf("unknown file type %d\n", f->type);
-    panic("syswrite: unknown file type\n");
-    return -1;
+    struct proc *p = curr_proc();
+    struct file *f = p->files[fd];
+    if (f == NULL) {
+        return -1;
+    }
+
+    return filewrite(f, src_va, len);
 }

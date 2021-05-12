@@ -57,7 +57,7 @@ void bin_loader(uint64 start, uint64 end, struct proc *p)
         void *page = alloc_physical_page();
         if (page == NULL)
         {
-            panic("bin_loader kalloc");
+            panic("bin_loader alloc_physical_page");
         }
         memmove(page, (const void *)pa, PGSIZE);
         if (mappages(p->pagetable, va, PGSIZE, (uint64)page, PTE_U | PTE_R | PTE_W | PTE_X) != 0)
@@ -79,10 +79,12 @@ int run_all_app()
 {
     struct proc *p = allocproc();
     p->parent = NULL;
-    int id = get_id_by_name("shell");
+    int id = get_id_by_name( "shell" );
     if (id < 0)
         panic("no user shell");
     loader(id, p);
+    safestrcpy(p->name, "shell", PROC_NAME_MAX);
+    p->cwd = namei("/");
     p->state = RUNNABLE;
     release(&p->lock);
     return 0;

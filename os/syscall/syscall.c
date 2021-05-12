@@ -27,13 +27,13 @@ void syscall()
     switch (id)
     {
     case SYS_write:
-        ret = sys_write(args[0], args[1], args[2]);
+        ret = sys_write(args[0], (void *)args[1], args[2]);
         break;
     case SYS_read:
-        ret = sys_read(args[0], args[1], args[2]);
+        ret = sys_read(args[0], (void*)args[1], args[2]);
         break;
     case SYS_openat:
-        ret = sys_openat(args[0], args[1], args[2]);
+        ret = sys_open(args[0], args[1]);
         break;
     case SYS_close:
         ret = sys_close(args[0]);
@@ -61,11 +61,11 @@ void syscall()
     case SYS_gettimeofday:
         ret = sys_gettimeofday((void *)args[0], args[1]);
         break;
-    case SYS_mmap:
-        ret = sys_mmap((void *)args[0], args[1], args[2]);
-        break;
-    case SYS_munmap:
-        ret = sys_munmap((void *)args[0], args[1]);
+    // case SYS_mmap:
+    //     ret = sys_mmap((void *)args[0], args[1], args[2]);
+    //     break;
+    // case SYS_munmap:
+    //     ret = sys_munmap((void *)args[0], args[1]);
         break;
     case SYS_execve:
         ret = sys_exec(args[0], (const char **)args[1]);
@@ -76,21 +76,28 @@ void syscall()
     case SYS_times:
         ret = sys_times();
         break;
-    case SYS_spawn:
-        ret = sys_spawn((char *)args[0]);
+    case SYS_mknod:
+        ret = sys_mknod((char*)args[0], args[1], args[2]);
+
         break;
-    case SYS_pipe2:
-        ret = sys_pipe(args[0]);
-        break;
-    case SYS_mailread:
-        ret = sys_mailread((void *)args[0], args[1]);
-        break;
-    case SYS_mailwrite:
-        ret = sys_mailwrite(args[0], (void *)args[1], args[2]);
-        break;
-    default:
-        ret = -1;
-        warnf("unknown syscall %d\n", id);
+        // case SYS_spawn:
+        //     ret = sys_spawn((char *)args[0]);
+        //     break;
+        case SYS_pipe2:
+            ret = sys_pipe(args[0]);
+            break;
+        // case SYS_mailread:
+        //     ret = sys_mailread((void *)args[0], args[1]);
+        //     break;
+        // case SYS_mailwrite:
+        //     ret = sys_mailwrite(args[0], (void *)args[1], args[2]);
+        //     break;
+        case SYS_chdir:
+            ret = sys_chdir((char *)args[0]);
+            break;
+        default:
+            ret = -1;
+            warnf("unknown syscall %d\n", id);
     }
     trapframe->a0 = ret;    // return value
     if (id != SYS_write && id != SYS_read)

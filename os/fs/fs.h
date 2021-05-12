@@ -40,11 +40,14 @@ struct superblock {
 // File type
 #define T_DIR     1   // Directory
 #define T_FILE    2   // File
+#define T_DEVICE  3    // Device
 
 // On-disk inode structure
 struct dinode {
     short type;             // File type
-    short pad[3];
+    short major;            // Major device number (T_DEVICE only)
+    short minor;            // Minor device number (T_DEVICE only)
+    short num_link;            // Number of links to inode in file system
     uint size;              // Size of file (bytes)
     uint addrs[NDIRECT + 1];// Data block addresses
 };
@@ -68,5 +71,12 @@ struct dirent {
     ushort inum;
     char name[DIRSIZ];
 };
-
+struct inode *root_dir();
+struct inode *namei(char *path);
+void ilock(struct inode *ip);
+void iunlock(struct inode *ip);
+struct inode *
+nameiparent(char *path, char *name);
+int writei(struct inode *ip, int user_src, void *src, uint off, uint n);
+int readi(struct inode *ip, int user_dst, void *dst, uint off, uint n);
 #endif //!__FS_H__

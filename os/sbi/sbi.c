@@ -47,11 +47,11 @@ struct sbiret a_sbi_ecall(int ext, int fid, unsigned long arg0,
 	return ret;
 }
 
-void console_putchar(int c) {
+void sbi_console_putchar(int c) {
     sbi_call(SBI_CONSOLE_PUTCHAR, c, 0, 0);
 }
 
-int console_getchar() {
+int sbi_console_getchar() {
     return sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0);
 }
 

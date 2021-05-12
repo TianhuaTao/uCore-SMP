@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
+#include <fcntl.h>
 const unsigned char LF = 0x0a;
 const unsigned char CR = 0x0d;
 const unsigned char DL = 0x7f;
@@ -107,6 +107,14 @@ void parse_line(){
 
 
 int main() {
+
+    if (open("console", O_RDWR, 0) < 0) {
+        mknod("console", 1, 0);
+        open("console", O_RDWR, 0);
+    }
+    dup(0); // stdout
+    dup(0); // stderr
+
     printf("C user shell\n");
     printf(">> ");
     while (1) {

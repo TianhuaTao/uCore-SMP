@@ -45,10 +45,8 @@ void binit(void) {
 // If not found, allocate a buffer.
 static struct buf *
 bget(uint dev, uint blockno) {
-    // debugcore("bget");
     struct buf *b;
     acquire(&bcache.lock);
-    // debugcore("get bcache lock");
 
     // Is the block already cached?
     for (b = bcache.head.next; b != &bcache.head; b = b->next) {
@@ -59,7 +57,6 @@ bget(uint dev, uint blockno) {
             return b;
         }
     }
-    debugcore("not cached");
 
     // Not cached.
     // Recycle the least recently used (LRU) unused buffer.
@@ -99,7 +96,6 @@ bread(uint dev, uint blockno) {
 
 // Write b's contents to disk.
 void bwrite(struct buf *b) {
-    // TODO: lock
     if (!holdingsleep(&b->mu))
         panic("bwrite");
     virtio_disk_rw(b, W);
@@ -110,10 +106,10 @@ void bwrite(struct buf *b) {
 void brelse(struct buf *b) {
     if (!holdingsleep(&b->mu))
         panic("brelse");
-    // TODO: lock
+
     release_mutex_sleep(&b->mu);
-    b->refcnt--;
     acquire(&bcache.lock);
+    b->refcnt--;
     if (b->refcnt == 0) {
         // no one is waiting for it.
         b->next->prev = b->prev;

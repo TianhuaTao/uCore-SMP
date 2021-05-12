@@ -15,8 +15,8 @@ void loop();
 void panic(char *);
 
 // sbi.c
-void console_putchar(int);
-int console_getchar();
+void sbi_console_putchar(int);
+int sbi_console_getchar();
 void shutdown();
 void set_timer(uint64 stime);
 
@@ -81,7 +81,6 @@ void kvminit(void);
 void kvmmap(pagetable_t, uint64, uint64, uint64, int);
 int mappages(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t create_empty_user_pagetable(void);
-void uvminit(pagetable_t, uchar *, uint);
 uint64 uvmalloc(pagetable_t, uint64, uint64);
 uint64 uvmdealloc(pagetable_t, uint64, uint64);
 int uvmcopy(pagetable_t, pagetable_t, uint64);
@@ -98,8 +97,8 @@ pte_t *walk(pagetable_t pagetable, uint64 va, int alloc);
 void
 kvminithart();
 
-int either_copyout(int user_dst, uint64 dst, char* src, uint64 len);
-int either_copyin(int user_src, uint64 src, char* dst, uint64 len);
+int either_copyout(void *dst, void *src, size_t len, int is_user_dst);
+int either_copyin(void *dst, void *src, size_t len, int is_user_src);
 
 // timer.c
 uint64 get_cycle();
@@ -113,11 +112,7 @@ int piperead(struct pipe *, uint64, int);
 int pipewrite(struct pipe *, uint64, int);
 
 // file.c
-void fileclose(struct file *);
-struct file* filealloc();
-int fileopen(char*, uint64);
-uint64 filewrite(struct file*, uint64, uint64);
-uint64 fileread(struct file*, uint64, uint64);
+
 
 // plic.c
 void plicinit(void);
@@ -144,8 +139,7 @@ void iunlockput(struct inode *);
 void iupdate(struct inode *);
 struct inode *namei(char *);
 struct inode *root_dir();
-int readi(struct inode *, int, uint64, uint, uint);
-int writei(struct inode *, int, uint64, uint, uint);
+
 void itrunc(struct inode *);
 
 // bio.c

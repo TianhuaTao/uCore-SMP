@@ -4,25 +4,62 @@
 #include <proc/proc.h>
 #include <ucore/defs.h>
 #include <ucore/types.h>
-
+#include <file/console.h>
+/**
+ * @brief The global file pool
+ * Every opened file is kept here in system level
+ * Process files are pointing here.
+ * 
+ */
 struct {
     struct file files[FILE_MAX];    // system level files
     struct spinlock lock;
 } filepool;
-
-void fileinit() {
-    init_spin_lock_with_name(&filepool.lock, "filepool.lock");
+struct devsw devsw[NDEV];
+void console_init();
+void console_init(){
+    devsw[CONSOLE].read = console_read;
+    devsw[CONSOLE].write = console_write;
 }
 
+/**
+ * @brief Call xxx_init of all devices
+ * 
+ */
+void device_init() {
+    console_init();
+    // more devices in the future
+    // connect read and write system calls
+    // to consoleread and consolewrite.
+
+}
+/**
+ * @brief Init the global file pool
+ * 
+ */
+void fileinit() {
+    init_spin_lock_with_name(&filepool.lock, "filepool.lock");
+
+    device_init();
+}
+
+/**
+ * @brief Release a reference to a file, close the file if ref is zero
+ * 
+ * @param f the file in global file pool
+ */
 void fileclose(struct file *f) {
     struct file ff;
     acquire(&filepool.lock);
-    if (f->ref < 1)
-        panic("fileclose");
-    if (--f->ref > 0) {
+    KERNEL_ASSERT(f->ref >= 1, "file reference should be at least 1");
+    --f->ref;
+    if (f->ref > 0) {
+        // some other process is using it
         release(&filepool.lock);
         return;
     }
+
+    // clear the file
     ff = *f;
     f->ref = 0;
     f->type = FD_NONE;
@@ -30,11 +67,16 @@ void fileclose(struct file *f) {
 
     if (ff.type == FD_PIPE) {
         pipeclose(ff.pipe, ff.writable);
-    } else if (ff.type == FD_INODE) {
+    } else if (ff.type == FD_INODE || ff.type == FD_DEVICE) {
         iput(ff.ip);
     }
 }
 
+/**
+ * @brief Scans the file table for an unreferenced file
+ * 
+ * @return struct file* the unreferenced file, or NULL if all used
+ */
 struct file *filealloc() {
     acquire(&filepool.lock);
     for (int i = 0; i < FILE_MAX; ++i) {
@@ -45,56 +87,77 @@ struct file *filealloc() {
         }
     }
     release(&filepool.lock);
-    return 0;
+    return NULL;
 }
 
-extern int PID;
-
-static struct inode *
-create(char *path, short type) {
+struct inode * create(char *path, short type, short major, short minor) {
     struct inode *ip, *dp;
-    debugcore("create");
-    dp = root_dir();
-    ivalid(dp);
+    char name[DIRSIZ];
 
-    if ((ip = dirlookup(dp, path, 0)) != 0) {
-        warnf("create a exist file\n");
-        iput(dp);
-        ivalid(ip);
-        if (type == T_FILE && ip->type == T_FILE)
+    if ((dp = nameiparent(path, name)) == 0)
+        return 0;
+
+    ilock(dp);
+
+    if ((ip = dirlookup(dp, name, 0)) != 0) {
+        iunlockput(dp);
+        ilock(ip);
+        if (type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
             return ip;
-        iput(ip);
+        iunlockput(ip);
         return 0;
     }
-    debugcore("dirlookup done");
 
     if ((ip = ialloc(dp->dev, type)) == 0)
         panic("create: ialloc");
 
-    tracef("create dinod and inode type = %d\n", type);
-
-    ivalid(ip);
-
+    ilock(ip);
+    ip->major = major;
+    ip->minor = minor;
+    ip->num_link = 1;
     iupdate(ip);
 
-    if (dirlink(dp, path, ip->inum) < 0)
+    if (type == T_DIR) { // Create . and .. entries.
+        dp->num_link++;  // for ".."
+        iupdate(dp);
+        // No ip->nlink++ for ".": avoid cyclic ref count.
+        if (dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+            panic("create dots");
+    }
+
+    if (dirlink(dp, name, ip->inum) < 0)
         panic("create: dirlink");
 
-    iput(dp);
+    iunlockput(dp);
+
     return ip;
 }
 
-extern int PID;
+/**
+ * @brief Increment ref count for file f
+ * 
+ * @param f the file
+ * @return struct file* return f itselt
+ */
+struct file *
+filedup(struct file *f) {
+    acquire(&filepool.lock);
+    KERNEL_ASSERT(f->ref >= 1, "file reference should be at least 1");
+    f->ref++;
+    release(&filepool.lock);
+    return f;
+}
 
-int fileopen(char *path, uint64 omode) {
+
+int fileopen(char *path, int flags) {
     debugcore("fileopen");
     int fd;
     struct file *f;
     struct inode *ip;
 
-    if (omode & O_CREATE) {
+    if (flags & O_CREATE) {
         debugcore("create ");
-        ip = create(path, T_FILE);
+        ip = create(path, T_FILE, 0, 0);
         debugcore("create done");
 
         if (ip == NULL) {
@@ -118,41 +181,81 @@ int fileopen(char *path, uint64 omode) {
     f->type = FD_INODE;
     f->off = 0;
     f->ip = ip;
-    f->readable = !(omode & O_WRONLY);
-    f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
-    if ((omode & O_TRUNC) && ip->type == T_FILE) {
+    f->readable = !(flags & O_WRONLY);
+    f->writable = (flags & O_WRONLY) || (flags & O_RDWR);
+    if ((flags & O_TRUNC) && ip->type == T_FILE) {
         itrunc(ip);
     }
     return fd;
 }
 
-uint64 filewrite(struct file *f, uint64 va, uint64 len) {
+ssize_t filewrite(struct file *f, void* src_va, size_t len) {
+    int r, ret = 0;
+
+    if (f->writable == 0)
+        return -1;
+
+    if (f->type == FD_PIPE) {
+        ret = pipewrite(f->pipe, (uint64)src_va, len);
+    } else if (f->type == FD_DEVICE) {
+        if (f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+            return -1;
+        ret = devsw[f->major].write((char*)src_va, len, TRUE);
+    } else if (f->type == FD_INODE) {
+        // write a few blocks at a time to avoid exceeding
+        // the maximum log transaction size, including
+        // i-node, indirect block, allocation blocks,
+        // and 2 blocks of slop for non-aligned writes.
+        // this really belongs lower down, since writei()
+        // might be writing a device like the console.
+        int max = ((MAXOPBLOCKS - 1 - 1 - 2) / 2) * BSIZE;
+        int i = 0;
+        while (i < len) {
+            int n1 = len - i;
+            if (n1 > max)
+                n1 = max;
+
+            ilock(f->ip);
+            if ((r = writei(f->ip, 1, src_va + i, f->off, n1)) > 0)
+                f->off += r;
+            iunlock(f->ip);
+
+            if (r != n1) {
+                // error from writei
+                break;
+            }
+            i += r;
+        }
+        ret = (i == len ? len : -1);
+    } else {
+        panic("filewrite");
+    }
+
+    return ret;
+}
+
+// Read from file f.
+// addr is a user virtual address.
+ssize_t fileread(struct file *f, void* dst_va, size_t len) {
+    // TODO: include more
     int r;
     ivalid(f->ip);
-    if ((r = writei(f->ip, 1, va, f->off, len)) > 0)
+    if ((r = readi(f->ip, 1, dst_va, f->off, len)) > 0)
         f->off += r;
     return r;
 }
 
-uint64 fileread(struct file *f, uint64 va, uint64 len) {
-    int r;
-    ivalid(f->ip);
-    if ((r = readi(f->ip, 1, va, f->off, len)) > 0)
-        f->off += r;
-    return r;
-}
-
-int init_mailbox(struct mailbox *mb) {
-    void *buf_pa = alloc_physical_page();
-    if (buf_pa == 0) {
-        return 0;
-    }
-    init_spin_lock_with_name(&mb->lock, "mailbox.lock");
-    mb->mailbuf = buf_pa;
-    for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
-        mb->length[i] = 0;
-        mb->valid[i] = 0;
-    }
-    mb->head = 0;
-    return 1;
-}
+// int init_mailbox(struct mailbox *mb) {
+//     void *buf_pa = alloc_physical_page();
+//     if (buf_pa == 0) {
+//         return 0;
+//     }
+//     init_spin_lock_with_name(&mb->lock, "mailbox.lock");
+//     mb->mailbuf = buf_pa;
+//     for (int i = 0; i < MAX_MAIL_IN_BOX; i++) {
+//         mb->length[i] = 0;
+//         mb->valid[i] = 0;
+//     }
+//     mb->head = 0;
+//     return 1;
+// }

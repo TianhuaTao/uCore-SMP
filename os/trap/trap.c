@@ -172,7 +172,7 @@ void usertrapret() {
     // we're back in user space, where usertrap() is correct.
     // intr_off();
     set_usertrap();
-    // print_cpu(mycpu());
+    
     struct trapframe *trapframe = curr_proc()->trapframe;
     trapframe->kernel_satp = r_satp();                   // kernel page table
     trapframe->kernel_sp = curr_proc()->kstack + PGSIZE; // process's kernel stack
@@ -258,7 +258,7 @@ void kerneltrap() {
 
     KERNEL_ASSERT(!intr_get(), "Interrupt can not be turned on in trap handler");
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) != 0, "kerneltrap: not from supervisor mode");
-    // debugcore("Enter kernel trap handler, scause=%p", scause);
+    // debugcore("Enter kernel trap handler, scause=%p, sepc=%p", scause,sepc);
 
     if (scause & (1ULL << 63)) // interrput
     {

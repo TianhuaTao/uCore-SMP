@@ -10,7 +10,13 @@ int open(const char *path, int flags, int mode) {
 int close(int fd) {
     return syscall(SYS_close, fd);
 }
+int dup(int oldfd){
+    return syscall(SYS_dup, oldfd);
+}
 
+int mknod(const char *pathname, short major, short minor){
+    return syscall(SYS_mknodat, major, minor);
+}
 ssize_t read(int fd, void *buf, unsigned long long len) {
     return syscall(SYS_read, fd, buf, len);
 }

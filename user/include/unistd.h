@@ -18,5 +18,7 @@ int execv(const char *pathname, char *const argv[]);
 int wait(int, int *);
 int pipe(void*);
 uint64 get_time();
+int dup(int oldfd);
+int mknod(const char *pathname, short major, short minor);
 int sleep(unsigned long long);
 #endif // __UNISTD_H__

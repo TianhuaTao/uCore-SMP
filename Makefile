@@ -33,7 +33,7 @@ endif
 -include $(HEADER_DEP)
 
 ifndef CPUS
-CPUS := 4
+CPUS := 1
 endif
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
@@ -111,6 +111,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	else echo "-s -p 15234"; fi)
 	
 debug: build/kernel .gdbinit
+	$(CP) $(U)/fs.img $(U)/fs-copy.img
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB) &
 	sleep 1
 	$(GDB)
