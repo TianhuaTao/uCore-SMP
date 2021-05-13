@@ -1,4 +1,4 @@
-.PHONY: clean build_kernel all user
+.PHONY: clean build_kernel all user doc
 all: build_kernel
 
 U = user
@@ -118,3 +118,6 @@ debug: build/kernel .gdbinit
 
 user:
 	make -C user
+
+doc:
+	make -C doc

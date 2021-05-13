@@ -22,6 +22,12 @@ Run with QEMU:
 make run
 ```
 
+Build doc:
+
+```shell
+make doc
+```
+
 ## Available Branches
 
 - main: Fully functional OS.

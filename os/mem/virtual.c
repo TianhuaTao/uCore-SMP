@@ -516,7 +516,7 @@ int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max) {
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
 // Returns 0 on success, -1 on error.
-int either_copyout(void *dst, void *src, size_t len, int is_user_dst) {
+err_t either_copyout(void *dst, void *src, size_t len, int is_user_dst) {
     struct proc *p = curr_proc();
     if (is_user_dst) {
         return copyout(p->pagetable, (uint64)dst, src, len);
@@ -529,7 +529,7 @@ int either_copyout(void *dst, void *src, size_t len, int is_user_dst) {
 // Copy from either a user address, or kernel address,
 // depending on is_user_src.
 // Returns 0 on success, -1 on error.
-int either_copyin(void *dst, void *src, size_t len, int is_user_src) {
+err_t either_copyin(void *dst, void *src, size_t len, int is_user_src) {
     struct proc *p = curr_proc();
     if (is_user_src) {
         return copyin(p->pagetable, dst, (uint64)src, len);

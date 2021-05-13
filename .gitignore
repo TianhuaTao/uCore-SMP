@@ -23,3 +23,6 @@ nfs/fs
 kernel_app.ld
 tmp/
 build/
+doc/*.pdf
+doc/*.html
+doc/*.png

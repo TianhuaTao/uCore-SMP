@@ -10,7 +10,7 @@ void kernelvec();
 
 void trapinit_hart() {
     set_kerneltrap();
-    w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
+    w_sie(r_sie() | SIE_SEIE | SIE_SSIE);
 }
 
 void trapinit() {
@@ -88,9 +88,12 @@ void user_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
     }
 }
 void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
-    struct trapframe *trapframe = curr_proc()->trapframe;
+    struct proc *p = curr_proc();
+    struct trapframe *trapframe = p->trapframe;
     switch (scause & 0xff) {
     case UserEnvCall:
+        if (p->killed)
+            exit(-1);
         trapframe->epc += 4;
         intr_on();
         syscall();

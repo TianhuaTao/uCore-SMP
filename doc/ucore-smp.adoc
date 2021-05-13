@@ -11,7 +11,24 @@ toc::[]
 
 == Introduction
 
+== Project Modules
 
+[cols="1,2", width=70%, align="center", options="header"]
+|===
+| module      | description
+| arch      |     CPU architecture
+| driver    | Device driver code
+| file  | File abstraction
+| fs        | File system
+| lock      | Kernel locks (spinlock & mutex)
+| mem   | Memory (virtual & physical)
+| proc  | Process
+| sbi   | SBI call
+| syscall   | System Call
+| trap  | Trap handlers (interrupt & exception)
+| ucore | Kernel definition and common headers
+| utils | Utilities for kernel programming
+|===
 
 == Syscall
 
@@ -49,3 +66,39 @@ int64 read(int fd, char *dst, uint64 len);
 Read at most `len` bytes from file `fd` into `dst`.
 
 *Returns* bytes count read. Or -1 if failed.
+
+=== Compare with xv6
+
+[cols="1,1,1", width=70%, align="center", options="header"]
+|===
+| syscall Name      | xv6 | uCore-SMP
+| fork              | √ | √  
+| exit              | √ | √  
+| wait              | √ | √  
+| pipe              | √ | √  
+| read              | √ | √  
+| kill              | √ | 
+| exec              | √ | √  
+| fstat             | √ | 
+| chdir             | √ | √
+| dup               | √ | √  
+| getpid            | √ | √
+| sbrk              | √ | 
+| sleep             | √ | √ (yield)
+| uptime            | √ | √ (times)
+| open              | √ | √  
+| write             | √ | √  
+| mknod             | √ | √  
+| unlink            | √ | 
+| link              | √ | 
+| mkdir             | √ | √
+| close             | √ | √  
+| setpriority       |  | √  
+| getpriority       |  | √  
+| gettimeofday      |  | √  
+| spawn             |  | planed 
+| mailread          |  | planed 
+| mailwrite         |  | planed 
+| mmap              |  | planed 
+| munmap            |  | planed 
+|===
