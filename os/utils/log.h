@@ -5,12 +5,12 @@ void printf(char *, ...);
 
 // Please use one of these
 
-// #define LOG_LEVEL_NONE
+#define LOG_LEVEL_NONE
 // #define LOG_LEVEL_CRITICAL
 // #define LOG_LEVEL_DEBUG
 // #define LOG_LEVEL_INFO
 // #define LOG_LEVEL_TRACE
-#define LOG_LEVEL_ALL
+// #define LOG_LEVEL_ALL
 
 #if defined(LOG_LEVEL_CRITICAL)
 
@@ -50,8 +50,7 @@ void printf(char *, ...);
 
 #endif // LOG_LEVEL_ALL
 
-enum LOG_COLOR
-{
+enum LOG_COLOR {
     RED = 31,
     GREEN = 32,
     BLUE = 34,
@@ -79,26 +78,28 @@ extern int debug_core_color[];
 
 #define debugf(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", GREEN, "DEBUG", ##__VA_ARGS__)
 
-#define debugcore(fmt, ...) do { \
-    uint64 hartid = cpuid();  \
-    printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", debug_core_color[hartid], "DEBUG", hartid, ##__VA_ARGS__); \
-}   while(0)
+#define debugcore(fmt, ...)                                                                                   \
+    do {                                                                                                      \
+        uint64 hartid = cpuid();                                                                              \
+        printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", debug_core_color[hartid], "DEBUG", hartid, ##__VA_ARGS__); \
+    } while (0)
 
-
+// print var in hex
 #define phex(var_name) debugf(#var_name "=%p", var_name)
 
 #else
 #define debugf(fmt, ...)
 #define debugcore(fmt, ...)
+#define phex(var_name)
 #endif //
 
 #if defined(USE_LOG_TRACE)
 
 #define tracef(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", GRAY, "TRACE", ##__VA_ARGS__)
 
-#define tracecore(fmt, ...) \
-    do {  \
-        uint64 hartid = cpuid();      \
+#define tracecore(fmt, ...)                                                                             \
+    do {                                                                                                \
+        uint64 hartid = cpuid();                                                                        \
         printf("\x1b[%dm[TRACE %d] " fmt "\x1b[0m\n", debug_core_color[hartid], hartid, ##__VA_ARGS__); \
     } while (0)
 #else

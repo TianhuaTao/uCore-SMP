@@ -158,13 +158,15 @@ void iupdate(struct inode *ip) {
 static struct inode *
 iget(uint dev, uint inum) {
     debugcore("iget");
-    // TODO: add lock
+
     struct inode *inode_ptr, *empty;
+    acquire(&itable.lock);
     // Is the inode already in the table?
     empty = NULL;
     for (inode_ptr = &itable.inode[0]; inode_ptr < &itable.inode[NINODE]; inode_ptr++) {
         if (inode_ptr->ref > 0 && inode_ptr->dev == dev && inode_ptr->inum == inum) {
             inode_ptr->ref++;
+            release(&itable.lock);
             return inode_ptr;
         }
         if (empty == 0 && inode_ptr->ref == 0) // Remember empty slot.
@@ -180,6 +182,7 @@ iget(uint dev, uint inum) {
     inode_ptr->inum = inum;
     inode_ptr->ref = 1;
     inode_ptr->valid = 0;
+    release(&itable.lock);
     return inode_ptr;
 }
 
@@ -187,6 +190,7 @@ iget(uint dev, uint inum) {
 // Returns ip to enable ip = idup(ip1) idiom.
 struct inode *
 idup(struct inode *ip) {
+    KERNEL_ASSERT(ip != NULL, "inode can not be NULL");
     acquire(&itable.lock);
     ip->ref++;
     release(&itable.lock);
@@ -425,7 +429,7 @@ int dirlink(struct inode *dp, char *name, uint inum) {
 
     // Look for an empty dirent.
     for (off = 0; off < dp->size; off += sizeof(de)) {
-        if (readi(dp, 0,  &de, off, sizeof(de)) != sizeof(de))
+        if (readi(dp, FALSE,  &de, off, sizeof(de)) != sizeof(de))
             panic("dirlink read");
         if (de.inum == 0)
             break;
@@ -562,4 +566,13 @@ namex(char *path, int nameiparent, char *name) {
         return 0;
     }
     return ip;
+}
+// Copy stat information from inode.
+// Caller must hold ip->lock.
+void stati(struct inode *ip, struct stat *st) {
+    st->dev = ip->dev;
+    st->ino = ip->inum;
+    st->type = ip->type;
+    st->nlink = ip->num_link;
+    st->size = ip->size;
 }

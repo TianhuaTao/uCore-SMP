@@ -1,7 +1,7 @@
 #include "scheduler.h"
 #include <proc/proc.h>
 #include <ucore/ucore.h>
-
+#include <arch/timer.h>
 void init_scheduler() {
 }
 void scheduler(void) {
@@ -37,18 +37,19 @@ void scheduler(void) {
             struct cpu *mycore = mycpu();
             mycore->proc = next_proc;
             next_proc->state = RUNNING;
-
+            start_timer_interrupt();
             next_proc->last_start_time = get_time_ms();
             uint64 pass = BIGSTRIDE / (next_proc->priority);
             next_proc->stride += pass;
-            // print_proc(next_proc);
-            // debugcore("in scheduler before swtch");
-            // print_cpu(mycpu());
 
             swtch(&mycpu()->context, &next_proc->context);
-            // debugcore("in scheduler after swtch");
-            // print_cpu(mycpu());
+
+            uint64 time_delta = get_time_ms() - next_proc->last_start_time;
+            next_proc->cpu_time += time_delta;
+            // debugcore("time_delta=%d",time_delta);
             mycore->proc = NULL;
+            stop_timer_interrupt();
+
             release(&next_proc->lock);
         } else {
             if (!any_proc) {

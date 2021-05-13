@@ -12,6 +12,11 @@
 #define TRAPFRAME_SIZE (4096)
 #define FD_MAX (16)
 #define PROC_NAME_MAX (16)
+
+extern char trampoline[];
+extern char boot_stack_top[];
+extern char boot_stack[];
+
 enum procstate {
     UNUSED = 0,
     USED,
@@ -44,14 +49,13 @@ struct proc {
     uint64 total_size;           // total memory used by this process
     uint64 heap_sz;
     uint64 stride;
-    uint64 priority;        
-    uint64 cpu_time;        // ms, user and kernel
-    uint64 last_start_time; // ms
+    uint64 priority;
+    uint64 cpu_time;            // ms, user and kernel
+    uint64 last_start_time;     // ms
     struct file *files[FD_MAX]; // Opened files
-    struct inode *cwd; // Current directory
+    struct inode *cwd;          // Current directory
     // struct mailbox mb;
     char name[PROC_NAME_MAX]; // Process name (debugging)
-
 };
 struct proc *findproc(int pid);
 
@@ -59,6 +63,7 @@ struct proc *curr_proc();
 // int spawn(char *filename);
 extern struct proc pool[NPROC];
 extern struct spinlock pool_lock;
+extern struct spinlock wait_lock;
 
 void sleep(void *waiting_target, struct spinlock *lk);
 void wakeup(void *waiting_target);
@@ -68,5 +73,7 @@ void forkret(void);
 
 void proc_free_mem_and_pagetable(pagetable_t pagetable, uint64 sz);
 struct proc *allocproc(void);
+struct file *get_proc_file_by_fd(struct proc *p, int fd);
 pagetable_t proc_pagetable(struct proc *p);
+void freeproc(struct proc *p);
 #endif // PROC_H

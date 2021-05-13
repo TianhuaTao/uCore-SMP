@@ -14,6 +14,7 @@ make user
 
 # make kernel
 make
+```
 
 Run with QEMU:
 

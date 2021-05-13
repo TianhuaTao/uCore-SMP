@@ -15,7 +15,7 @@ int dup(int oldfd){
 }
 
 int mknod(const char *pathname, short major, short minor){
-    return syscall(SYS_mknodat, major, minor);
+    return syscall(SYS_mknodat, pathname, major, minor);
 }
 ssize_t read(int fd, void *buf, unsigned long long len) {
     return syscall(SYS_read, fd, buf, len);

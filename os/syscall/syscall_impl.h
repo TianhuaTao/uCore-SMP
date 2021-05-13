@@ -5,7 +5,7 @@
 
 ssize_t sys_write(int fd, void *src_va, size_t len);
 ssize_t sys_read(int fd, void *dst_va, size_t len);
-uint64 sys_pipe(uint64 fdarray);
+int sys_pipe(int (*pipefd_va)[2]);
 uint64 sys_exit(int code);
 uint64 sys_sched_yield();
 uint64 sys_getpid();
@@ -19,6 +19,7 @@ uint64 sys_close(int fd);
 // int sys_spawn(char *filename);
 int sys_open(uint64 va, int flags);
 int sys_mknod(char *path_va, short major, short minor);
+int sys_dup(int oldfd);
 
 // int64 sys_mmap(void *start, uint64 len, int prot);
 // int64 sys_munmap(void *start, uint64 len);

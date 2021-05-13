@@ -7,10 +7,11 @@ char STR[] = "hello pipe!";
 
 int main() {
     // create pipe
-    uint64 pipe_fd[2];
-    int ret = pipe((void*)&pipe_fd);
+    int pipe_fd[2];
+    int ret = pipe((void*)pipe_fd);
     assert(ret == 0, -2);
-    printf("[parent] read end = %p, write end = %p\n", pipe_fd[0], pipe_fd[1]);
+    printf("pipe_fd=%p\n", pipe_fd);
+    printf("[parent] read end = %d, write end = %d\n", pipe_fd[0], pipe_fd[1]);
     if (fork() == 0) {
         // child process, read from parent
         // close write_end

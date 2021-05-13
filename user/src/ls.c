@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <ucore.h>
 // char*
 // fmtname(char *path)
 // {
@@ -80,5 +81,5 @@ main(int argc, char *argv[])
   // }
   // for(i=1; i<argc; i++)
   //   ls(argv[i]);
-  exit(0);
+  // exit(0);
 }

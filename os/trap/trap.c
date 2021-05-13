@@ -16,8 +16,6 @@ void trapinit_hart() {
 void trapinit() {
 }
 
-
-
 // set up to take exceptions and traps while in the kernel.
 void set_usertrap(void) {
     intr_off();
@@ -34,8 +32,7 @@ void kernel_interrupt_handler(uint64 cause) {
     switch (cause) {
     case SupervisorTimer:
         set_next_timer();
-        // if form user, allow yield
-        // TODO: enable yield
+        yield();
         break;
     case SupervisorExternal:
         irq = plic_claim();
@@ -61,7 +58,7 @@ void kernel_interrupt_handler(uint64 cause) {
 
 void user_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
     int irq;
-    switch (scause& 0xff) {
+    switch (scause & 0xff) {
     case SupervisorTimer:
         set_next_timer();
         // if form user, allow yield
@@ -153,7 +150,7 @@ void usertrap() {
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) == 0, "usertrap: not from user mode");
 
     if (scause & (1ULL << 63)) { // interrput = 1
-        user_interrupt_handler(scause , stval, sepc);
+        user_interrupt_handler(scause, stval, sepc);
     } else { // interrput = 0
         user_exception_handler(scause, stval, sepc);
     }
@@ -172,10 +169,10 @@ void usertrapret() {
     // we're back in user space, where usertrap() is correct.
     // intr_off();
     set_usertrap();
-    
-    struct trapframe *trapframe = curr_proc()->trapframe;
-    trapframe->kernel_satp = r_satp();                   // kernel page table
-    trapframe->kernel_sp = curr_proc()->kstack + PGSIZE; // process's kernel stack
+    struct proc *p = curr_proc();
+    struct trapframe *trapframe = p->trapframe;
+    trapframe->kernel_satp = r_satp();         // kernel page table
+    trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
     trapframe->kernel_trap = (uint64)usertrap;
     trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
     // debugf("epc=%p",trapframe->epc);
@@ -190,7 +187,7 @@ void usertrapret() {
     w_sstatus(x);
 
     // tell trampoline.S the user page table to switch to.
-    uint64 satp = MAKE_SATP(curr_proc()->pagetable);
+    uint64 satp = MAKE_SATP(p->pagetable);
 
     // jump to trampoline.S at the top of memory, which
     // switches to the user page table, restores user registers,

@@ -33,7 +33,7 @@ int exec(char *name, int argc, const char **argv) {
     // but can NOT access sp_pa
     char *sp_pa = (char *)(virt_addr_to_physical(p->pagetable, (uint64)sp - 1) + 1);
 
-    phex(sp_pa);
+    // phex(sp_pa);
 
     char *sp_pa_bottom = sp_pa; // keep a record
 
@@ -53,12 +53,12 @@ int exec(char *name, int argc, const char **argv) {
     p->trapframe->sp += sp_pa - sp_pa_bottom; // update user sp
     p->trapframe->a0 = (uint64)argc;
 
-    int64 offset = (uint64)argv_start - (uint64)sp_pa_bottom;   // offset of argv in user stack
+    int64 offset = (uint64)argv_start - (uint64)sp_pa_bottom; // offset of argv in user stack
     p->trapframe->a1 = (uint64)(sp + offset);
 
-    tracecore("trapframe->sp=%p", p->trapframe->sp);
-    tracecore("trapframe->a0=%p", p->trapframe->a0);
-    tracecore("trapframe->a1=%p", p->trapframe->a1);
-    
+    // tracecore("trapframe->sp=%p", p->trapframe->sp);
+    // tracecore("trapframe->a0=%p", p->trapframe->a0);
+    // tracecore("trapframe->a1=%p", p->trapframe->a1);
+
     return 0;
 }

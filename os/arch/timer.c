@@ -10,11 +10,18 @@ uint64 get_cycle() {
     return r_time();
 }
 
-/// Enable timer interrupt
+
 void timerinit() {
-    // Enable supervisor timer interrupt
+
+}
+
+void start_timer_interrupt(){
     w_sie(r_sie() | SIE_STIE);
     set_next_timer();
+}
+
+void stop_timer_interrupt(){
+    w_sie(r_sie() & ~SIE_STIE);
 }
 
 /// Set the next timer interrupt (10 ms)

@@ -24,7 +24,7 @@ void hart_bootcamp(uint64 hartid, uint64 a1) {
     w_tp(hartid);
     kvminithart(); // turn on paging
     trapinit_hart();
-    timerinit();
+
     plicinithart(); // ask PLIC for device interrupts
 
     printf("[ucore] start bootcamp hart %d\n", hartid);
@@ -53,7 +53,7 @@ void main(uint64 hartid, uint64 a1) {
         printf_k("\n");
         printf_k("[ucore] Boot hartid=%d\n", hartid);
         printf_k("[ucore] Core count: %d\n", NCPU);
-        printf_k("[ucore] a1=%d\n", a1);
+        printf_k("[ucore] a1=%p\n", a1);
         printf_k("[ucore] s_text=%p, e_text=%p\n", s_text, e_text);
         printf_k("[ucore] s_rodata=%p, e_rodata=%p\n", s_rodata, e_rodata);
         printf_k("[ucore] s_data=%p, e_data=%p\n", s_data, e_data);
@@ -75,9 +75,8 @@ void main(uint64 hartid, uint64 a1) {
         virtio_disk_init();
         kvminit();
         kvminithart();
-
+        timerinit();    // do nothing
         batchinit();
-        timerinit();
         init_scheduler();
         run_all_app();
 

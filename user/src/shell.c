@@ -72,11 +72,11 @@ void parse_line(){
         start = end;
     }
     argv[argc] = 0; // NULL terminate
-    printf("argc %d\n", argc);
-    for (int i = 0; i < argc; i++)
-    {
-        printf("argv[%d]=\"%s\"\n", i, argv[i]);
-    }
+    // printf("argc %d\n", argc);
+    // for (int i = 0; i < argc; i++)
+    // {
+    //     printf("argv[%d]=\"%s\"\n", i, argv[i]);
+    // }
     
     if (argc == 0){
         return;
@@ -92,7 +92,7 @@ void parse_line(){
             // child process
             if (execv(argv[0], argv) < 0) {
                 printf("Shell: %s: No such file\n", argv[0]);
-                exit(0);
+                exit(-9);
             }
             panic("unreachable!");
         } else {

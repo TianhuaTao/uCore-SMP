@@ -5,6 +5,7 @@
 #include <ucore/defs.h>
 #include <ucore/types.h>
 #include <file/console.h>
+#include <file/stat.h>
 /**
  * @brief The global file pool
  * Every opened file is kept here in system level
@@ -29,9 +30,6 @@ void console_init(){
 void device_init() {
     console_init();
     // more devices in the future
-    // connect read and write system calls
-    // to consoleread and consolewrite.
-
 }
 /**
  * @brief Init the global file pool
@@ -39,7 +37,6 @@ void device_init() {
  */
 void fileinit() {
     init_spin_lock_with_name(&filepool.lock, "filepool.lock");
-
     device_init();
 }
 
@@ -155,37 +152,51 @@ int fileopen(char *path, int flags) {
     struct file *f;
     struct inode *ip;
 
-    if (flags & O_CREATE) {
-        debugcore("create ");
-        ip = create(path, T_FILE, 0, 0);
-        debugcore("create done");
 
+    if (flags & O_CREATE) {
+        ip = create(path, T_FILE, 0, 0);
         if (ip == NULL) {
             return -1;
         }
     } else {
-        if ((ip = namei(path)) == 0) {
+        if ((ip = namei(path)) == NULL) {
             return -1;
         }
-        ivalid(ip);
+        ilock(ip);
+        if (ip->type == T_DIR && flags != O_RDONLY) {
+            iunlockput(ip);
+            return -1;
+        }
     }
-    if (ip->type != T_FILE)
-        panic("unsupported file inode type\n");
-    if ((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0) {
-        if (f)
-            fileclose(f);
-        iput(ip);
+
+    if (ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)) {
+        iunlockput(ip);
         return -1;
     }
-    // only support FD_INODE
-    f->type = FD_INODE;
-    f->off = 0;
+
+    if ((f = filealloc()) == NULL || (fd = fdalloc(f)) < 0) {
+        if (f)
+            fileclose(f);
+        iunlockput(ip);
+        return -1;
+    }
+
+    if (ip->type == T_DEVICE) {
+        f->type = FD_DEVICE;
+        f->major = ip->major;
+    } else {
+        f->type = FD_INODE;
+        f->off = 0;
+    }
     f->ip = ip;
     f->readable = !(flags & O_WRONLY);
     f->writable = (flags & O_WRONLY) || (flags & O_RDWR);
+
     if ((flags & O_TRUNC) && ip->type == T_FILE) {
         itrunc(ip);
     }
+
+    iunlock(ip);
     return fd;
 }
 
@@ -237,13 +248,46 @@ ssize_t filewrite(struct file *f, void* src_va, size_t len) {
 // Read from file f.
 // addr is a user virtual address.
 ssize_t fileread(struct file *f, void* dst_va, size_t len) {
-    // TODO: include more
-    int r;
-    ivalid(f->ip);
-    if ((r = readi(f->ip, 1, dst_va, f->off, len)) > 0)
-        f->off += r;
+    int r = 0;
+
+    if (f->readable == 0)
+        return -1;
+
+    if (f->type == FD_PIPE) {
+        r = piperead(f->pipe, (uint64)dst_va, len);
+    } else if (f->type == FD_DEVICE) {
+        if (f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
+            return -1;
+        r = devsw[f->major].read( dst_va, len, TRUE);
+    } else if (f->type == FD_INODE) {
+        ilock(f->ip);
+        if ((r = readi(f->ip, TRUE, dst_va, f->off, len)) > 0)
+            f->off += r;
+        iunlock(f->ip);
+    } else {
+        panic("fileread");
+    }
+
     return r;
 }
+
+// Get metadata about file f.
+// addr is a user virtual address, pointing to a struct stat.
+int filestat(struct file *f, uint64 addr) {
+    struct proc *p = curr_proc();
+    struct stat st;
+
+    if (f->type == FD_INODE || f->type == FD_DEVICE) {
+        ilock(f->ip);
+        stati(f->ip, &st);
+        iunlock(f->ip);
+        if (copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
+            return -1;
+        return 0;
+    }
+    return -1;
+}
+
 
 // int init_mailbox(struct mailbox *mb) {
 //     void *buf_pa = alloc_physical_page();

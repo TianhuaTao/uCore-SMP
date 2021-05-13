@@ -2,7 +2,7 @@
 #include <arch/timer.h>
 #include <proc/proc.h>
 #include <file/file.h>
-#define min(a, b) a < b ? a : b;
+#define min(a, b) (a) < (b) ? (a) : (b);
 
 
 
@@ -10,26 +10,36 @@
 // int sys_spawn(char *filename) {
 //     return spawn(filename);
 // }
-uint64 sys_pipe(uint64 fdarray) {
-    infof("init pipe\n");
+int sys_pipe(int (*pipefd_va)[2])
+{
     struct proc *p = curr_proc();
-    uint64 fd0, fd1;
-    struct file *f0, *f1;
-    if (f0 < 0 || f1 < 0) {
+    struct file *rf, *wf;
+    int fd0, fd1;
+    int(*pipefd)[2];
+    pipefd = (void*)virt_addr_to_physical(p->pagetable, (uint64)pipefd_va);
+    if(pipefd == NULL){
+        infof("pipefd invalid");
         return -1;
     }
-    f0 = filealloc();
-    f1 = filealloc();
-    if (pipealloc(f0, f1) < 0)
+    if (pipealloc(&rf, &wf) < 0){
         return -1;
-    fd0 = fdalloc(f0);
-    fd1 = fdalloc(f1);
-    if (copyout(p->pagetable, fdarray, (char *)&fd0, sizeof(fd0)) < 0 ||
-        copyout(p->pagetable, fdarray + sizeof(uint64), (char *)&fd1, sizeof(fd1)) < 0) {
-        fileclose(f0);
-        fileclose(f1);
+    }
+    fd0 = -1;
+    if ((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0) {
+        if (fd0 >= 0)
+            p->files[fd0] = 0;
+        fileclose(rf);
+        fileclose(wf);
+        return -1;
+    }
+    infof("fd0=%d, fd1=%d",fd0,fd1);
+    phex(pipefd_va);
+    if (copyout(p->pagetable, (uint64)pipefd_va, (char *)&fd0, sizeof(fd0)) < 0 ||
+        copyout(p->pagetable, (uint64)pipefd_va + sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0) {
         p->files[fd0] = 0;
         p->files[fd1] = 0;
+        fileclose(rf);
+        fileclose(wf);
         return -1;
     }
     return 0;
@@ -223,6 +233,7 @@ uint64 sys_close(int fd) {
 
     // invalid fd
     if (fd < 0 || fd >= FD_MAX) {
+        infof("invalid fd %d",fd);
         return -1;
     }
 
@@ -230,6 +241,7 @@ uint64 sys_close(int fd) {
 
     // invalid fd
     if (f == NULL) {
+        infof("fd %d is not opened", fd);
         return -1;
     }
 
@@ -239,12 +251,12 @@ uint64 sys_close(int fd) {
     return 0;
 }
 
-int sys_open(uint64 va, int flags) {
-    debugcore("sys_openat");
-    // print_cpu(mycpu());
+int sys_open(uint64 path_va, int flags) {
+    // TODO: rewrite
+    debugcore("sys_open");
     struct proc *p = curr_proc();
-    char path[200];
-    copyinstr(p->pagetable, path, va, 200);
+    char path[MAXPATH];
+    copyinstr(p->pagetable, path, path_va, MAXPATH);
     return fileopen(path, flags);
 }
 
@@ -453,4 +465,24 @@ ssize_t sys_write(int fd, void *src_va, size_t len) {
     }
 
     return filewrite(f, src_va, len);
+}
+
+int sys_dup(int oldfd){
+    struct file *f;
+    int fd;
+    struct proc *p = curr_proc();
+    f = get_proc_file_by_fd(p, oldfd);
+
+    if(f== NULL){
+        infof("old fd is not valid");
+        print_proc(p);
+        return -1;
+    }
+
+    if ((fd = fdalloc(f)) < 0){
+        infof("cannot allocate new fd");
+        return -1;
+    }
+    filedup(f);
+    return fd;
 }

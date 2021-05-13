@@ -2,6 +2,7 @@
 #define __FS_H__
 
 #include <ucore/types.h>
+#include <file/stat.h>
 // On-disk file system format.
 // Both the kernel and user programs use this header file.
 
@@ -75,8 +76,8 @@ struct inode *root_dir();
 struct inode *namei(char *path);
 void ilock(struct inode *ip);
 void iunlock(struct inode *ip);
-struct inode *
-nameiparent(char *path, char *name);
+struct inode *nameiparent(char *path, char *name);
 int writei(struct inode *ip, int user_src, void *src, uint off, uint n);
 int readi(struct inode *ip, int user_dst, void *dst, uint off, uint n);
+void stati(struct inode *ip, struct stat *st);
 #endif //!__FS_H__

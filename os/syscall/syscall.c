@@ -55,6 +55,9 @@ void syscall()
     case SYS_getpid:
         ret = sys_getpid();
         break;
+    case SYS_dup:
+        ret = sys_dup((int)args[0]);
+        break;
     case SYS_clone: // SYS_fork
         ret = sys_clone();
         break;
@@ -84,7 +87,7 @@ void syscall()
         //     ret = sys_spawn((char *)args[0]);
         //     break;
         case SYS_pipe2:
-            ret = sys_pipe(args[0]);
+            ret = sys_pipe((int(*)[2])args[0]);
             break;
         // case SYS_mailread:
         //     ret = sys_mailread((void *)args[0], args[1]);
@@ -97,11 +100,11 @@ void syscall()
             break;
         default:
             ret = -1;
-            warnf("unknown syscall %d\n", id);
+            warnf("unknown syscall %d", id);
     }
     trapframe->a0 = ret;    // return value
     if (id != SYS_write && id != SYS_read)
     {
-        tracecore("syscall %d ret %d\n", id, ret);
+        tracecore("syscall %d ret %d", id, ret);
     }
 }

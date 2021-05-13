@@ -20,12 +20,10 @@ int sbi_console_getchar();
 void shutdown();
 void set_timer(uint64 stime);
 
-
 // printf.c
 void printf(char *, ...);
 void printf_k(char *fmt, ...);
-void
-printfinit(void);
+void printfinit(void);
 
 // trap.c
 void trapinit();
@@ -50,11 +48,10 @@ void syscall();
 void swtch(struct context *, struct context *);
 
 // loader.c
-// int finished();
 void batchinit();
 int run_all_app();
-int get_id_by_name(char* name);
-void loader(int, void*);
+int get_id_by_name(char *name);
+void loader(int, void *);
 
 // proc.c
 struct proc *curr_proc();
@@ -66,10 +63,9 @@ void yield();
 int fork(void);
 int exec(char *name, int argc, const char **argv);
 int wait(int, int *);
-struct proc* allocproc();
+struct proc *allocproc();
 void init_scheduler();
 int fdalloc(struct file *);
-
 
 // kalloc.c
 void *alloc_physical_page(void);
@@ -91,11 +87,10 @@ uint64 walkaddr(pagetable_t, uint64);
 uint64 virt_addr_to_physical(pagetable_t, uint64);
 int copyout(pagetable_t, uint64, char *, uint64);
 int copyin(pagetable_t, char *, uint64, uint64);
-int copyinstr(pagetable_t, char *, uint64, uint64);
+int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max);
 int map1page(pagetable_t pagetable, uint64 va, uint64 pa, int perm);
 pte_t *walk(pagetable_t pagetable, uint64 va, int alloc);
-void
-kvminithart();
+void kvminithart();
 
 int either_copyout(void *dst, void *src, size_t len, int is_user_dst);
 int either_copyin(void *dst, void *src, size_t len, int is_user_src);
@@ -106,13 +101,12 @@ void timerinit();
 void set_next_timer();
 uint64 get_time_ms();
 // pipe.c
-int pipealloc(struct file *, struct file *);
+int pipealloc(struct file **f0, struct file **f1);
 void pipeclose(struct pipe *, int);
 int piperead(struct pipe *, uint64, int);
 int pipewrite(struct pipe *, uint64, int);
 
 // file.c
-
 
 // plic.c
 void plicinit(void);
@@ -157,8 +151,6 @@ void bunpin(struct buf *);
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif // DEFS_H
-
-
 
 #define STDIN 0
 #define STDOUT 1

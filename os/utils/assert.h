@@ -10,7 +10,7 @@
 #define KERNEL_ASSERT(exp, msg) \
     do {                   \
         if (!(exp))        \
-            panic(" Assert failed in ["__FILE__ " " STRINGIZE(__LINE__) "]: \"" #exp "\" " msg);         \
+            panic(" Assert failed in ["__FILE__ ":" STRINGIZE(__LINE__) "]: \"" #exp "\" " msg);         \
     } while (0)
 
 #endif // ASSERT_H

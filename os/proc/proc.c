@@ -9,10 +9,11 @@
 struct proc pool[NPROC];
 
 __attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
-extern char trampoline[];
-
-extern char boot_stack_top[];
-extern char boot_stack[];
+// helps ensure that wakeups of wait()ing
+// parents are not lost. helps obey the
+// memory model when using p->parent.
+// must be acquired before any p->lock.
+struct spinlock wait_lock;
 struct spinlock pool_lock;
 struct
 {
@@ -44,12 +45,11 @@ struct proc *findproc(int pid) {
 void procinit(void) {
     struct proc *p;
     init_spin_lock_with_name(&pool_lock, "pool_lock");
+    init_spin_lock_with_name(&wait_lock, "pool_lock");
     for (p = pool; p < &pool[NPROC]; p++) {
         init_spin_lock_with_name(&p->lock, "proc.lock");
         p->state = UNUSED;
-        // p->waiting_target = NULL;
-        // p->kstack = (uint64)kstack[p - pool];
-        // must after kinit()
+
     }
 
     next_pid.pid = 1;
@@ -99,7 +99,7 @@ void proc_free_mem_and_pagetable(pagetable_t pagetable, uint64 sz) {
     free_user_mem_and_pagetables(pagetable, sz);
 }
 
-static void
+void
 freeproc(struct proc *p) {
     if (p->trapframe)
         recycle_physical_page((void *)p->trapframe);
@@ -255,7 +255,17 @@ void print_proc(struct proc *proc) {
     printf_k("* priority:           %p\n", proc->priority);
     printf_k("* cpu_time:           %p\n", proc->cpu_time);
     printf_k("* last_time:          %p\n", proc->last_start_time);
-    printf_k("* files:              ...\n");
+    printf_k("* files:              \n");
+    for (int i = 0; i < FD_MAX; i++) {
+        if (proc->files[i] != NULL) {
+            if (i < 10) {
+                printf_k("*     files[ %d]:      %p\n", i, proc->files[i]);
+            } else {
+                printf_k("*     files[%d]:      %p\n", i, proc->files[i]);
+            }
+        }
+    }
+    printf_k("* files:              \n");
     printf_k("* cwd:                %p\n", proc->cwd);
     printf_k("* name:               %s\n", proc->name);
 
@@ -266,51 +276,11 @@ void print_proc(struct proc *proc) {
 // Give up the CPU for one scheduling round.
 void yield(void) {
     struct proc *p = curr_proc();
+    KERNEL_ASSERT(p != NULL, "yield() has no current proc");
     acquire(&p->lock);
     p->state = RUNNABLE;
     sched();
     release(&p->lock);
-}
-
-int fork() {
-    int pid;
-    struct proc *np;
-    struct proc *p = curr_proc();
-
-    // Allocate process.
-    if ((np = allocproc()) == NULL) {
-        warnf("No proc can be allocated");
-        return -1;
-    }
-
-    // Copy user memory from parent to child.
-    if (uvmcopy(p->pagetable, np->pagetable, p->total_size) < 0) {
-        freeproc(np);
-        release(&np->lock);
-        return -1;
-    }
-    np->total_size = p->total_size;
-
-    // copy saved user registers.
-    *(np->trapframe) = *(p->trapframe);
-
-    // file descriptors
-    // TODO: fix this
-    for (int i = 0; i < FD_MAX; ++i) {
-        if (p->files[i] != NULL && p->files[i]->type != FD_NONE) {
-            p->files[i]->ref++;
-            np->files[i] = p->files[i];
-        }
-    }
-    // Cause fork to return 0 in the child.
-    np->trapframe->a0 = 0;
-    pid = np->pid;
-
-    np->parent = p;
-
-    np->state = RUNNABLE;
-    release(&np->lock);
-    return pid;
 }
 
 // int spawn(char *filename) {
@@ -443,8 +413,8 @@ void exit(int code) {
  */
 int fdalloc(struct file *f) {
     struct proc *p = curr_proc();
-    // fd = 0,1,2 is reserved for stdio/stdout
-    for (int i = 3; i < FD_MAX; ++i) {
+
+    for (int i = 0; i < FD_MAX; ++i) {
         if (p->files[i] == 0) {
             p->files[i] = f;
             return i;
@@ -487,10 +457,8 @@ void sleep(void *waiting_target, struct spinlock *lk) {
     // Go to sleep.
     p->waiting_target = waiting_target;
     p->state = SLEEPING;
-    // debugcore("sched start");
 
     sched();
-    // debugcore("sched end");
 
     // Tidy up.
     p->waiting_target = NULL;
@@ -502,4 +470,16 @@ void sleep(void *waiting_target, struct spinlock *lk) {
     acquire(lk);
 
     // debugcore("sleep end");
+}
+
+struct file *get_proc_file_by_fd(struct proc *p, int fd) {
+    if (p == NULL) {
+        panic("get_proc_file_by_fd: p is NULL");
+    }
+
+    if (fd < 0 || fd >= FD_MAX) {
+        return NULL;
+    }
+
+    return p->files[fd];
 }

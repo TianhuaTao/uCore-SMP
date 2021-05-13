@@ -7,7 +7,8 @@ static int app_cur, app_num;
 static uint64 *app_info_ptr;
 extern char _app_num[], _app_names[];
 // const uint64 BASE_ADDRESS = 0x1000; // user text start
-char names[40][100];
+#define APP_MAX_CNT 100
+char names[40][APP_MAX_CNT];
 
 void batchinit()
 {
@@ -31,10 +32,9 @@ int get_id_by_name(char *name)
 {
     for (int i = 0; i < app_num; ++i)
     {
-        if (strncmp(name, names[i], 100) == 0)
+        if (strncmp(name, names[i], APP_MAX_CNT) == 0)
             return i;
     }
-    // warnf("Can not find such app\n");
     return -1;
 }
 
@@ -50,7 +50,7 @@ void alloc_ustack(struct proc *p)
 
 void bin_loader(uint64 start, uint64 end, struct proc *p)
 {
-    debugf("load range = [%p, %p)\n", start, end);
+    debugf("load range = [%p, %p)", start, end);
     uint64 s = PGROUNDDOWN(start), e = PGROUNDUP(end), length = e - s;
     for (uint64 va = USER_TEXT_START, pa = s; pa < e; va += PGSIZE, pa += PGSIZE)
     {
@@ -71,7 +71,7 @@ void bin_loader(uint64 start, uint64 end, struct proc *p)
 
 void loader(int id, void *p)
 {
-    debugcore("loader %s\n", names[id]);
+    debugcore("loader %s", names[id]);
     bin_loader(app_info_ptr[id], app_info_ptr[id + 1], p);
 }
 
