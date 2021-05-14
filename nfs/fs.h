@@ -39,6 +39,7 @@ struct superblock {
 // File type
 #define T_DIR 1  // Directory
 #define T_FILE 2 // File
+#define T_DEVICE 3 // Device
 
 // On-disk inode structure
 struct dinode {

@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <unistd.h>
-
+#include <fcntl.h>
 #include "syscall.h"
-
+#include <ucore.h>
 int open(const char *path, int flags, int mode) {
     return syscall(SYS_openat, path, flags, mode);
 }
@@ -68,4 +68,20 @@ int sleep(unsigned long long time) {
 
 int pipe(void* p) {
     return syscall(SYS_pipe2, p);
+}
+
+int fstat(int fd, struct stat *st){
+    return syscall(SYS_fstat, fd, st);
+}
+
+int stat(const char *n, struct stat *st) {
+    int fd;
+    int r;
+
+    fd = open(n, O_RDONLY,0);
+    if (fd < 0)
+        return -1;
+    r = fstat(fd, st);
+    close(fd);
+    return r;
 }

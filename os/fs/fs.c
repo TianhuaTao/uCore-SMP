@@ -576,3 +576,17 @@ void stati(struct inode *ip, struct stat *st) {
     st->nlink = ip->num_link;
     st->size = ip->size;
 }
+// Is the directory dp empty except for "." and ".." ?
+ int
+isdirempty(struct inode *dp) {
+    int off;
+    struct dirent de;
+
+    for (off = 2 * sizeof(de); off < dp->size; off += sizeof(de)) {
+        if (readi(dp, 0, (void*)&de, off, sizeof(de)) != sizeof(de))
+            panic("isdirempty: readi");
+        if (de.inum != 0)
+            return 0;
+    }
+    return 1;
+}

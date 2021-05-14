@@ -1,27 +1,23 @@
 #include "syscall_impl.h"
 #include <arch/timer.h>
-#include <proc/proc.h>
 #include <file/file.h>
+#include <proc/proc.h>
 #define min(a, b) (a) < (b) ? (a) : (b);
-
-
-
 
 // int sys_spawn(char *filename) {
 //     return spawn(filename);
 // }
-int sys_pipe(int (*pipefd_va)[2])
-{
+int sys_pipe(int (*pipefd_va)[2]) {
     struct proc *p = curr_proc();
     struct file *rf, *wf;
     int fd0, fd1;
     int(*pipefd)[2];
-    pipefd = (void*)virt_addr_to_physical(p->pagetable, (uint64)pipefd_va);
-    if(pipefd == NULL){
+    pipefd = (void *)virt_addr_to_physical(p->pagetable, (uint64)pipefd_va);
+    if (pipefd == NULL) {
         infof("pipefd invalid");
         return -1;
     }
-    if (pipealloc(&rf, &wf) < 0){
+    if (pipealloc(&rf, &wf) < 0) {
         return -1;
     }
     fd0 = -1;
@@ -32,7 +28,7 @@ int sys_pipe(int (*pipefd_va)[2])
         fileclose(wf);
         return -1;
     }
-    infof("fd0=%d, fd1=%d",fd0,fd1);
+    infof("fd0=%d, fd1=%d", fd0, fd1);
     phex(pipefd_va);
     if (copyout(p->pagetable, (uint64)pipefd_va, (char *)&fd0, sizeof(fd0)) < 0 ||
         copyout(p->pagetable, (uint64)pipefd_va + sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0) {
@@ -92,11 +88,11 @@ int64 sys_chdir(char *path_va) {
     struct inode *ip;
     struct proc *p = curr_proc();
 
-    if (copyinstr(p->pagetable, path, (uint64)path_va, MAXPATH)!= 0){
+    if (copyinstr(p->pagetable, path, (uint64)path_va, MAXPATH) != 0) {
         return -2;
     }
     ip = namei(path);
-    if(ip==NULL){
+    if (ip == NULL) {
         return -1;
     }
     ilock(ip);
@@ -111,8 +107,7 @@ int64 sys_chdir(char *path_va) {
     return 0;
 }
 
-int
-sys_mknod(char *path_va, short major, short minor) {
+int sys_mknod(char *path_va, short major, short minor) {
     struct proc *p = curr_proc();
     struct inode *ip;
     char path[MAXPATH];
@@ -233,7 +228,7 @@ uint64 sys_close(int fd) {
 
     // invalid fd
     if (fd < 0 || fd >= FD_MAX) {
-        infof("invalid fd %d",fd);
+        infof("invalid fd %d", fd);
         return -1;
     }
 
@@ -442,7 +437,7 @@ int64 sys_munmap(void *start, uint64 len) {
 //     release(&dest->lock);
 //     return -1;
 // }
-ssize_t sys_read(int fd, void* dst_va, size_t len) {
+ssize_t sys_read(int fd, void *dst_va, size_t len) {
     if (fd >= FD_MAX || fd < 0) {
         return -1;
     }
@@ -467,22 +462,121 @@ ssize_t sys_write(int fd, void *src_va, size_t len) {
     return filewrite(f, src_va, len);
 }
 
-int sys_dup(int oldfd){
+int sys_dup(int oldfd) {
     struct file *f;
     int fd;
     struct proc *p = curr_proc();
     f = get_proc_file_by_fd(p, oldfd);
 
-    if(f== NULL){
+    if (f == NULL) {
         infof("old fd is not valid");
         print_proc(p);
         return -1;
     }
 
-    if ((fd = fdalloc(f)) < 0){
+    if ((fd = fdalloc(f)) < 0) {
         infof("cannot allocate new fd");
         return -1;
     }
     filedup(f);
     return fd;
+}
+
+// Create the path new as a link to the same inode as old.
+int link(char *oldpath_va, char *newpath_va) {
+    char name[DIRSIZ], new[MAXPATH], old[MAXPATH];
+    struct inode *dp, *ip;
+
+    struct proc *p = curr_proc();
+    if (copyinstr(p->pagetable, old, (uint64)oldpath_va, MAXPATH) != 0) {
+        return -1;
+    }
+    if (copyinstr(p->pagetable, new, (uint64)newpath_va, MAXPATH) != 0) {
+        return -1;
+    }
+
+    if ((ip = namei(old)) == 0) {
+        return -1;
+    }
+
+    ilock(ip);
+    if (ip->type == T_DIR) {
+        iunlockput(ip);
+        return -1;
+    }
+
+    ip->num_link++;
+    iupdate(ip);
+    iunlock(ip);
+
+    if ((dp = nameiparent(new, name)) == 0)
+        goto bad;
+    ilock(dp);
+    if (dp->dev != ip->dev || dirlink(dp, name, ip->inum) < 0) {
+        iunlockput(dp);
+        goto bad;
+    }
+    iunlockput(dp);
+    iput(ip);
+
+    return 0;
+
+bad:
+    ilock(ip);
+    ip->num_link--;
+    iupdate(ip);
+    iunlockput(ip);
+
+    return -1;
+}
+
+int unlink(char *pathname_va) {
+    struct inode *ip, *dp;
+    struct dirent de;
+    char name[DIRSIZ], path[MAXPATH];
+    uint off;
+
+    struct proc *p = curr_proc();
+    if (copyinstr(p->pagetable, path, (uint64)pathname_va, MAXPATH) != 0) {
+        return -1;
+    }
+
+    if ((dp = nameiparent(path, name)) == 0) {
+        return -1;
+    }
+
+    ilock(dp);
+
+    // Cannot unlink "." or "..".
+    if (namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
+        goto bad;
+
+    if ((ip = dirlookup(dp, name, &off)) == 0)
+        goto bad;
+    ilock(ip);
+
+    if (ip->num_link < 1)
+        panic("unlink: nlink < 1");
+    if (ip->type == T_DIR && !isdirempty(ip)) {
+        iunlockput(ip);
+        goto bad;
+    }
+
+    memset(&de, 0, sizeof(de));
+    if (writei(dp, 0, &de, off, sizeof(de)) != sizeof(de))
+        panic("unlink: writei");
+    if (ip->type == T_DIR) {
+        dp->num_link--;
+        iupdate(dp);
+    }
+    iunlockput(dp);
+
+    ip->num_link--;
+    iupdate(ip);
+    iunlockput(ip);
+    return 0;
+
+bad:
+    iunlockput(dp);
+    return -1;
 }

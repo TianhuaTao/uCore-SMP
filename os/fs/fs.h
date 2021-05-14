@@ -80,4 +80,6 @@ struct inode *nameiparent(char *path, char *name);
 int writei(struct inode *ip, int user_src, void *src, uint off, uint n);
 int readi(struct inode *ip, int user_dst, void *dst, uint off, uint n);
 void stati(struct inode *ip, struct stat *st);
+int isdirempty(struct inode *dp);
+int namecmp(const char *s, const char *t);
 #endif //!__FS_H__

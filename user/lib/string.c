@@ -47,7 +47,14 @@ int strcmp(const char* l, const char* r)
         ;
     return *(unsigned char*)l - *(unsigned char*)r;
 }
+char * strcpy(char *s, const char *t) {
+    char *os;
 
+    os = s;
+    while ((*s++ = *t++) != 0)
+        ;
+    return os;
+}
 int strncmp(const char* _l, const char* _r, size_t n)
 {
     const unsigned char *l = (void*)_l, *r = (void*)_r;
@@ -142,4 +149,23 @@ char* stpncpy(char* restrict d, const char* s, size_t n)
 tail:
     memset(d, 0, n);
     return d;
+}
+
+void *
+memmove(void *vdst, const void *vsrc, int n) {
+    char *dst;
+    const char *src;
+
+    dst = vdst;
+    src = vsrc;
+    if (src > dst) {
+        while (n-- > 0)
+            *dst++ = *src++;
+    } else {
+        dst += n;
+        src += n;
+        while (n-- > 0)
+            *--dst = *--src;
+    }
+    return vdst;
 }

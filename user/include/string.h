@@ -13,6 +13,6 @@ size_t strlen(const char *);
 size_t strnlen(const char *s, size_t n);
 char* stpncpy(char *restrict d, const char *restrict s, size_t n);
 int stpncmp(const char *_l, const char *_r, size_t n);
-
+char *
+strcpy(char *s, const char *t);
 #endif // __STRING_H__
-
