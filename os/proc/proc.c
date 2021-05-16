@@ -483,3 +483,8 @@ struct file *get_proc_file_by_fd(struct proc *p, int fd) {
 
     return p->files[fd];
 }
+
+int kill(int pid){
+
+    return -1;
+}

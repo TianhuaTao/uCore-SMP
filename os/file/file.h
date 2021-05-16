@@ -16,7 +16,9 @@ struct inode {
     int ref;   // Reference count
     struct mutex lock;
     int valid;  // inode has been read from disk?
-    short type; // copy of disk inode
+
+    // disk side information, only valid if this->valid == true
+    short type; 
     short major;
     short minor;
     short num_link;
@@ -79,6 +81,7 @@ ssize_t filewrite(struct file *f, void *src_va, size_t len);
 struct file *filealloc();
 int fileopen(char *path, int flags);
 struct file *filedup(struct file *f);
+int filestat(struct file *f, uint64 addr);
 #define FILE_MAX (128 * 16)
 
 #define CONSOLE 1

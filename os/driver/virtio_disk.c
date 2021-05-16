@@ -195,7 +195,7 @@ alloc3_desc(int *idx) {
 extern int PID;
 
 void virtio_disk_rw(struct buf *b, int write) {
-    debugcore("virtio_disk_rw");
+    debugcore("virtio_disk_rw w=%d", write);
     uint64 sector = b->blockno * (BSIZE / 512);
 
     acquire(&disk.vdisk_lock);
@@ -243,7 +243,7 @@ void virtio_disk_rw(struct buf *b, int write) {
     disk.desc[idx[2]].next = 0;
 
     // record struct buf for virtio_disk_intr().
-    b->disk = 1;
+    b->disk_is_reading = 1;
     disk.info[idx[0]].b = b;
 
     // tell the device the first index in our chain of descriptors.
@@ -259,7 +259,7 @@ void virtio_disk_rw(struct buf *b, int write) {
     *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
     // Wait for virtio_disk_intr() to say request has finished.
-    while (b->disk == 1) {
+    while (b->disk_is_reading == 1) {
         sleep(b, &disk.vdisk_lock);
     }
 
@@ -294,7 +294,7 @@ void virtio_disk_intr() {
             panic("virtio_disk_intr status");
 
         struct buf *b = disk.info[id].b;
-        b->disk = 0; // disk is done with buf
+        b->disk_is_reading = 0; // disk is done with buf
         // debugcore("wakeup start");
         wakeup(b);
         // debugcore("wakeup end");

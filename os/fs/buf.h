@@ -7,7 +7,7 @@
 struct buf
 {
     int valid; // has data been read from disk?
-    int disk;  // does disk "own" buf?
+    int disk_is_reading;  // does disk "own" buf?
     uint dev;
     uint blockno;
     struct mutex mu;

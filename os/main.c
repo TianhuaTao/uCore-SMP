@@ -72,7 +72,8 @@ void main(uint64 hartid, uint64 a1) {
         binit();        // buffer cache
         iinit();        // inode cache
         fileinit();     // file table
-        virtio_disk_init();
+        // virtio_disk_init();
+        init_abstract_disk();
         kvminit();
         kvminithart();
         timerinit();    // do nothing

@@ -18,7 +18,7 @@ int fork() {
         return -1;
     }
     np->total_size = p->total_size;
-
+    np->stride  = p->stride;
     // copy saved user registers.
     *(np->trapframe) = *(p->trapframe);
 

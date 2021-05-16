@@ -83,6 +83,9 @@ void syscall() {
     case SYS_pipe2:
         ret = sys_pipe((int(*)[2])args[0]);
         break;
+    case SYS_fstat:
+        ret = sys_fstat((int)args[0], (void*)args[1]);
+        break;
     // case SYS_mailread:
     //     ret = sys_mailread((void *)args[0], args[1]);
     //     break;

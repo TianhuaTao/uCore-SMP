@@ -6,10 +6,10 @@
 // a synchronization point for disk blocks used by multiple processes.
 //
 // Interface:
-// * To get a buffer for a particular disk block, call bread.
-// * After changing buffer data, call bwrite to write it to disk.
-// * When done with the buffer, call brelse.
-// * Do not use the buffer after calling brelse.
+// * To get a buffer for a particular disk block, call acquire_buf_and_read.
+// * After changing buffer data, call write_buf_to_disk to write it to disk.
+// * When done with the buffer, call release_buf.
+// * Do not use the buffer after calling release_buf.
 // * Only one process at a time can use a buffer,
 //     so do not keep them longer than necessary.
 
@@ -44,7 +44,8 @@ void binit(void) {
 // Look through buffer cache for block on device dev.
 // If not found, allocate a buffer.
 static struct buf *
-bget(uint dev, uint blockno) {
+acquire_buf(uint dev, uint blockno) {
+    // tracecore("acquire_buf");
     struct buf *b;
     acquire(&bcache.lock);
 
@@ -71,7 +72,7 @@ bget(uint dev, uint blockno) {
             return b;
         }
     }
-    panic("bget: no buffers");
+    panic("acquire_buf: no buffers");
     return 0;
 }
 
@@ -80,32 +81,36 @@ const int W = 1;
 
 // Return a buf with the contents of the indicated block.
 struct buf *
-bread(uint dev, uint blockno) {
-    // debugcore("bread");
+acquire_buf_and_read(uint dev, uint blockno) {
+    // debugcore("acquire_buf_and_read");
 
     struct buf *b;
-    b = bget(dev, blockno);
-    // debugcore("bget ret");
+    b = acquire_buf(dev, blockno);
+    // debugcore("acquire_buf ret");
 
     if (!b->valid) {
-        virtio_disk_rw(b, R);
+        abstract_disk_rw(b, R);
+        // virtio_disk_rw(b, R);
         b->valid = 1;
     }
     return b;
 }
 
 // Write b's contents to disk.
-void bwrite(struct buf *b) {
+void write_buf_to_disk(struct buf *b) {
+    // tracecore("write_buf_to_disk");
     if (!holdingsleep(&b->mu))
-        panic("bwrite");
-    virtio_disk_rw(b, W);
+        panic("write_buf_to_disk");
+    // virtio_disk_rw(b, W);
+    abstract_disk_rw(b,W);
 }
 
 // Release a buffer.
 // Move to the head of the most-recently-used list.
-void brelse(struct buf *b) {
+void release_buf(struct buf *b) {
+    // tracecore("release_buf");
     if (!holdingsleep(&b->mu))
-        panic("brelse");
+        panic("release_buf");
 
     release_mutex_sleep(&b->mu);
     acquire(&bcache.lock);

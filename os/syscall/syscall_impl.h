@@ -3,6 +3,8 @@
 
 #include <ucore/ucore.h>
 
+struct stat;
+
 ssize_t sys_write(int fd, void *src_va, size_t len);
 ssize_t sys_read(int fd, void *dst_va, size_t len);
 int sys_pipe(int (*pipefd_va)[2]);
@@ -22,7 +24,7 @@ int sys_open(uint64 va, int flags);
 int sys_mknod(char *path_va, short major, short minor);
 int sys_dup(int oldfd);
 int64 sys_chdir(char *path_va);
-
+int sys_fstat(int fd, struct stat *statbuf_va);
 // int sys_spawn(char *filename);
 // int64 sys_mmap(void *start, uint64 len, int prot);
 // int64 sys_munmap(void *start, uint64 len);

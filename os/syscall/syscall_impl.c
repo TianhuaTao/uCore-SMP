@@ -2,11 +2,30 @@
 #include <arch/timer.h>
 #include <file/file.h>
 #include <proc/proc.h>
+#include <file/stat.h>
 #define min(a, b) (a) < (b) ? (a) : (b);
 
-// int sys_spawn(char *filename) {
-//     return spawn(filename);
-// }
+int sys_fstat(int fd, struct stat *statbuf_va){
+    struct proc *p = curr_proc();
+
+    // invalid fd
+    if (fd < 0 || fd >= FD_MAX) {
+        infof("invalid fd %d", fd);
+        return -1;
+    }
+
+    struct file *f = p->files[fd];
+
+    // invalid fd
+    if (f == NULL) {
+        infof("fd %d is not opened", fd);
+        return -1;
+    }
+
+    return filestat(f, (uint64)statbuf_va);
+
+}
+
 int sys_pipe(int (*pipefd_va)[2]) {
     struct proc *p = curr_proc();
     struct file *rf, *wf;
@@ -223,7 +242,6 @@ int64 sys_gettimeofday(uint64 *timeval, int tz) {
  * @return uint64 0 if successful, nonzero if not
  */
 uint64 sys_close(int fd) {
-    // TODO: validate fd
     struct proc *p = curr_proc();
 
     // invalid fd

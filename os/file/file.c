@@ -105,7 +105,7 @@ struct inode * create(char *path, short type, short major, short minor) {
         return 0;
     }
 
-    if ((ip = ialloc(dp->dev, type)) == 0)
+    if ((ip = alloc_disk_inode(dp->dev, type)) == 0)
         panic("create: ialloc");
 
     ilock(ip);
@@ -145,7 +145,13 @@ filedup(struct file *f) {
     return f;
 }
 
-
+/**
+ * @brief Open a file
+ * 
+ * @param path kernel space string
+ * @param flags how to open
+ * @return int fd, -1 if failed
+ */
 int fileopen(char *path, int flags) {
     debugcore("fileopen");
     int fd;
@@ -156,15 +162,22 @@ int fileopen(char *path, int flags) {
     if (flags & O_CREATE) {
         ip = create(path, T_FILE, 0, 0);
         if (ip == NULL) {
+            infof("Cannot create inode");
             return -1;
         }
     } else {
+        // find inode by name
         if ((ip = namei(path)) == NULL) {
+            infof("Cannot find inode with name %s", path);
             return -1;
         }
+        // the inode is found
+        debugcore("xxx");
         ilock(ip);
+        debugcore("yyy");
         if (ip->type == T_DIR && flags != O_RDONLY) {
             iunlockput(ip);
+            infof("Can only read a dir");
             return -1;
         }
     }

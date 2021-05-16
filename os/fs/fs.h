@@ -25,8 +25,8 @@
 // super block describes the disk layout:
 struct superblock {
     uint magic;     // Must be FSMAGIC
-    uint size;      // Size of file system image (blocks)
-    uint nblocks;   // Number of data blocks
+    uint total_blocks;      // Size of file system image (blocks)
+    uint num_data_blocks;   // Number of data blocks
     uint ninodes;   // Number of inodes.
     uint inodestart;// Block number of first inode block
     uint bmapstart; // Block number of first free map block
@@ -54,16 +54,16 @@ struct dinode {
 };
 
 // Inodes per block.
-#define IPB (BSIZE / sizeof(struct dinode))
+#define INODES_PER_BLOCK (BSIZE / sizeof(struct dinode))
 
 // Block containing inode i
-#define IBLOCK(i, sb) ((i) / IPB + sb.inodestart)
+#define BLOCK_CONTAINING_INODE(i, sb) ((i) / INODES_PER_BLOCK + sb.inodestart)
 
-// Bitmap bits per block
-#define BPB (BSIZE * 8)
+// A bitmap block maps this much data blocks
+#define BITS_PER_BITMAP_BLOCK (BSIZE * 8)
 
-// Block of free map containing bit for block b
-#define BBLOCK(b, sb) ((b) / BPB + sb.bmapstart)
+// Block of free map containing bit for a block
+#define BITMAP_BLOCK_CONTAINING(blockid, sb) ((blockid) / BITS_PER_BITMAP_BLOCK + sb.bmapstart)
 
 // Directory is a file containing a sequence of dirent structures.
 #define DIRSIZ 14

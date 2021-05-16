@@ -24,7 +24,7 @@
 // [ boot block | sb block | inode blocks | free bit map | data blocks ]
 
 int nbitmap = FSSIZE / (BSIZE * 8) + 1;
-int ninodeblocks = NINODES / IPB + 1;
+int ninodeblocks = NINODES / INODES_PER_BLOCK + 1;
 int nmeta;  // Number of meta blocks (boot, sb, nlog, inode, bitmap)
 int nblocks;// Number of data blocks
 
@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
     nblocks = FSSIZE - nmeta;
 
     sb.magic = FSMAGIC;
-    sb.size = xint(FSSIZE);
-    sb.nblocks = xint(nblocks);
+    sb.total_blocks = xint(FSSIZE);
+    sb.num_data_blocks = xint(nblocks);
     sb.ninodes = xint(NINODES);
     sb.inodestart = xint(2);
     sb.bmapstart = xint(2 + ninodeblocks);
@@ -104,7 +104,18 @@ int main(int argc, char *argv[]) {
     wsect(1, buf);
 
     rootino = ialloc(T_DIR);
+    assert(rootino == ROOTINO);
 
+    bzero(&de, sizeof(de));
+    de.inum = xshort(rootino);
+    strcpy(de.name, ".");
+    iappend(rootino, &de, sizeof(de));
+
+    bzero(&de, sizeof(de));
+    de.inum = xshort(rootino);
+    strcpy(de.name, "..");
+    iappend(rootino, &de, sizeof(de));
+    
     for (i = 2; i < argc; i++) {
         // get rid of "target/bin/"
         char *shortname;
@@ -160,9 +171,9 @@ void winode(uint inum, struct dinode *ip) {
     uint bn;
     struct dinode *dip;
 
-    bn = IBLOCK(inum, sb);
+    bn = BLOCK_CONTAINING_INODE(inum, sb);
     rsect(bn, buf);
-    dip = ((struct dinode *) buf) + (inum % IPB);
+    dip = ((struct dinode *) buf) + (inum % INODES_PER_BLOCK);
     *dip = *ip;
     wsect(bn, buf);
 }
@@ -172,9 +183,9 @@ void rinode(uint inum, struct dinode *ip) {
     uint bn;
     struct dinode *dip;
 
-    bn = IBLOCK(inum, sb);
+    bn = BLOCK_CONTAINING_INODE(inum, sb);
     rsect(bn, buf);
-    dip = ((struct dinode *) buf) + (inum % IPB);
+    dip = ((struct dinode *) buf) + (inum % INODES_PER_BLOCK);
     *ip = *dip;
 }
 
@@ -195,6 +206,7 @@ uint ialloc(ushort type) {
 
     bzero(&din, sizeof(din));
     din.type = xshort(type);
+    din.nlink = xshort(1);
     din.size = xint(0);
     winode(inum, &din);
     return inum;
@@ -203,12 +215,14 @@ uint ialloc(ushort type) {
 void balloc(int used) {
     uchar buf[BSIZE];
     int i;
-    assert(used < BSIZE * 8);
+      printf("balloc: first %d blocks have been allocated\n", used);
+      assert(used < BSIZE * 8);
     bzero(buf, BSIZE);
     for (i = 0; i < used; i++) {
         buf[i / 8] = buf[i / 8] | (0x1 << (i % 8));
     }
-    wsect(sb.bmapstart, buf);
+        printf("balloc: write bitmap block at sector %d\n", sb.bmapstart);
+      wsect(sb.bmapstart, buf);
 }
 
 #define min(a, b) ((a) < (b) ? (a) : (b))

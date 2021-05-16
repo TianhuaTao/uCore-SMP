@@ -119,11 +119,15 @@ void virtio_disk_init(void);
 void virtio_disk_rw(struct buf *, int);
 void virtio_disk_intr(void);
 
+
+void init_abstract_disk();
+void abstract_disk_rw(struct buf *b, int write);
+
 // fs.c
 void fsinit();
 int dirlink(struct inode *, char *, uint);
 struct inode *dirlookup(struct inode *, char *, uint *);
-struct inode *ialloc(uint, short);
+struct inode *alloc_disk_inode(uint, short);
 struct inode *idup(struct inode *);
 void iinit();
 void ivalid(struct inode *);
@@ -138,9 +142,10 @@ void itrunc(struct inode *);
 
 // bio.c
 void binit(void);
-struct buf *bread(uint, uint);
-void brelse(struct buf *);
-void bwrite(struct buf *);
+struct buf *
+acquire_buf_and_read(uint dev, uint blockno);
+void release_buf(struct buf *);
+void write_buf_to_disk(struct buf *);
 void bpin(struct buf *);
 void bunpin(struct buf *);
 
