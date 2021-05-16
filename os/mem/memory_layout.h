@@ -1,8 +1,8 @@
 // the kernel expects there to be RAM
 // for use by the kernel and user pages
 // from physical address 0x80000000 to PHYSTOP.
-#define KERNBASE 0x80200000L
-#define PHYSTOP (0x80000000 + 128 * 1024 * 1024) // 128M
+#define KERNBASE 0x100200000L
+#define PHYSTOP (0x100000000 + 128 * 1024 * 1024) // 128M
 
 // map the trampoline page to the highest address,
 // in both user and kernel space.
@@ -36,6 +36,8 @@
 #define PLIC_MCLAIM(hart) (PLIC + 0x200004 + (hart)*0x2000)
 #define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)
 
+#define DSID_CP_BASE 0x20000
+#define DSID_CP_SIZE 0x10000
 
-#define USER_STACK_BOTTOM 0xC0000000   // 3GB, user stack lower address 
+#define USER_STACK_BOTTOM 0x110000000   // 3GB, user stack lower address
 #define USER_TEXT_START 0x1000

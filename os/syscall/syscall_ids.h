@@ -300,6 +300,8 @@
 #define SYS_pidfd_getfd 438
 #define SYS_faccessat2 439
 #define SYS_riscv_flush_icache 244 + 15
-
+#define SYS_set_dsid 500
+#define SYS_set_dsid_param 501
+#define SYS_get_l2_traffic 502
 
 #endif // SYSCALL_IDS_H

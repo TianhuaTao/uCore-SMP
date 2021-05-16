@@ -25,10 +25,10 @@ int puts(const char* s)
 
 static char digits[] = "0123456789abcdef";
 
-static void printint(int xx, int base, int sign) {
-    char buf[16];
+static void printint(int64 xx, int base, int sign) {
+    char buf[25];
     int i;
-    uint8 x;
+    uint32 x;
 
     if (sign && (sign = xx < 0))
         x = -xx;
@@ -72,10 +72,10 @@ void printf(const char* fmt, ...) {
             break;
         switch (c) {
             case 'd':
-                printint(va_arg(ap, int), 10, 1);
+                printint(va_arg(ap, int64), 10, 1);
                 break;
             case 'x':
-                printint(va_arg(ap, int), 16, 1);
+                printint(va_arg(ap, int64), 16, 1);
                 break;
             case 'p':
                 printptr(va_arg(ap, uint64));

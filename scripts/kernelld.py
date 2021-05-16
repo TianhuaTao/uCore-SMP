@@ -8,7 +8,7 @@ if __name__ == '__main__':
     f.write(
 '''OUTPUT_ARCH(riscv)
 ENTRY(_entry)
-BASE_ADDRESS = 0x80200000;
+BASE_ADDRESS = 0x100200000;
 
 SECTIONS
 {
@@ -46,7 +46,7 @@ SECTIONS
         *(.data.*)
         *(.sdata .sdata.*)
     }
-    
+
     . = ALIGN(4K);
     e_data = .;
     .bss : {

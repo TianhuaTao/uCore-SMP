@@ -195,6 +195,7 @@ alloc3_desc(int *idx) {
 extern int PID;
 
 void virtio_disk_rw(struct buf *b, int write) {
+    return;
     debugcore("virtio_disk_rw");
     uint64 sector = b->blockno * (BSIZE / 512);
 

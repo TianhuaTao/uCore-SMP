@@ -22,7 +22,9 @@ int sys_open(uint64 va, int flags);
 int sys_mknod(char *path_va, short major, short minor);
 int sys_dup(int oldfd);
 int64 sys_chdir(char *path_va);
-
+int sys_set_dsid(int pid, uint32 dsid);
+int sys_set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32 mask);
+uint32 sys_get_l2_traffic(uint32 dsid);
 // int sys_spawn(char *filename);
 // int64 sys_mmap(void *start, uint64 len, int prot);
 // int64 sys_munmap(void *start, uint64 len);

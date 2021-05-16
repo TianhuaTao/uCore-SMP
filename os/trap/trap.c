@@ -150,6 +150,10 @@ void usertrap() {
     // debugcore("usertrap");
     // print_cpu(mycpu());
 
+    if ((sstatus & SSTATUS_SPP) != 0)
+    {
+        errorf("sepc: %p, scause: 0x%x, stval: %p, sstatus: 0x%x", sepc, scause, stval, sstatus);
+    }
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) == 0, "usertrap: not from user mode");
 
     if (scause & (1ULL << 63)) { // interrput = 1

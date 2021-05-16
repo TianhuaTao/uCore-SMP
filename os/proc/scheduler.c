@@ -41,7 +41,8 @@ void scheduler(void) {
             next_proc->last_start_time = get_time_ms();
             uint64 pass = BIGSTRIDE / (next_proc->priority);
             next_proc->stride += pass;
-
+            w_dsid(next_proc->dsid);
+            mmiowb();
             swtch(&mycpu()->context, &next_proc->context);
 
             uint64 time_delta = get_time_ms() - next_proc->last_start_time;

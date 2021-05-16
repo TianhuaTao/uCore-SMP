@@ -95,6 +95,15 @@ void syscall() {
     case SYS_mkdirat:
         ret = sys_mkdir((char *)args[0]);
         break;
+    case SYS_set_dsid:
+        ret = sys_set_dsid(args[0], args[1]);
+        break;
+    case SYS_set_dsid_param:
+        ret = sys_set_dsid_param(args[0], args[1], args[2], args[3], args[4]);
+        break;
+    case SYS_get_l2_traffic:
+        ret = sys_get_l2_traffic(args[0]);
+        break;
     default:
         ret = -1;
         warnf("unknown syscall %d", id);

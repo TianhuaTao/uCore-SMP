@@ -65,9 +65,9 @@ uint64 sys_clone() {
 
 /**
  * @brief Create directory at given path
- * 
+ *
  * @param path_va Points to the path at user space
- * @return int64 0 if successfull, otherwise failed 
+ * @return int64 0 if successfull, otherwise failed
  */
 int64 sys_mkdir(char *path_va) {
     struct proc *p = curr_proc();
@@ -138,7 +138,7 @@ uint64 sys_exec(uint64 va, const char **argv_va) {
     char name[200];
     char argv_str[MAX_EXEC_ARG_COUNT][MAX_EXEC_ARG_LENGTH];
     copyinstr(p->pagetable, name, va, 200);
-    infof("sys_exec %s", name);
+    debugf("sys_exec %s", name);
 
     int argc = 0;
     const char *argv[MAX_EXEC_ARG_COUNT];
@@ -181,7 +181,7 @@ uint64 sys_times() {
 
 /**
  * @brief Set priority of current process
- * 
+ *
  * @param priority >=2
  * @return int64 return the priority set, or -1 if failed
  */
@@ -198,7 +198,7 @@ int64 sys_setpriority(int64 priority) {
 
 /**
  * @brief Get priority of current process
- * 
+ *
  * @return int64 priority
  */
 int64 sys_getpriority() {
@@ -223,7 +223,7 @@ int64 sys_gettimeofday(uint64 *timeval, int tz) {
 
 /**
  * @brief Close a file
- * 
+ *
  * @param fd file descriptor
  * @return uint64 0 if successful, nonzero if not
  */
@@ -485,4 +485,66 @@ int sys_dup(int oldfd){
     }
     filedup(f);
     return fd;
+}
+
+int sys_set_dsid(int pid, uint32 dsid)
+{
+    struct proc *p = findproc(pid);
+    if (p == 0)
+    {
+        warnf("pid %d not found!", pid);
+        return -1;
+    }
+    acquire(&p->lock);
+    p->dsid = dsid;
+    release(&p->lock);
+    infof("set pid: %d, dsid: %d", pid, dsid);
+    return 0;
+}
+
+#include "../dsid/dsid.h"
+
+int sys_set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32 mask)
+{
+    if (mask > 0xFFFF)
+        mask = 0xFFFF;
+    acquire(&dsid_lock);
+    cp_reg_w(CP_DSID_SEL - CP_HART_DSID, dsid << 2);
+    if (freq != 0)
+        cp_reg_w(CP_BUCKET_FREQ - CP_HART_DSID, freq);
+    if (size != 0)
+        cp_reg_w(CP_BUCKET_SIZE - CP_HART_DSID, size);
+    if (inc != 0)
+        cp_reg_w(CP_BUCKET_INC - CP_HART_DSID, inc);
+    if (mask != 0)
+        cp_reg_w(CP_WAYMASK - CP_HART_DSID, mask);
+    infof("set dsid: %d, freq: %d, size: 0x%x, inc: 0x%x, mask: 0x%x", dsid, cp_reg_r(CP_BUCKET_FREQ - CP_HART_DSID), cp_reg_r(CP_BUCKET_SIZE - CP_HART_DSID), cp_reg_r(CP_BUCKET_INC - CP_HART_DSID), cp_reg_r(CP_WAYMASK - CP_HART_DSID));
+    release(&dsid_lock);
+    return 0;
+}
+
+uint32 sys_get_l2_traffic(uint32 dsid)
+{
+    acquire(&dsid_lock);
+    cp_reg_w(CP_DSID_SEL - CP_HART_DSID, dsid << 2);
+
+    // infof("current pid: %d, core: %d, dsid: %x, freq: %x, size: %x, inc: %x, mask: %x", curr_proc()->pid, r_tp(), r_dsid(), cp_reg_r(CP_BUCKET_FREQ - CP_HART_DSID), cp_reg_r(CP_BUCKET_SIZE - CP_HART_DSID), cp_reg_r(CP_BUCKET_INC - CP_HART_DSID), cp_reg_r(CP_WAYMASK - CP_HART_DSID));
+    // infof("all info of dsid %x:", dsid);
+    // for (int i = 0, cnt = 0; i < 63; ++i)
+    // {
+    //     const char *name = cp_reg_name[i];
+    //     if (name && name[0] != 'N')
+    //     {
+    //         printf("%s: 0x%x,  ", name, cp_reg_r(i));
+    //         ++cnt;
+    //         if (cnt % 5 == 4)
+    //             printf("\n");
+    //     }
+    // }
+    // printf("-------\n\n");
+
+    uint32 ret = cp_reg_r(CP_TRAFFIC - CP_HART_DSID);
+    release(&dsid_lock);
+
+    return ret;
 }

@@ -151,9 +151,25 @@ found:
     p->context.sp = p->kstack + KSTACK_SIZE;
 
     p->stride = 0;
+    uint64 min_stride = 0xFFFFFFFFFFFFFFFULL;
+    for (struct proc *q = pool; q < &pool[NPROC]; ++q)
+        switch (q->state)
+        {
+        case SLEEPING:
+        case RUNNABLE:
+        case RUNNING:
+            if (q->stride < min_stride)
+                min_stride = q->stride;
+        default:
+            continue;
+        }
+    if (min_stride == 0xFFFFFFFFFFFFFFFULL)
+        min_stride = 0;
+    p->stride = min_stride;
     p->priority = 16;
     p->cpu_time = 0;
     p->last_start_time = 0;
+    p->dsid = 0;
     for (int i = 0; i < FD_MAX; i++) {
         p->files[i] = NULL;
     }
@@ -179,7 +195,7 @@ void forkret(void) {
         // regular process (e.g., because it calls sleep), and thus cannot
         // be run from main().
         first = FALSE;
-        fsinit();
+        // fsinit();
     }
 
     usertrapret();
@@ -203,6 +219,8 @@ void sched(void) {
 
     base_interrupt_status = mycpu()->base_interrupt_status;
     // debugcore("in sched before swtch base_interrupt_status=%d", base_interrupt_status);
+    w_dsid(0);
+    mmiowb();
     swtch(&p->context, &mycpu()->context); // will goto scheduler()
     // debugcore("in sched after swtch");
     mycpu()->base_interrupt_status = base_interrupt_status;
@@ -210,8 +228,8 @@ void sched(void) {
 
 /**
  * @brief For debugging.
- * 
- * @param proc 
+ *
+ * @param proc
  */
 void print_proc(struct proc *proc) {
     printf_k("* ---------- PROC INFO ----------\n");
@@ -404,7 +422,7 @@ void exit(int code) {
         p->state = UNUSED;
         freeproc(p);
     }
-    infof("proc %d exit with %d\n", p->pid, code);
+    infof("proc %d exit with %d", p->pid, code);
     sched();
 }
 

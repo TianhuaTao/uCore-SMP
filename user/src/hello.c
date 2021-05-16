@@ -2,6 +2,6 @@
 #include <unistd.h>
 
 int main() {
-    puts("hello wrold!");
+    printf("hello world!");
     return 0;
 }
