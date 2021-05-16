@@ -80,9 +80,10 @@ build/kernel: $(OBJS) os/kernel_app.ld os/link_app.S
 	$(LD) $(LDFLAGS) -T os/kernel_app.ld -o $(BUILDDIR)/kernel $(OBJS)
 	$(OBJDUMP) -S $(BUILDDIR)/kernel > $(BUILDDIR)/kernel.asm
 	$(OBJDUMP) -t $(BUILDDIR)/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILDDIR)/kernel.sym
+	$(OBJCOPY) -O binary $(BUILDDIR)/kernel $(BUILDDIR)/ucore-kernel.bin
 	@echo 'Build kernel done'
 
-clean: 
+clean:
 	rm -rf $(BUILDDIR) nfs/fs os/kernel_app.ld os/link_app.S
 
 # BOARD
@@ -109,7 +110,7 @@ run: build/kernel
 QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::15234"; \
 	else echo "-s -p 15234"; fi)
-	
+
 debug: build/kernel .gdbinit
 	$(CP) $(U)/fs.img $(U)/fs-copy.img
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB) &

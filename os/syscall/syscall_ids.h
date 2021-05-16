@@ -34,5 +34,8 @@
 #define SYS_spawn 400
 #define SYS_mailread 401
 #define SYS_mailwrite 402
+#define SYS_set_dsid 500
+#define SYS_set_dsid_param 501
+#define SYS_get_l2_traffic 502
 
 #endif // SYSCALL_IDS_H

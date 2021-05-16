@@ -50,6 +50,7 @@ struct proc {
     uint64 heap_sz;
     uint64 stride;
     uint64 priority;
+    uint64 dsid;
     uint64 cpu_time;            // ms, user and kernel
     uint64 last_start_time;     // ms
     struct file *files[FD_MAX]; // Opened files

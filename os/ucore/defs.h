@@ -149,6 +149,9 @@ void write_buf_to_disk(struct buf *);
 void bpin(struct buf *);
 void bunpin(struct buf *);
 
+// dsid.c
+void init_dsid(void);
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
 #define PAGE_SIZE (4096)

@@ -240,7 +240,9 @@ static inline uint64 r_mcounteren() {
 // machine-mode cycle counter
 static inline uint64 r_time() {
     uint64 x;
-    asm volatile("csrr %0, time"
+    // asm volatile("csrr %0, time"
+    //              : "=r"(x));
+    asm volatile("csrr %0, cycle"
                  : "=r"(x));
     return x;
 }
@@ -298,6 +300,33 @@ static inline uint64 r_a1() {
     return x;
 }
 
+static inline void ebreak(void) { asm volatile("ebreak"); }
+
+static inline void mmiowb(void)
+{
+    asm volatile("fence iorw, iorw"
+                 :
+                 :
+                 : "memory");
+}
+
+static inline void w_dsid(uint64 x)
+{
+    asm volatile("csrw 0x9c0, %0"
+                 :
+                 : "r"(x)
+                 : "memory");
+}
+
+static inline uint64 r_dsid()
+{
+    uint64 x;
+    asm volatile("csrr %0, 0x9c0"
+                 : "=r"(x)
+                 );
+    return x;
+}
+
 // flush the TLB.
 static inline void sfence_vma() {
     // the zero, zero means flush all TLB entries.
@@ -315,6 +344,9 @@ static inline void sfence_vma() {
 #define PTE_W (1L << 2)
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4)// 1 -> user can access
+#define PTE_G (1L << 5)
+#define PTE_A (1L << 6)
+#define PTE_D (1L << 7)
 #define HAS_BIT(val, bit) (((val) & (bit)) != 0)
 
 // shift a physical address to the right place for a PTE.

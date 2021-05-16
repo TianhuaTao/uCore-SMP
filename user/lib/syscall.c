@@ -126,7 +126,6 @@ int chdir(const char *path){
     return syscall(SYS_chdir, path);
 }
 
-
 int link(const char *oldpath, const char *newpath){
     return syscall(SYS_link, oldpath, newpath);
 
@@ -143,5 +142,16 @@ int64 setpriority(int64 priority){
 int64 getpriority(){
     return syscall(SYS_getpriority);
 }
+
+int set_dsid(int pid, uint32 dsid) {
+    return syscall(SYS_set_dsid, pid, dsid);
+}
+
+int set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32 mask) {
+    return syscall(SYS_set_dsid_param, dsid, freq, size, inc, mask);
+}
+
+uint32 get_l2_traffic(uint32 dsid) {
+    return syscall(SYS_get_l2_traffic, dsid);
 
 // =============================================================

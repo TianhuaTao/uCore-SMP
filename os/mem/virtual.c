@@ -19,9 +19,10 @@ pagetable_t kvmmake(void)
     // uart registers
     // kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
     // virtio mmio disk interface
-    kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+    // kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
     // PLIC
     kvmmap(kpgtbl, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+    kvmmap(kpgtbl, DSID_CP_BASE, DSID_CP_BASE, DSID_CP_SIZE, PTE_R | PTE_W);
 
     // map kernel text executable and read-only.
     debugf("kernel text va=%p -> [%p, %p]", KERNBASE, KERNBASE, (uint64)e_text);
@@ -177,7 +178,7 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
             return -1;
         if (*pte & PTE_V)
             panic("remap");
-        *pte = PA2PTE(pa) | perm | PTE_V;
+        *pte = PA2PTE(pa) | perm | PTE_V | PTE_A | PTE_D;
         if (a == last)
             break;
         a += PGSIZE;
@@ -210,7 +211,7 @@ int map1page(pagetable_t pagetable, uint64 va, uint64 pa, int perm)
         infof("map1page: remap\n");
         return -2;
     }
-    *pte = PA2PTE(pa) | perm | PTE_V;
+    *pte = PA2PTE(pa) | perm | PTE_V | PTE_A | PTE_D;
 
     return size;
 }
@@ -343,7 +344,7 @@ void free_user_mem_and_pagetables(pagetable_t pagetable, uint64 sz)
         debugcore("free_user_mem_and_pagetables free stack");
         uvmunmap(pagetable, USER_STACK_BOTTOM - USTACK_SIZE, USTACK_SIZE / PGSIZE, TRUE);
         sz -= USTACK_SIZE;
-        
+
         // free bin
         debugcore("free_user_mem_and_pagetables free bin");
         uvmunmap(pagetable, USER_TEXT_START, PGROUNDUP(sz) / PGSIZE, TRUE);
