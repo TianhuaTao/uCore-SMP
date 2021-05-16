@@ -362,3 +362,8 @@ LOG_LEVEL_INFO: `infof`.
 LOG_LEVEL_TRACE: `infof`, `tracef`, `tracecore`.
 
 LOG_LEVEL_ALL: Everything.
+
+
+=== Use ramdisk
+
+In some cases, you don't have a hard disk (e.g. labeled-riscv), but you want to use the filesystem. You can use ramdisk to replace virtio-disk. Just `#define USE_RAMDISK` inside `abstract_disk.c`.
