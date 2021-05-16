@@ -84,7 +84,7 @@ int run_all_app()
         panic("no user shell");
     loader(id, p);
     safestrcpy(p->name, "shell", PROC_NAME_MAX);
-    p->cwd = namei("/");
+    p->cwd = inode_by_name("/");
     p->state = RUNNABLE;
     release(&p->lock);
     return 0;

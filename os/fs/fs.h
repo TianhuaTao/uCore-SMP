@@ -73,7 +73,7 @@ struct dirent {
     char name[DIRSIZ];
 };
 struct inode *root_dir();
-struct inode *namei(char *path);
+struct inode *inode_by_name(char *path);
 void ilock(struct inode *ip);
 void iunlock(struct inode *ip);
 struct inode *nameiparent(char *path, char *name);

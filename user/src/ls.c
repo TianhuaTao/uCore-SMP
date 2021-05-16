@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#include <ucore.h>
 #include <ucore.h>
 char *
 fmtname(char *path)
@@ -29,7 +29,7 @@ void ls(char *path)
   struct dirent de;
   struct stat st;
 
-  if ((fd = open(path, 0, 0)) < 0)
+  if ((fd = open(path, 0)) < 0)
   {
     printf("ls: cannot open %s\n", path);
     return;

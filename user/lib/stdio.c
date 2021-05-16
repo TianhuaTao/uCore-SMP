@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#include <ucore.h>
 
 int getchar() {
     char byte = 0;
@@ -19,7 +19,7 @@ int putchar(int c)
 int puts(const char* s)
 {
     int r;
-    r = -(write(stdout, s, strlen(s)) < 0 || putchar('\n') < 0);
+    r = -(write(stdout, (void*)s, strlen(s)) < 0 || putchar('\n') < 0);
     return r;
 }
 

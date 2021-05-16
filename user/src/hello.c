@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <unistd.h>
+#include <ucore.h>
 
 int main() {
     puts("hello wrold!");

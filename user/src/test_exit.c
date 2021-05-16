@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <unistd.h>
+#include <ucore.h>
 const int max_child = 32;
 
 const int MAGIC = 0x1234;
@@ -19,10 +19,10 @@ int main(void) {
 
     puts("I am the parent, waiting now..");
     int xstate = 0;
-    if(wait(pid, &xstate) != pid || xstate != MAGIC) {
+    if(waitpid(pid, &xstate) != pid || xstate != MAGIC) {
         printf("wait %d fail\n", pid);
     }
-    if(wait(pid, &xstate) > 0 || wait(-1, &xstate) > 0) {
+    if(waitpid(pid, &xstate) > 0 || wait( &xstate) > 0) {
         printf("wait should fail\n", pid);
     }
     printf("waitpid %d ok.\n", pid);

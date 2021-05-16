@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <ucore.h>
 
 int main() {
     puts("execute hello");

@@ -135,7 +135,7 @@ void iput(struct inode *);
 void iunlock(struct inode *);
 void iunlockput(struct inode *);
 void iupdate(struct inode *);
-struct inode *namei(char *);
+struct inode *inode_by_name(char *);
 struct inode *root_dir();
 
 void itrunc(struct inode *);

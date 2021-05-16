@@ -167,7 +167,7 @@ int fileopen(char *path, int flags) {
         }
     } else {
         // find inode by name
-        if ((ip = namei(path)) == NULL) {
+        if ((ip = inode_by_name(path)) == NULL) {
             infof("Cannot find inode with name %s", path);
             return -1;
         }

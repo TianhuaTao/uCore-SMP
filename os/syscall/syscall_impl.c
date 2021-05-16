@@ -110,7 +110,7 @@ int64 sys_chdir(char *path_va) {
     if (copyinstr(p->pagetable, path, (uint64)path_va, MAXPATH) != 0) {
         return -2;
     }
-    ip = namei(path);
+    ip = inode_by_name(path);
     if (ip == NULL) {
         return -1;
     }
@@ -513,7 +513,7 @@ int link(char *oldpath_va, char *newpath_va) {
         return -1;
     }
 
-    if ((ip = namei(old)) == 0) {
+    if ((ip = inode_by_name(old)) == 0) {
         return -1;
     }
 

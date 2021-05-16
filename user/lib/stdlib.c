@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <ucore.h>
 
 static uint64 seed;
 

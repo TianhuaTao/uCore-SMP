@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <ucore.h>
 
 const int MAX_CHILD = 40;
 
@@ -17,13 +17,13 @@ int main() {
 
     int exit_code = 0;
     for (int i = 0; i < MAX_CHILD; ++i) {
-        pid_t p = wait(-1, &exit_code);
+        pid_t p = wait(&exit_code);
         if (p <= 0) {
             panic("wait stopped early");
         }
         printf("child %d exited with code %d\n", p, exit_code);
     }
-    if (wait(-1, &exit_code) > 0) {
+    if (wait(&exit_code) > 0) {
         panic("wait got too many");
     }
     printf("forktest pass.\n");

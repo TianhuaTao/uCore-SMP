@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <ucore.h>
 #include <string.h>
 #include <fcntl.h>
 const unsigned char LF = 0x0a;
@@ -86,6 +86,8 @@ void parse_line(){
         exit(0);
     } else if (strcmp(argv[0], "help") == 0) {
         print_help();
+    } else if (strcmp(argv[0], "cd") == 0) {
+        chdir(argv[1]);
     } else {
         int pid = fork();
         if (pid == 0) {
@@ -98,7 +100,7 @@ void parse_line(){
         } else {
             int xstate = 0;
             int exit_pid = 0;
-            exit_pid = wait(pid, &xstate);
+            exit_pid = waitpid(pid, &xstate);
             assert(pid == exit_pid, -1);
             printf("Shell: Process %d exited with code %d\n", pid, xstate);
         }
@@ -108,9 +110,9 @@ void parse_line(){
 
 int main() {
 
-    if (open("console", O_RDWR, 0) < 0) {
+    if (open("console", O_RDWR) < 0) {
         mknod("console", 1, 0);
-        open("console", O_RDWR, 0);
+        open("console", O_RDWR);
     }
     dup(0); // stdout
     dup(0); // stderr

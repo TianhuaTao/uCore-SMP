@@ -1,5 +1,6 @@
-#if !defined(SYSCALL_IDS_H)
-#define SYSCALL_IDS_H
+#if !defined(UCORE_SYSCALL_IDS_H)
+#define UCORE_SYSCALL_IDS_H
+
 
 #define SYS_getcwd 17
 #define SYS_dup 23
@@ -34,4 +35,5 @@
 #define SYS_mailread 401
 #define SYS_mailwrite 402
 
-#endif // SYSCALL_IDS_H
+
+#endif // UCORE_SYSCALL_IDS_H

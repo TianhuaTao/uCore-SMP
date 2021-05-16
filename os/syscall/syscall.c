@@ -28,7 +28,7 @@ void syscall() {
     case SYS_read:
         ret = sys_read(args[0], (void *)args[1], args[2]);
         break;
-    case SYS_openat:
+    case SYS_open:
         ret = sys_open(args[0], args[1]);
         break;
     case SYS_close:
@@ -52,7 +52,7 @@ void syscall() {
     case SYS_dup:
         ret = sys_dup((int)args[0]);
         break;
-    case SYS_clone: // SYS_fork
+    case SYS_fork: 
         ret = sys_clone();
         break;
     case SYS_gettimeofday:
@@ -64,13 +64,13 @@ void syscall() {
         // case SYS_munmap:
         //     ret = sys_munmap((void *)args[0], args[1]);
         break;
-    case SYS_execve:
+    case SYS_execv:
         ret = sys_exec(args[0], (const char **)args[1]);
         break;
-    case SYS_wait4:
+    case SYS_waitpid:
         ret = sys_wait(args[0], args[1]);
         break;
-    case SYS_times:
+    case SYS_time_ms:
         ret = sys_times();
         break;
     case SYS_mknod:
@@ -95,7 +95,7 @@ void syscall() {
     case SYS_chdir:
         ret = sys_chdir((char *)args[0]);
         break;
-    case SYS_mkdirat:
+    case SYS_mkdir:
         ret = sys_mkdir((char *)args[0]);
         break;
     default:

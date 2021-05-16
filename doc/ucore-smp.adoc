@@ -36,12 +36,10 @@ toc::[]
 
 [source, C]
 ----
-int exec(char *path, const char **argv);
+int execv(const char *pathname, char *const argv[]);
 ----
 
-Start to execute the program at path `path`. `argv` will be passed to new program's `main()` function. `argv` should be a `NULL` terminated array of `char*` so that kernel will count the number of arguments and pass as `argc` to `main()`.
-
-Note: New program's entrance is `int main(int argc, char* argv[]);`.
+The `char *const argv[]` argument is an array of pointers to null-terminated strings that represent the argument list available to the new program.  The first argument, by convention, should point to the filename associated with the file being executed.  The array of pointers must be terminated by a null pointer.
 
 *Returns* -1 on error. Else no return.
 
@@ -49,23 +47,254 @@ Note: New program's entrance is `int main(int argc, char* argv[]);`.
 
 [source, C]
 ----
-uint64 exit(int code);
+void exit(int status);
 ----
 
-Exit the running process with code `code`.
-
-*Returns* 0. The syscall does not return.
+The `exit()` function causes normal process termination and the value of `status & 0xFF` is returned to the parent.
 
 === read
 
 [source, C]
 ----
-int64 read(int fd, char *dst, uint64 len);
+ssize_t read(int fd, void *dst, size_t len);
 ----
 
 Read at most `len` bytes from file `fd` into `dst`.
 
 *Returns* bytes count read. Or -1 if failed.
+
+=== write
+
+[source, C]
+----
+ssize_t write(int fd, void *src, size_t len);
+----
+
+Write `len` bytes to file `fd` from `src`.
+
+*Returns* bytes count written successfully. Or -1 if failed.
+
+=== getpid
+
+[source, C]
+----
+pid_t getpid(void);
+----
+
+`getpid()` returns the process ID (PID) of the calling process.
+
+*Returns* process ID.
+
+=== getppid
+
+[source, C]
+----
+pid_t getppid(void);
+----
+
+`getppid()` returns the process ID of the parent of the calling process. This will be either the ID of the process that created this process using fork(), or, if that process has already terminated, the ID of the process to which this process has been reparented.
+
+*Returns* parent process ID.
+
+=== chdir
+
+[source, C]
+----
+int chdir(const char *path);
+----
+
+`chdir()` changes the current working directory of the calling process to the directory specified in `path`.
+
+*Returns* 
+
+On success, zero is returned. On error, -1 is returned.
+
+=== dup
+
+[source, C]
+----
+int dup(int oldfd);
+----
+
+The `dup()` system call creates a copy of the file descriptor oldfd, using the lowest-numbered unused file descriptor for the new descriptor.
+
+*Returns* 
+
+On success, the system call return the new file descriptor. On error, -1 is returned.
+
+=== fork
+
+[source, C]
+----
+pid_t fork(void);
+----
+
+`fork()` creates a new process by duplicating the calling process. The new process is referred to as the child process. The calling process is referred to as the parent process.
+
+*Returns* 
+
+On success, the PID of the child process is returned in the parent, and 0 is returned in the child. On failure, -1 is returned in the parent, no child process is created
+
+=== mkdir
+
+[source, C]
+----
+int mkdir(const char *pathname);
+----
+
+`mkdir()` attempts to create a directory named `pathname`.
+
+*Returns* zero on success, or -1 if an error occurred.
+
+
+=== setpriority
+
+[source, C]
+----
+int64 sys_setpriority(int64 priority);
+----
+
+Set program scheduling priority. `priority` should be >= 2.
+
+*Returns* the priority set, or -1 if failed.
+
+
+=== getpriority
+
+[source, C]
+----
+int64 sys_getpriority();
+----
+
+Get program scheduling priority.
+
+*Returns* priority
+
+
+=== fstat
+
+[source, C]
+----
+int fstat(int fd, struct stat *statbuf);
+----
+
+This function returns information about a file, in the buffer pointed to by `statbuf`.
+
+*Returns* 
+
+On success, zero is returned. On error, -1 is returned.
+
+=== stat
+
+[source, C]
+----
+int stat(const char *pathname, struct stat *statbuf);
+----
+
+This function returns information about a file, in the buffer pointed to by `statbuf`.
+
+*Returns* 
+
+On success, zero is returned. On error, -1 is returned.
+
+
+=== open
+
+[source, C]
+----
+int open(const char *pathname, int flags);
+----
+
+The open() system call opens the file specified by `pathname`.
+
+*Returns* the new file descriptor, or -1 if an error occurred.
+
+=== close
+
+[source, C]
+----
+int close(int fd);
+----
+
+close() closes a file descriptor, so that it no longer refers to any file and may be reused.
+
+*Returns* zero on success. On error, -1 is returned.
+
+=== pipe
+
+[source, C]
+----
+int pipe(int pipefd[2]);
+----
+
+`pipe()` creates a pipe, a unidirectional data channel that can be used for interprocess communication. The array pipefd is used to return two file descriptors referring to the ends of the pipe. `pipefd[0]` refers to the read end of the pipe. `pipefd[1]` refers to the write end of the pipe. Data written to the write end of the pipe is buffered by the kernel until it is read from the read end of the pipe.
+
+*Returns* 
+
+On success, zero is returned. On error, -1 is returned.
+
+=== yield
+
+[source, C]
+----
+int sched_yield(void);
+----
+
+`sched_yield()` causes the calling process to relinquish the CPU.
+
+*Returns* 
+
+On success, `sched_yield()` returns 0. On error, -1 is returned.
+
+=== mknod
+
+[source, C]
+----
+int mknod(const char *pathname, short major, short minor)
+----
+
+The system call `mknod()` creates a filesystem node (device special file) named pathname, with attributes specified by `major` and `minor`.
+
+*Returns* zero on success, or -1 if an error occurred.
+
+=== wait
+
+[source, C]
+----
+pid_t wait(int *wstatus);
+pid_t waitpid(pid_t pid, int* wstatus);
+----
+The `wait()` system call suspends execution of the calling thread until one of its children terminates.
+
+The `waitpid()` system call suspends execution of the calling thread until a child specified by pid argument has terminated. If `pid` < 0, it's just `wait()`;
+
+If wstatus is not NULL, `wait()` and `waitpid()` store status information in the int to which it points.
+
+*Returns* 
+
+On success, returns the process ID of the terminated child; on error, -1 is returned.
+
+=== sleep
+
+[source, C]
+----
+int sleep(unsigned long long time_in_ms);
+----
+
+Put this process to sleep for at least `time_in_ms` ms.
+
+*Returns* 0.
+
+=== time_ms
+
+[source, C]
+----
+uint64 time_ms();
+----
+
+Return a time measured in ms. Only the difference between two time return values has meaning.
+
+*Returns* 0.
 
 === Compare with xv6
 
@@ -79,13 +308,13 @@ Read at most `len` bytes from file `fd` into `dst`.
 | read              | √ | √  
 | kill              | √ | 
 | exec              | √ | √  
-| fstat             | √ | 
+| fstat             | √ | √
 | chdir             | √ | √
 | dup               | √ | √  
 | getpid            | √ | √
 | sbrk              | √ | 
 | sleep             | √ | √ (yield)
-| uptime            | √ | √ (times)
+| uptime            | √ | √ (time_ms)
 | open              | √ | √  
 | write             | √ | √  
 | mknod             | √ | √  
@@ -102,3 +331,34 @@ Read at most `len` bytes from file `fd` into `dst`.
 | mmap              |  | planed 
 | munmap            |  | planed 
 |===
+
+
+== Developers' Guide
+
+=== Log
+
+In utils/log.h, use macro LOG_LEVEL_XXX to specify logging level. If you are not debugging, you should use LOG_LEVEL_NONE. For exampel:
+
+[source, C]
+----
+// Please use one of these
+
+// #define LOG_LEVEL_NONE
+// #define LOG_LEVEL_CRITICAL
+// #define LOG_LEVEL_DEBUG
+// #define LOG_LEVEL_INFO
+// #define LOG_LEVEL_TRACE
+#define LOG_LEVEL_ALL
+----
+
+The enabled macros for every level are:
+
+LOG_LEVEL_CRITICAL: `errorf`, `warnf`.
+
+LOG_LEVEL_DEBUG: `errorf`, `warnf`, `debugf`, `debugcore`, `phex`.
+
+LOG_LEVEL_INFO: `infof`.
+
+LOG_LEVEL_TRACE: `infof`, `tracef`, `tracecore`.
+
+LOG_LEVEL_ALL: Everything.

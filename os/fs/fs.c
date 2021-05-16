@@ -21,7 +21,7 @@
 struct superblock sb;
 
 static struct inode *
-namex(char *path, int nameiparent, char *name);
+inode_or_parent_by_name(char *path, int nameiparent, char *name);
 // Read the super block.
 static void read_superblock(int dev, struct superblock *sb)
 {
@@ -507,10 +507,10 @@ struct inode *root_dir()
 }
 
 struct inode *
-namei(char *path)
+inode_by_name(char *path)
 {
     char name[DIRSIZ];
-    return namex(path, 0, name);
+    return inode_or_parent_by_name(path, 0, name);
 }
 
 // Unlock the given inode.
@@ -556,7 +556,7 @@ void ilock(struct inode *ip)
 struct inode *
 nameiparent(char *path, char *name)
 {
-    return namex(path, 1, name);
+    return inode_or_parent_by_name(path, 1, name);
 }
 
 // Copy the next path element from path into name.
@@ -602,10 +602,10 @@ skipelem(char *path, char *name)
 // path element into name, which must have room for DIRSIZ bytes.
 // Must be called inside a transaction since it calls iput().
 static struct inode *
-namex(char *path, int nameiparent, char *name)
+inode_or_parent_by_name(char *path, int nameiparent, char *name)
 {
     struct inode *ip, *next;
-    debugcore("namex");
+    debugcore("inode_or_parent_by_name");
     if (*path == '/')
     {
         // absolute path

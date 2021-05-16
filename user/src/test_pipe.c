@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <ucore.h>
 #include <string.h>
 
 char STR[] = "hello pipe!";
@@ -35,7 +35,7 @@ int main() {
         // close write end
         close(pipe_fd[1]);
         int exit_code = 0;
-        wait(-1, &exit_code);
+        wait(&exit_code);
         assert(exit_code == 0, -2);
         puts("pipetest passed!");
     }

@@ -6,7 +6,10 @@
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 
-
+/**
+ * @brief usage: KERNEL_ASSERT(var == 1, "var should be 1");
+ * 
+ */
 #define KERNEL_ASSERT(exp, msg) \
     do {                   \
         if (!(exp))        \

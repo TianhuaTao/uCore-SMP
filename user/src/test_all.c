@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#include <ucore.h>
 
 const char *testcases[] = {
     "test_exec",
@@ -23,7 +23,7 @@ int run_testcase(const char *testcase, int n, int all_cnt) {
     } else {
         // parent
         int exit_code;
-        int wait_pid = wait(pid, &exit_code);
+        int wait_pid = waitpid(pid, &exit_code);
         if (wait_pid <= 0) {
             printf("\x1b[31m[FAILED]\x1b[0m wait() error\n");
             return 1;
