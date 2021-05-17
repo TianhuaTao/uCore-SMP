@@ -32,38 +32,10 @@ uint ialloc(ushort type);
 void iappend(uint inum, void *p, int n);
 static void *map_block_to_ram(uint blockno);
 
-// convert to intel byte order
-ushort
-xshort(ushort x)
-{
-    ushort y;
-    uchar *a = (uchar *)&y;
-    a[0] = x;
-    a[1] = x >> 8;
-    return y;
-}
-
-uint xint(uint x)
-{
-    uint y;
-    uchar *a = (uchar *)&y;
-    a[0] = x;
-    a[1] = x >> 8;
-    a[2] = x >> 16;
-    a[3] = x >> 24;
-    return y;
-}
-
 void wsect(uint sec, void *buf)
 {
     void *mem_addr = map_block_to_ram(sec);
     memmove(mem_addr, buf, BSIZE);
-    // if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE) {
-    //     panic("");
-    // }
-    // if (write(fsfd, buf, BSIZE) != BSIZE) {
-    //     panic("");
-    // }
 }
 
 void winode(uint inum, struct dinode *ip)
@@ -95,14 +67,6 @@ void rsect(uint sec, void *buf)
 {
     void *mem_addr = map_block_to_ram(sec);
     memmove(buf, mem_addr, BSIZE);
-    // if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE) {
-    //     perror("lseek");
-    //     exit(1);
-    // }
-    // if (read(fsfd, buf, BSIZE) != BSIZE) {
-    //     perror("read");
-    //     exit(1);
-    // }
 }
 
 uint ialloc(ushort type)
@@ -111,9 +75,9 @@ uint ialloc(ushort type)
     struct dinode din;
 
     memset(&din, 0, sizeof(din));
-    din.type = xshort(type);
-    din.num_link = xshort(1);
-    din.size = xint(0);
+    din.type = type;
+    din.num_link = 1;
+    din.size = 0;
     winode(inum, &din);
     return inum;
 }
@@ -122,22 +86,22 @@ void balloc(int used)
 {
     uchar buf[BSIZE];
     int i;
-    printf("balloc: first %d blocks have been allocated\n", used);
+    // printf("balloc: first %d blocks have been allocated\n", used);
     KERNEL_ASSERT(used < BSIZE * 8, "");
     memset(buf, 0, BSIZE);
     for (i = 0; i < used; i++)
     {
         buf[i / 8] = buf[i / 8] | (0x1 << (i % 8));
     }
-    printf("balloc: write bitmap block at sector %d\n", sb1.bmapstart);
+    // printf("balloc: write bitmap block at sector %d\n", sb1.bmapstart);
     wsect(sb1.bmapstart, buf);
 }
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
-void iappend(uint inum, void *xp, int n)
+void iappend(uint inum, void *data, int data_len)
 {
-    char *p = (char *)xp;
+    char *p = (char *)data;
     uint fbn, off, n1;
     struct dinode din;
     char buf[BSIZE];
@@ -145,42 +109,42 @@ void iappend(uint inum, void *xp, int n)
     uint x;
 
     rinode(inum, &din);
-    off = xint(din.size);
-    while (n > 0)
+    off = din.size;
+    while (data_len > 0)
     {
         fbn = off / BSIZE;
         KERNEL_ASSERT(fbn < MAXFILE, "");
         if (fbn < NDIRECT)
         {
-            if (xint(din.addrs[fbn]) == 0)
+            if (din.addrs[fbn] == 0)
             {
-                din.addrs[fbn] = xint(freeblock++);
+                din.addrs[fbn] = freeblock++;
             }
-            x = xint(din.addrs[fbn]);
+            x = din.addrs[fbn];
         }
         else
         {
-            if (xint(din.addrs[NDIRECT]) == 0)
+            if ((din.addrs[NDIRECT]) == 0)
             {
-                din.addrs[NDIRECT] = xint(freeblock++);
+                din.addrs[NDIRECT] = freeblock++;
             }
-            rsect(xint(din.addrs[NDIRECT]), (char *)indirect);
+            rsect((din.addrs[NDIRECT]), (char *)indirect);
             if (indirect[fbn - NDIRECT] == 0)
             {
-                indirect[fbn - NDIRECT] = xint(freeblock++);
-                wsect(xint(din.addrs[NDIRECT]), (char *)indirect);
+                indirect[fbn - NDIRECT] = freeblock++;
+                wsect(din.addrs[NDIRECT], (char *)indirect);
             }
-            x = xint(indirect[fbn - NDIRECT]);
+            x = (indirect[fbn - NDIRECT]);
         }
-        n1 = min(n, (fbn + 1) * BSIZE - off);
+        n1 = min(data_len, (fbn + 1) * BSIZE - off);
         rsect(x, buf);
-        memmove(p, buf + off - (fbn * BSIZE), n1);
+        memmove(buf + off - (fbn * BSIZE), p, n1);
         wsect(x, buf);
-        n -= n1;
+        data_len -= n1;
         off += n1;
         p += n1;
     }
-    din.size = xint(off);
+    din.size = (off);
     winode(inum, &din);
 }
 
@@ -216,13 +180,13 @@ void make_ram_fs()
     nblocks = FSSIZE - nmeta;
 
     sb1.magic = FSMAGIC;
-    sb1.total_blocks = xint(FSSIZE);
-    sb1.num_data_blocks = xint(nblocks);
-    sb1.ninodes = xint(NINODES);
-    sb1.inodestart = xint(2);
-    sb1.bmapstart = xint(2 + ninodeblocks);
+    sb1.total_blocks = (FSSIZE);
+    sb1.num_data_blocks = (nblocks);
+    sb1.ninodes = (NINODES);
+    sb1.inodestart = (2);
+    sb1.bmapstart = (2 + ninodeblocks);
 
-    printf("nmeta %d (boot, super, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
+    printf("[ucore] ramdisk: nmeta %d (boot, super, inode blocks %d, bitmap blocks %d) blocks %d total %d\n",
            nmeta, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
     freeblock = nmeta; // the first free block that we can allocate
@@ -238,14 +202,16 @@ void make_ram_fs()
     KERNEL_ASSERT(rootino == ROOTINO, "");
 
     memset(&de, 0, sizeof(de));
-    de.inum = xshort(rootino);
+    de.inum = (rootino);
+
     // strcpy(de.name, ".");
     de.name[0] = '.';
     de.name[1] = '\0';
     iappend(rootino, &de, sizeof(de));
 
     memset(&de, 0, sizeof(de));
-    de.inum = xshort(rootino);
+    de.inum = (rootino);
+
     // strcpy(de.name, "..");
     de.name[0] = '.';
     de.name[1] = '.';
@@ -255,9 +221,9 @@ void make_ram_fs()
 
     // fix size of root inode dir
     rinode(rootino, &din);
-    off = xint(din.size);
+    off = (din.size);
     off = ((off / BSIZE) + 1) * BSIZE;
-    din.size = xint(off);
+    din.size = (off);
     winode(rootino, &din);
 
     balloc(freeblock);

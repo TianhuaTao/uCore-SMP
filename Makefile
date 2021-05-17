@@ -33,7 +33,7 @@ endif
 -include $(HEADER_DEP)
 
 ifndef CPUS
-CPUS := 1
+CPUS := 4
 endif
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
