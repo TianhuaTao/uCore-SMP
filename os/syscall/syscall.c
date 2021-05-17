@@ -10,6 +10,82 @@
 #include <ucore/defs.h>
 #include <utils/log.h>
 
+char *syscall_names(int id)
+{
+    switch (id)
+    {
+    case SYS_getcwd:
+        return "SYS_getcwd";
+    case SYS_dup:
+        return "SYS_dup";
+    case SYS_mknod:
+        return "SYS_mknod";
+    case SYS_mkdir:
+        return "SYS_mkdir";
+    case SYS_link:
+        return "SYS_link";
+    case SYS_unlink:
+        return "SYS_unlink";
+    case SYS_chdir:
+        return "SYS_chdir";
+    case SYS_open:
+        return "SYS_open";
+    case SYS_close:
+        return "SYS_close";
+    case SYS_pipe:
+        return "SYS_pipe";
+    case SYS_read:
+        return "SYS_read";
+    case SYS_write:
+        return "SYS_write";
+    case SYS_fstat:
+        return "SYS_fstat";
+    case SYS_exit:
+        return "SYS_exit";
+    case SYS_waitpid:
+        return "SYS_waitpid";
+    case SYS_sched_yield:
+        return "SYS_sched_yield";
+    case SYS_kill:
+        return "SYS_kill";
+    case SYS_setpriority:
+        return "SYS_setpriority";
+    case SYS_getpriority:
+        return "SYS_getpriority";
+    case SYS_time_ms:
+        return "SYS_time_ms";
+    case SYS_gettimeofday:
+        return "SYS_gettimeofday";
+    case SYS_settimeofday:
+        return "SYS_settimeofday";
+    case SYS_getpid:
+        return "SYS_getpid";
+    case SYS_getppid:
+        return "SYS_getppid";
+    case SYS_sysinfo:
+        return "SYS_sysinfo";
+    case SYS_brk:
+        return "SYS_brk";
+    case SYS_munmap:
+        return "SYS_munmap";
+    case SYS_fork:
+        return "SYS_fork";
+    case SYS_mmap:
+        return "SYS_mmap";
+    case SYS_execv:
+        return "SYS_execv";
+    case SYS_spawn:
+        return "SYS_spawn";
+    case SYS_mailread:
+        return "SYS_mailread";
+    case SYS_mailwrite:
+        return "SYS_mailwrite";
+    default:
+        return "?";
+    }
+}
+
+#define SYSCALL_NAMES_MAX (sizeof(syscall_names) / sizeof(syscall_names[0]))
 // dispatch syscalls to different functions
 void syscall()
 {
@@ -21,7 +97,8 @@ void syscall()
     // ignore read and write so that shell command don't get interrupted
     if (id != SYS_write && id != SYS_read)
     {
-        tracecore("syscall %d args:%p %p %p %p %p %p %p", id, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        char *name=syscall_names(id);
+        tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
     }
     switch (id)
     {
@@ -32,7 +109,7 @@ void syscall()
         ret = sys_read(args[0], (void *)args[1], args[2]);
         break;
     case SYS_open:
-        ret = sys_open((char*)args[0], args[1]);
+        ret = sys_open((char *)args[0], args[1]);
         break;
     case SYS_close:
         ret = sys_close(args[0]);
@@ -52,6 +129,9 @@ void syscall()
     case SYS_getpid:
         ret = sys_getpid();
         break;
+    case SYS_getppid:
+        ret = sys_getppid();
+        break;
     case SYS_dup:
         ret = sys_dup((int)args[0]);
         break;
@@ -59,7 +139,7 @@ void syscall()
         ret = sys_fork();
         break;
     case SYS_execv:
-        ret = sys_execv((char*)args[0], (char**)args[1]);
+        ret = sys_execv((char *)args[0], (char **)args[1]);
         break;
     case SYS_waitpid:
         ret = sys_waitpid(args[0], (int *)args[1]);

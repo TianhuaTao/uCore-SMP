@@ -33,15 +33,13 @@ int exec(char *name, int argc, const char **argv) {
     // but can NOT access sp_pa
     char *sp_pa = (char *)(virt_addr_to_physical(p->pagetable, (uint64)sp - 1) + 1);
 
-    // phex(sp_pa);
-
     char *sp_pa_bottom = sp_pa; // keep a record
 
     // the argv array (content of argv[i]) will be stored on ustack, at the very bottom
     // and the real string value of argv array (content of *argv[i]) will be stored after that
     sp_pa -= argc * sizeof(const char *);           // alloc space for argv
     const char **argv_start = (const char **)sp_pa; // user main()'s argv value (physical here)
-    phex(sp_pa);
+
     for (int i = 0; i < argc; i++) {
         int arg_len = strlen(argv[i]);
         sp_pa -= arg_len + 1; // alloc space for argv[i] string, including a null

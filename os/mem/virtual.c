@@ -162,11 +162,11 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     uint64 a, last;
     pte_t *pte;
 
-    debugf("va=%p->pa=%p, size=%p, UXWR=%d%d%d%d", va, pa, size,
-           HAS_BIT(perm, PTE_U),
-           HAS_BIT(perm, PTE_X),
-           HAS_BIT(perm, PTE_W),
-           HAS_BIT(perm, PTE_R));
+    // debugf("va=%p->pa=%p, size=%p, UXWR=%d%d%d%d", va, pa, size,
+    //        HAS_BIT(perm, PTE_U),
+    //        HAS_BIT(perm, PTE_X),
+    //        HAS_BIT(perm, PTE_W),
+    //        HAS_BIT(perm, PTE_R));
     a = PGROUNDDOWN(va);
     last = PGROUNDDOWN(va + size - 1);
     // int cnt =0 ;
@@ -369,7 +369,7 @@ int uvmcopy(pagetable_t old_pagetable, pagetable_t new_pagetable, uint64 total_s
     uint64 pa, cur_addr;
     uint flags;
     char *mem;
-    debugcore("to copy ustack, sz=%d", total_size);
+    // debugcore("to copy ustack, sz=%d", total_size);
     // copy ustack
     for (cur_addr = USER_STACK_BOTTOM - USTACK_SIZE; cur_addr < USER_STACK_BOTTOM; cur_addr += PGSIZE)
     {
@@ -391,7 +391,7 @@ int uvmcopy(pagetable_t old_pagetable, pagetable_t new_pagetable, uint64 total_s
 
     // TODO: use dynamic ustack size (process stack size may change)
     total_size -= USTACK_SIZE;
-    debugcore("to copy bin, sz=%d", total_size);
+    // debugcore("to copy bin, sz=%d", total_size);
     // free any other
     for (cur_addr = USER_TEXT_START; cur_addr < USER_TEXT_START+total_size; cur_addr += PGSIZE)
     {

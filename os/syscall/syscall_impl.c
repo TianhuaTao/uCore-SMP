@@ -74,6 +74,18 @@ pid_t sys_getpid() {
     return curr_proc()->pid;
 }
 
+pid_t sys_getppid() {
+    // TODO: use lock
+    struct proc* p = curr_proc();
+    struct proc* parent = p->parent;
+    int ppid;
+    if(parent){
+        ppid = parent->pid;
+        return ppid;
+    }
+    return -1;
+}
+
 pid_t sys_fork() {
     return fork();
 }

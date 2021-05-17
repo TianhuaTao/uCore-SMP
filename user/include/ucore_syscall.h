@@ -13,6 +13,8 @@ ssize_t write(int fd, void *src, size_t len);
 
 pid_t getpid(void);
 
+pid_t getppid(void);
+
 int open(const char *pathname, int flags);
 
 int mknod(const char *pathname, short major, short minor);

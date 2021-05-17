@@ -34,6 +34,11 @@ pid_t getpid(void)
     return syscall(SYS_getpid);
 }
 
+pid_t getppid(void)
+{
+    return syscall(SYS_getppid);
+}
+
 int open(const char *pathname, int flags)
 {
     return syscall(SYS_open, pathname, flags);

@@ -169,7 +169,7 @@ found:
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void forkret(void) {
-    debugcore("forkret");
+    // debugcore("forkret");
     static int first = TRUE;
     // Still holding p->lock from scheduler.
     release(&curr_proc()->lock);
