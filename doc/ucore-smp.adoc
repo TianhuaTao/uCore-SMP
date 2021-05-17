@@ -403,7 +403,7 @@ To specify the CPU core counts, modify the `CPU` variable in project makefile.
 
 === Log
 
-In `utils/log.h`, use macro `LOG_LEVEL_XXX` to specify logging level. If you are not debugging, you should use `LOG_LEVEL_NONE`. For exampel:
+In `utils/log.h`, use macro `LOG_LEVEL_XXX` to specify logging level. If you are not debugging, you should use `LOG_LEVEL_NONE`. For example:
 
 [source, C]
 ----
