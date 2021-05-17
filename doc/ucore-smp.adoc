@@ -11,6 +11,22 @@ toc::[]
 
 == Introduction
 
+*uCore-SMP* (https://github.com/TianhuaTao/uCore-SMP) is a operating system kernel based on RISC-V, with multiprocessing support. 
+
+This project referred to MIT *xv6* (https://github.com/mit-pdos/xv6-riscv) heavily but are very different in various ways. For example, this kernel uses a SBI, has different syscalls, different memory layouts, different code organization and styles, and maybe more bugs. This kernel does not have logging in the filesystem or elf support as xv6 does.
+
+uCore-SMP exists as my OS course project but I expect it to be more. This kernel implementation is extended from *ucore-Tutorial* (lab2-lab7) (https://github.com/DeathWish5/ucore-Tutorial), the Tsinghua OS course lab, which also refers to xv6. So anyway this implementation looks like xv6 very much.  =_=
+
+I'm glad to see some other lab project ever considered using this kernel as its testing platform and did manage to run some early versions on its custom fpga. I receive advice and benefit from it.
+
+As time is limited, not enough testing is conducted, and comments and documentation are not sufficient. Refinement will be needed.
+
+I hope some part of this kernel implementation is better than that of xv6's, and is a good extension of *ucore-Tutorial*. I try to make the code more understandable, use names that make sense and seperate modules. If anyone happen to be reading xv6 codes wondering "What does this mean", and then comes to my code, saying "Oh I got it", I feel it's a success.
+
+== Checkout Code
+
+See here: https://github.com/TianhuaTao/uCore-SMP
+
 == Project Modules
 
 [cols="1,2", width=70%, align="center", options="header"]
@@ -18,19 +34,21 @@ toc::[]
 | module      | description
 | arch      |     CPU architecture
 | driver    | Device driver code
-| file  | File abstraction
+| file      | File abstraction
 | fs        | File system
 | lock      | Kernel locks (spinlock & mutex)
-| mem   | Memory (virtual & physical)
-| proc  | Process
-| sbi   | SBI call
+| mem       | Memory (virtual & physical)
+| proc      | Process
+| sbi       | SBI call
 | syscall   | System Call
-| trap  | Trap handlers (interrupt & exception)
-| ucore | Kernel definition and common headers
-| utils | Utilities for kernel programming
+| trap      | Trap handlers (interrupt & exception)
+| ucore     | Kernel definition and common headers
+| utils     | Utilities for kernel programming
 |===
 
 == Syscall
+
+What I list here are syscalls at user side. They may not be real syscalls. For example, `wait()` and `waitpid()` actually use the same syscall id. For real syscall ABIs, check out `os/syscall/`.
 
 === exec
 
@@ -50,7 +68,7 @@ The `char *const argv[]` argument is an array of pointers to null-terminated str
 void exit(int status);
 ----
 
-The `exit()` function causes normal process termination and the value of `status & 0xFF` is returned to the parent.
+The `exit()` function causes normal process termination and the value of `status` is returned to the parent.
 
 === read
 
@@ -92,7 +110,7 @@ pid_t getpid(void);
 pid_t getppid(void);
 ----
 
-`getppid()` returns the process ID of the parent of the calling process. This will be either the ID of the process that created this process using fork(), or, if that process has already terminated, the ID of the process to which this process has been reparented.
+`getppid()` returns the process ID of the parent of the calling process. This will be either the ID of the process that created this process using fork(), or, if that process has already terminated, the ID of the process to which this process has been reparented or -1.
 
 *Returns* parent process ID.
 
@@ -216,7 +234,7 @@ The open() system call opens the file specified by `pathname`.
 int close(int fd);
 ----
 
-close() closes a file descriptor, so that it no longer refers to any file and may be reused.
+`close()` closes a file descriptor, so that it no longer refers to any file and may be reused.
 
 *Returns* zero on success. On error, -1 is returned.
 
@@ -303,7 +321,7 @@ Return a time measured in ms. Only the difference between two time return values
 int link(const char *oldpath, const char *newpath);
 ----
 
-link() creates a new link (also known as a hard link) to an existing file. If newpath exists, it will not be overwritten.
+`link()` creates a new link (also known as a hard link) to an existing file. If newpath exists, it will not be overwritten.
 
 *Returns* 
 
@@ -316,7 +334,7 @@ On success, zero is returned. On error, -1 is returned.
 int unlink(const char *pathname);
 ----
 
-unlink() deletes a name from the filesystem. If that name was the last link to a file and no processes have the file open, the file is deleted and the space it was using is made available for reuse.
+`unlink()` deletes a name from the filesystem. If that name was the last link to a file and no processes have the file open, the file is deleted and the space it was using is made available for reuse.
 
 
 *Returns* 
@@ -324,6 +342,8 @@ unlink() deletes a name from the filesystem. If that name was the last link to a
 On success, zero is returned.  On error, -1 is returned.
 
 === Compare with xv6
+
+==== Syscalls
 
 [cols="1,1,1", width=70%, align="center", options="header"]
 |===
@@ -345,26 +365,45 @@ On success, zero is returned.  On error, -1 is returned.
 | open              | √ | √  
 | write             | √ | √  
 | mknod             | √ | √  
-| unlink            | √ | 
-| link              | √ | 
+| unlink            | √ | √
+| link              | √ | √
 | mkdir             | √ | √
 | close             | √ | √  
 | setpriority       |  | √  
 | getpriority       |  | √  
 | gettimeofday      |  | √  
-| spawn             |  | planed 
-| mailread          |  | planed 
-| mailwrite         |  | planed 
-| mmap              |  | planed 
-| munmap            |  | planed 
 |===
 
+==== Functionality
+
+[cols="2,1,1,1", width=70%, align="center", options="header"]
+|===
+| syscall Name      | xv6 | uCore-SMP       | ucore-tutorial
+| Virtual Memory              | √ | √ | √ 
+| SBI               |  | √ | √ 
+| Fully Multiprocessing          | √ | √ | 
+| Filesystem logging              | √ |  |
+| ELF loading              | √ |  |   
+| Multi-level Directory              | √ | √ |  
+| Stride Scheduler              | | √ | √ 
+| Ram Disk              |  | √ | 
+| Kernel Timer Interrupt              | √ | √ | 
+| Supply kernel header              |  | √ | 
+|===
 
 == Developers' Guide
 
+=== Compile and Run
+
+Please install `riscv-gnu-toolchain` and `qemu-system-riscv64`.
+
+The project is organized using `make` and `cmake`. You should first compile user programs with `make user`, then compile the kernel with `make kernel` or just `make`. To run with qemu, use `make run`.
+
+To specify the CPU core counts, modify the `CPU` variable in project makefile.
+
 === Log
 
-In utils/log.h, use macro LOG_LEVEL_XXX to specify logging level. If you are not debugging, you should use LOG_LEVEL_NONE. For exampel:
+In `utils/log.h`, use macro `LOG_LEVEL_XXX` to specify logging level. If you are not debugging, you should use `LOG_LEVEL_NONE`. For exampel:
 
 [source, C]
 ----
@@ -390,7 +429,39 @@ LOG_LEVEL_TRACE: `infof`, `tracef`, `tracecore`.
 
 LOG_LEVEL_ALL: Everything.
 
+=== Multiprocessing
+
+The matter is how to utilize more than one CPU core. 
+
+The short answer is "locks".
+
+==== Boot a Core
+
+Different from xv6, this project uses a SBI (OpenSBI) to get low-level support. At start, only one core enters the kernel's `main()`, the first core shall use SBI HSM calls to get other cores running.
+
+
+[#figure_hsm]
+.SBI HSM State Machine (from riscv-sbi-doc)
+image::riscv-sbi-hsm.png[]
+
+
+==== Locks
+
+There are two types of locks: `spinlock` and `mutex`.
+
+To `acuqire()` a spinlock, the cpu will keep spinning before it finally acquired it.
+
+To `acquire_mutex_sleep()` a mutex, the cpu will try lock and go to sleep if failed, setting current process's `waiting_target` to it. When anyone is done with a mutex, it checks all processes, waking up the ones waiting for this muxtex. Which woken process will get mutex is not determined.
 
 === Use ramdisk
 
 In some cases, you don't have a hard disk (e.g. labeled-riscv), but you want to use the filesystem. You can use ramdisk to replace virtio-disk. Just `#define USE_RAMDISK` inside `abstract_disk.c`.
+
+*How does the ramdisk work?*
+
+Originally, the kernel uses `virtio_disk` (it still does), but the *label-riscv* project (check branch `label-riscv`) wants to use this project as a testing base while not having a disk hardware. The system architecture demands a disk to construct the filesystem (to make console into inodes, etc.) Therefore a ramdisk is needed.
+
+To shift between `virtio_disk` and `ram_disk` more easily, a new layer `abstract_disk` is added. It determines at compile-time  which disk implementation to use. 
+
+`ram_disk` will allocate enough memory during initialization, and any incoming read/write operations will be turned into kernel memory access. One thing that gets complicated is that when using `virtio_disk`, we init the disk contents before compilation (to write superblocks, etc.). But for `ram_disk` it has to be done by kernel at runtime. Check `init_ram_disk()` for more.
+
