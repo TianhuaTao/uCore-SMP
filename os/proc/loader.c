@@ -71,7 +71,7 @@ void bin_loader(uint64 start, uint64 end, struct proc *p)
 
 void loader(int id, void *p)
 {
-    debugcore("loader %s", names[id]);
+    infof("loader %s", names[id]);
     bin_loader(app_info_ptr[id], app_info_ptr[id + 1], p);
 }
 

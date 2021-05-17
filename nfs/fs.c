@@ -119,8 +119,8 @@ int main(int argc, char *argv[]) {
     for (i = 2; i < argc; i++) {
         // get rid of "target/bin/"
         char *shortname;
-        if (strncmp(argv[i], "target/bin/", 11) == 0)
-            shortname = argv[i] + 11;
+        if (strncmp(argv[i], "target/bin/_", 12) == 0)
+            shortname = argv[i] + 12;
         else
             shortname = argv[i];
 

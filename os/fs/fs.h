@@ -76,7 +76,7 @@ struct inode *root_dir();
 struct inode *inode_by_name(char *path);
 void ilock(struct inode *ip);
 void iunlock(struct inode *ip);
-struct inode *nameiparent(char *path, char *name);
+struct inode *inode_parent_by_name(char *path, char *name);
 int writei(struct inode *ip, int user_src, void *src, uint off, uint n);
 int readi(struct inode *ip, int user_dst, void *dst, uint off, uint n);
 void stati(struct inode *ip, struct stat *st);

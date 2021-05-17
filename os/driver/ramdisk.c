@@ -166,7 +166,6 @@ static void *map_block_to_ram(uint blockno)
 
 void make_ram_fs()
 {
-
     int i;
     uint rootino, off;
     struct dirent de;

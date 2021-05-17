@@ -8,8 +8,11 @@ const char *testcases[] = {
     "test_exit",
     "test_pipe",
     "test_main",
-    "matrix",
     "test_file",
+    "test_priority",
+    "test_mkdir",
+    "test_mknod",
+    "matrix",
 };
 
 int run_testcase(const char *testcase, int n, int all_cnt) {

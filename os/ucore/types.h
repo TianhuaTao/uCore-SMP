@@ -16,6 +16,7 @@ typedef int bool;
 typedef uint64 pte_t;
 typedef uint64 pde_t;
 typedef uint64 *pagetable_t;// 512 PTEs
+typedef int pid_t;// 512 PTEs
 #define NULL ((void *)0)
 
 #endif // TYPES_H

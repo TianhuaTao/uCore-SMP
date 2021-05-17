@@ -1,16 +1,16 @@
 #if !defined(UCORE_SYSCALL_IDS_H)
 #define UCORE_SYSCALL_IDS_H
 
-
 #define SYS_getcwd 17
 #define SYS_dup 23
 #define SYS_mknod 33
 #define SYS_mkdir 34
 #define SYS_link 37
+#define SYS_unlink 38
 #define SYS_chdir 49
 #define SYS_open 56
 #define SYS_close 57
-#define SYS_pipe2 59
+#define SYS_pipe 59
 #define SYS_read 63
 #define SYS_write 64
 #define SYS_fstat 80
@@ -34,6 +34,7 @@
 #define SYS_spawn 400
 #define SYS_mailread 401
 #define SYS_mailwrite 402
+
 
 
 #endif // UCORE_SYSCALL_IDS_H

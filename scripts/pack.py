@@ -5,6 +5,7 @@ TARGET_DIR = "./user/target/bin/"
 if __name__ == '__main__':
     f = open("os/link_app.S", mode="w")
     apps = os.listdir(TARGET_DIR)
+    apps = [a[1:] for a in apps]
     apps.sort()
     f.write(
 '''    .align 4
@@ -36,7 +37,7 @@ _app_names:
     .global app_{0}_start
 app_{0}_start:
     .incbin "{1}"
-'''.format(idx, TARGET_DIR + app)
+'''.format(idx, TARGET_DIR + '_'+app)
         )
     f.write('app_{}_end:\n\n'.format(len(apps) - 1))
     f.close()

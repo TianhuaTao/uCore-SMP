@@ -5,31 +5,48 @@
 
 struct stat;
 
-uint64 sys_exit(int code);
-uint64 sys_exec(uint64 va, const char **argv);
-ssize_t sys_write(int fd, void *src_va, size_t len);
+int sys_execv( char *pathname_va, char * argv_va[]);
+
+int sys_exit(int status);
+
 ssize_t sys_read(int fd, void *dst_va, size_t len);
+
+ssize_t sys_write(int fd, void *src_va, size_t len);
+
+pid_t sys_getpid(void);
+
+int sys_open( char *pathname_va, int flags);
+
+int sys_mknod( char *pathname_va, short major, short minor);
+
 int sys_dup(int oldfd);
-uint64 sys_clone();
-int64 sys_mkdir(char *path_va);
-uint64 sys_getpid();
-int64 sys_chdir(char *path_va);
+
+int sys_sched_yield(void);
+
+pid_t sys_waitpid(pid_t pid, int *wstatus_va);
+
+int sys_mkdir(char *pathname_va);
+
+int sys_close(int fd);
+
+pid_t sys_fork(void);
+
+uint64 sys_time_ms();
+
+int sys_sleep(unsigned long long time_in_ms);
 
 int sys_pipe(int (*pipefd_va)[2]);
-uint64 sys_sched_yield();
-int sys_wait(int pid, uint64 exitcode_va);
-uint64 sys_times();
-int64 sys_setpriority(int64 priority);
-int64 sys_getpriority();
-int64 sys_gettimeofday(uint64 *timeval, int tz);
-uint64 sys_close(int fd);
-int sys_open(uint64 va, int flags);
-int sys_mknod(char *path_va, short major, short minor);
+
 int sys_fstat(int fd, struct stat *statbuf_va);
-// int sys_spawn(char *filename);
-// int64 sys_mmap(void *start, uint64 len, int prot);
-// int64 sys_munmap(void *start, uint64 len);
-// int sys_mailread(void *buf, int len);
-// int sys_mailwrite(int pid, void *buf, int len);
+
+int sys_chdir(char *path_va);
+
+int sys_link( char *oldpath_va,  char *newpath_va);
+
+int sys_unlink( char *pathname_va);
+
+int64 sys_setpriority(int64 priority);
+
+int64 sys_getpriority();
 
 #endif // SYSCALL_IMPL_H

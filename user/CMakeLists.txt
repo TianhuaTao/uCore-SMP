@@ -48,19 +48,19 @@ aux_source_directory(src SRCS)
 set(EXECUTABLE_OUTPUT_PATH ${ARCH})
 foreach(PATH ${SRCS})
     get_filename_component(NAME ${PATH} NAME_WE)
-    add_executable(${NAME} ${PATH})
-    target_link_libraries(${NAME} ulib)
+    add_executable(_${NAME} ${PATH})
+    target_link_libraries(_${NAME} ulib)
     add_custom_command(
-            TARGET ${NAME}
+            TARGET _${NAME}
             POST_BUILD
             COMMAND mkdir -p ${ASM_DIR}
-            COMMAND ${CMAKE_OBJDUMP} ARGS -d -S $<TARGET_FILE:${NAME}> > ${ASM_DIR}/${NAME}.asm
+            COMMAND ${CMAKE_OBJDUMP} ARGS -d -S $<TARGET_FILE:_${NAME}> > ${ASM_DIR}/_${NAME}.asm
     )
     add_custom_command(
-            TARGET ${NAME}
+            TARGET _${NAME}
             POST_BUILD
             COMMAND mkdir -p ${BIN_DIR}
-            COMMAND ${CMAKE_OBJCOPY} ARGS -O binary $<TARGET_FILE:${NAME}> ${BIN_DIR}/${NAME}.bin --set-section-flags .bss=alloc,load,contents
+            COMMAND ${CMAKE_OBJCOPY} ARGS -O binary $<TARGET_FILE:_${NAME}> ${BIN_DIR}/_${NAME}.bin --set-section-flags .bss=alloc,load,contents
     )
 endforeach()
 

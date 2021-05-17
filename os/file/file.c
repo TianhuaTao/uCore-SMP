@@ -91,7 +91,7 @@ struct inode * create(char *path, short type, short major, short minor) {
     struct inode *ip, *dp;
     char name[DIRSIZ];
 
-    if ((dp = nameiparent(path, name)) == 0)
+    if ((dp = inode_parent_by_name(path, name)) == 0)
         return 0;
 
     ilock(dp);
@@ -172,9 +172,7 @@ int fileopen(char *path, int flags) {
             return -1;
         }
         // the inode is found
-        debugcore("xxx");
         ilock(ip);
-        debugcore("yyy");
         if (ip->type == T_DIR && flags != O_RDONLY) {
             iunlockput(ip);
             infof("Can only read a dir");

@@ -554,7 +554,7 @@ void ilock(struct inode *ip)
 }
 
 struct inode *
-nameiparent(char *path, char *name)
+inode_parent_by_name(char *path, char *name)
 {
     return inode_or_parent_by_name(path, 1, name);
 }
@@ -619,7 +619,6 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name)
 
     while ((path = skipelem(path, name)) != 0)
     {
-        debugcore("%s", path);
         ilock(ip);
         if (ip->type != T_DIR)
         {

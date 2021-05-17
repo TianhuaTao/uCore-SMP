@@ -151,7 +151,7 @@ int mkdir(const char *pathname);
 
 [source, C]
 ----
-int64 sys_setpriority(int64 priority);
+int64 setpriority(int64 priority);
 ----
 
 Set program scheduling priority. `priority` should be >= 2.
@@ -163,7 +163,7 @@ Set program scheduling priority. `priority` should be >= 2.
 
 [source, C]
 ----
-int64 sys_getpriority();
+int64 getpriority();
 ----
 
 Get program scheduling priority.
@@ -295,6 +295,33 @@ uint64 time_ms();
 Return a time measured in ms. Only the difference between two time return values has meaning.
 
 *Returns* 0.
+
+=== link
+
+[source, C]
+----
+int link(const char *oldpath, const char *newpath);
+----
+
+link() creates a new link (also known as a hard link) to an existing file. If newpath exists, it will not be overwritten.
+
+*Returns* 
+
+On success, zero is returned. On error, -1 is returned.
+
+=== unlink
+
+[source, C]
+----
+int unlink(const char *pathname);
+----
+
+unlink() deletes a name from the filesystem. If that name was the last link to a file and no processes have the file open, the file is deleted and the space it was using is made available for reuse.
+
+
+*Returns* 
+
+On success, zero is returned.  On error, -1 is returned.
 
 === Compare with xv6
 
