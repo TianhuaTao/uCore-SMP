@@ -12,6 +12,7 @@ const char *testcases[] = {
     "test_priority",
     "test_mkdir",
     "test_mknod",
+    "test_readwrite",
     "matrix",
 };
 
