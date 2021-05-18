@@ -24,7 +24,7 @@ int exec(char *name, int argc, const char **argv) {
         panic("");
     }
     loader(id, p);
-
+    safestrcpy(p->name, name, PROC_NAME_MAX);
     // push args
     char *sp = (char *)p->trapframe->sp;
     phex(sp);

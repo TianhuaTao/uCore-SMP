@@ -73,5 +73,6 @@ int filestat(struct file *f, uint64 addr);
 #define CONSOLE 1
 #define CPU_DEVICE 2
 #define MEM_DEVICE 3
+#define PROC_DEVICE 4
 
 #endif //!__FILE_H__

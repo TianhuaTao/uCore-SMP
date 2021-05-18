@@ -5,14 +5,16 @@
 #include <fcntl.h>
 int NCPU = 4;
 
-char bigdata[1024*200];   // 200K
+char bigdata[1024 * 200]; // 200K
 
 int main(int argc, char *argv[])
 {
     struct cpu_stat stat_buf[8];
     struct mem_stat mstat;
+    struct proc_stat pstat[20];
     int fd = open("cpu", O_RDWR);
     int fd_mem = open("mem", O_RDWR);
+    int fd_proc = open("proc", O_RDWR);
     assert(fd >= 0, -1);
 
     int bytes = read(fd, stat_buf, sizeof(stat_buf));
@@ -28,7 +30,7 @@ int main(int argc, char *argv[])
         if (pid == 0)
         {
             runtime *= (i + 1);
-            sleep(1000*(i+1));
+            sleep(1000 * (i + 1));
             break;
         }
     }
@@ -57,21 +59,26 @@ int main(int argc, char *argv[])
         while (1)
         {
             sleep(1000);
+            uint64 time_sec = (time_ms() - start_time) / 1000;
+            if (time_sec > 30)
+                exit(0);
             bytes = read(fd, stat_buf, sizeof(stat_buf));
             int bytes_mem = read(fd_mem, &mstat, sizeof(mstat));
+            int bytes_proc = read(fd_proc, &pstat, sizeof(pstat));
+            int p_cnt = bytes_proc / sizeof(struct proc_stat);
             assert(bytes == sizeof(struct cpu_stat) * NCPU, -6); // only four
-            assert(bytes_mem == sizeof(struct mem_stat), -7);    // only four
-            printf("\x1b[2J");   // clear
+            assert(bytes_mem == sizeof(struct mem_stat), -8);    // only four
+            printf("\x1b[2J");                                   // clear
             printf("----------------------------------------------------------------------\n");
-            printf(" uCore-SMP Resource Monitor                            Time: %l s\n", (time_ms() - start_time) / 1000);
+            printf(" uCore-SMP Resource Monitor                            Time: %l s\n", time_sec);
             printf("----------------------------------------------------------------------\n\n");
 
             for (int i = 0; i < NCPU; i++)
             {
 
                 printf("Core    %d\n", i);
-                printf("busy cycle:   %l\n", stat_buf[i].sample_busy_duration);
-                printf("all cycle:    %l\n", stat_buf[i].sample_duration);
+                printf("busy cycle:    %l\n", stat_buf[i].sample_busy_duration);
+                printf("all cycle:     %l\n", stat_buf[i].sample_duration);
                 printf("uptime cycle:  %l\n", stat_buf[i].uptime);
                 int per = (100 * stat_buf[i].sample_busy_duration) / stat_buf[i].sample_duration;
                 printf("[\x1b[31m");
@@ -109,7 +116,50 @@ int main(int argc, char *argv[])
 
             printf("\x1b[0m] %d%%\n", use_per);
             printf("\n");
+            printf("----------------------------------------------------------------------\n");
+            printf("Process | pid | ppid | heap | mem | cpu time\n", p_cnt);
+            if (p_cnt > 0)
+            {
 
+                for (int i = 0; i < p_cnt; i++)
+                {
+                    printf("%s   ", pstat[i].name);
+                    printf("%d   ", pstat[i].pid);
+                    printf("%d   ", pstat[i].ppid);
+                    printf("%l   ", pstat[i].heap_sz);
+                    printf("%l   ", pstat[i].total_size);
+                    printf("%l   ", pstat[i].cpu_time);
+                    if (pstat[i].state == UNUSED)
+                    {
+                        printf("UNUSED");
+                    }
+                    else if (pstat[i].state == USED)
+                    {
+                        printf("USED");
+                    }
+                    else if (pstat[i].state == SLEEPING)
+                    {
+                        printf("SLEEPING");
+                    }
+                    else if (pstat[i].state == RUNNING)
+                    {
+                        printf("RUNNING");
+                    }
+                    else if (pstat[i].state == ZOMBIE)
+                    {
+                        printf("ZOMBIE");
+                    }
+                    else if (pstat[i].state == RUNNABLE)
+                    {
+                        printf("RUNNABLE");
+                    }
+                    else
+                    {
+                        printf("UNKNOWN");
+                    }
+                    printf("\n");
+                }
+            }
             printf("----------------------------------------------------------------------\n\n");
         }
     }

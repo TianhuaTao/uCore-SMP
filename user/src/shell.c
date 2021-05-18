@@ -126,6 +126,10 @@ int main() {
         mknod("mem", 3, 0);
         open("mem", O_RDWR);
     }
+    if (open("proc", O_RDWR) < 0) {
+        mknod("proc", 4, 0);
+        open("proc", O_RDWR);
+    }
     printf("C user shell\n");
     printf(">> ");
     while (1) {

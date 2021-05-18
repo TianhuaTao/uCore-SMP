@@ -41,4 +41,14 @@ struct mem_stat
     uint64 physical_free;
 };
 
+struct proc_stat
+{
+    char name[PROC_NAME_MAX];
+    int pid;
+    int ppid; // Parent process
+    int state;
+    uint64 heap_sz;
+    uint64 total_size;
+    uint64 cpu_time; // ms, user and kernel
+};
 #endif // UCORE_DEFS_H

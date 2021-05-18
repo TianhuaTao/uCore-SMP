@@ -20,6 +20,7 @@ struct device_rw_handler device_rw_handler[NDEV];
 void console_init();
 void cpu_device_init();
 void mem_device_init();
+void proc_device_init();
 
 /**
  * @brief Call xxx_init of all devices
@@ -29,7 +30,7 @@ void device_init() {
     console_init();
     cpu_device_init();
     mem_device_init();
-    // more devices in the future
+    proc_device_init();
 }
 /**
  * @brief Init the global file pool

@@ -24,6 +24,19 @@ typedef int pid_t;
 #define T_FILE 2   // File
 #define T_DEVICE 3 // Device
 
+#define NPROC (256)
+#define KSTACK_SIZE (4096)
+#define USTACK_SIZE (4096)
+#define TRAPFRAME_SIZE (4096)
+#define FD_MAX (16)
+#define PROC_NAME_MAX (16)
 
-
+enum procstate {
+    UNUSED = 0,
+    USED,
+    SLEEPING,
+    RUNNABLE,
+    RUNNING,
+    ZOMBIE
+};
 #endif // UCORE_TYPES_H
