@@ -63,7 +63,7 @@ void yield();
 int fork(void);
 int exec(char *name, int argc, const char **argv);
 int wait(int, int *);
-struct proc *allocproc();
+struct proc *alloc_proc();
 void init_scheduler();
 int fdalloc(struct file *);
 
@@ -96,7 +96,6 @@ int either_copyout(void *dst, void *src, size_t len, int is_user_dst);
 int either_copyin(void *dst, void *src, size_t len, int is_user_src);
 
 // timer.c
-uint64 get_cycle();
 void timerinit();
 void set_next_timer();
 uint64 get_time_ms();

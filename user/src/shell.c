@@ -114,9 +114,18 @@ int main() {
         mknod("console", 1, 0);
         open("console", O_RDWR);
     }
+
     dup(0); // stdout
     dup(0); // stderr
 
+    if (open("cpu", O_RDWR) < 0) {
+        mknod("cpu", 2, 0);
+        open("cpu", O_RDWR);
+    }
+        if (open("mem", O_RDWR) < 0) {
+        mknod("mem", 3, 0);
+        open("mem", O_RDWR);
+    }
     printf("C user shell\n");
     printf(">> ");
     while (1) {

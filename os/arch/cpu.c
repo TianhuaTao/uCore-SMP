@@ -45,6 +45,15 @@ void init_cpu() {
         cpus[i].noff = 0;
         cpus[i].base_interrupt_status = FALSE;
         cpus[i].core_id = i;
+        cpus[i].last_time_stamp = 0;
+        for (int j = 0; j < SAMPLE_SLOT_COUNT; j++)
+        {
+            cpus[i].sample_duration[j] = 0;
+            cpus[i].busy_time[j] = 0;
+            cpus[i].user_time[j] = 0;
+        }
+        cpus[i].next_slot = 0;
+        cpus[i].start_cycle = r_time();
     }
 }
 

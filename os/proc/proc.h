@@ -73,7 +73,7 @@ void print_proc(struct proc *proc);
 void forkret(void);
 
 void proc_free_mem_and_pagetable(struct proc* p);
-struct proc *allocproc(void);
+struct proc *alloc_proc(void);
 struct file *get_proc_file_by_fd(struct proc *p, int fd);
 pagetable_t proc_pagetable(struct proc *p);
 void freeproc(struct proc *p);

@@ -25,7 +25,7 @@ static void close_proc_files(struct proc *p)
 void reparent(struct proc *p)
 {
     tracecore("reparent");
-    KERNEL_ASSERT(holding(&p->lock), "reparent lock");
+    KERNEL_ASSERT(holding(&wait_lock), "reparent lock");
 
     if (p->state == ZOMBIE)
     {
@@ -51,6 +51,7 @@ void exit(int code)
     tracecore("exit");
     struct proc *p = curr_proc();
     int pid_tmp = p->pid;   // keep for infof
+    (void) pid_tmp;
     acquire(&p->lock);
     p->exit_code = code;
 
@@ -81,12 +82,12 @@ void exit(int code)
     // 3. free all the memory and pagetables
     KERNEL_ASSERT(p->trapframe !=NULL, "");
     KERNEL_ASSERT(p->pagetable !=NULL, "");
-    acquire(&p->lock);
 
     proc_free_mem_and_pagetable(p);
 
     // 4. set the state
     acquire(&wait_lock);
+    acquire(&p->lock);
     if (p->parent != NULL)
     {
         p->state = ZOMBIE;

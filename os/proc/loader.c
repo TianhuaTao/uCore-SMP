@@ -79,15 +79,30 @@ void loader(int id, struct proc *p) {
 // and make it a proc
 int make_shell_proc()
 {
-    struct proc *p = allocproc();
+    struct proc *p = alloc_proc();
+
+    // still need to init: 
+    //  * parent           
+    //  * ustack_bottom    
+    //  * total_size       
+    //  * cwd              
+    //  * name             
+
+    // parent
     p->parent = NULL;
+
     int id = get_app_id_by_name( "shell" );
     if (id < 0)
         panic("no user shell");
-    loader(id, p);
+    loader(id, p);  // will fill ustack_bottom and total_size
+
+    // name
     safestrcpy(p->name, "shell", PROC_NAME_MAX);
+
+    // cwd
     p->cwd = inode_by_name("/");
     p->state = RUNNABLE;
     release(&p->lock);
+
     return 0;
 }

@@ -12,7 +12,7 @@ int fork() {
     struct proc *p = curr_proc();
 
     // Allocate process.
-    if ((np = allocproc()) == 0) {
+    if ((np = alloc_proc()) == NULL) {
         return -1;
     }
 

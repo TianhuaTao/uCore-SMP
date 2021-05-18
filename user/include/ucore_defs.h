@@ -28,4 +28,17 @@ struct dirent {
     char name[DIRSIZ];
 };
 
+struct cpu_stat {
+    uint64 uptime;
+    uint64 sample_duration;
+    uint64 sample_busy_duration;
+};
+
+
+struct mem_stat
+{
+    uint64 physical_total;
+    uint64 physical_free;
+};
+
 #endif // UCORE_DEFS_H

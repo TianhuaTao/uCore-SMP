@@ -58,10 +58,7 @@ void user_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
     switch (scause & 0xff) {
     case SupervisorTimer:
         set_next_timer();
-        // if form user, allow yield
-        if ((r_sstatus() & SSTATUS_SPP) == 0) {
-            yield();
-        }
+        yield();
         break;
     case SupervisorExternal:
         irq = plic_claim();

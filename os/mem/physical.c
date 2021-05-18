@@ -18,14 +18,21 @@ struct
     uint64 free_page_count;
 } kmem;
 
+uint64 get_free_page_count(){
+    acquire(&kmem.lock);
+    uint64 c = kmem.free_page_count;
+    release(&kmem.lock);
+    return c;
+}
+
 /**
  * Kernel mem init
  * collect kernel pages
  */
 void kinit() {
     init_spin_lock_with_name(&kmem.lock, "kmem.lock");
-    freerange(ekernel, (void *)PHYSTOP);
     kmem.free_page_count = 0;
+    freerange(ekernel, (void *)PHYSTOP);
 }
 
 void freerange(void *pa_start, void *pa_end) {

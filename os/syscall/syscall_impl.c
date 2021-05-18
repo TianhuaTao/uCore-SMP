@@ -200,6 +200,7 @@ pid_t sys_waitpid(pid_t pid, int *wstatus_va) {
 }
 
 uint64 sys_time_ms() {
+    // printf("core %d %d  time=%p\n",cpuid(), intr_get(),(r_sie() & SIE_STIE));
     return get_time_ms();
 }
 

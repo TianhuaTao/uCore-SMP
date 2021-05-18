@@ -71,5 +71,7 @@ int filestat(struct file *f, uint64 addr);
 #define FILE_MAX (128 * 16)
 
 #define CONSOLE 1
+#define CPU_DEVICE 2
+#define MEM_DEVICE 3
 
 #endif //!__FILE_H__

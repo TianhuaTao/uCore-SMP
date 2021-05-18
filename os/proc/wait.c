@@ -17,9 +17,9 @@ int wait(int pid, int *wstatus_va)
         {
             if (maybe_child->parent == p)
             {
-                debugf(" aa");
+
                 acquire(&maybe_child->lock);
-                debugf("baa");
+
                 if (pid < 0 || maybe_child->pid == pid) // this is one of the target
                 {
                     havekids = TRUE;

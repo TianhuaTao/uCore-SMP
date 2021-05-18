@@ -6,11 +6,11 @@ void printf(char *, ...);
 // Please use one of these
 
 // #define LOG_LEVEL_NONE
-// #define LOG_LEVEL_CRITICAL
+#define LOG_LEVEL_CRITICAL
 // #define LOG_LEVEL_DEBUG
 // #define LOG_LEVEL_INFO
 // #define LOG_LEVEL_TRACE
-#define LOG_LEVEL_ALL
+// #define LOG_LEVEL_ALL
 
 #if defined(LOG_LEVEL_CRITICAL)
 

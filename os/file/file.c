@@ -4,7 +4,7 @@
 #include <proc/proc.h>
 #include <ucore/defs.h>
 #include <ucore/types.h>
-#include <file/console.h>
+#include <device/console.h>
 #include <file/stat.h>
 /**
  * @brief The global file pool
@@ -18,10 +18,8 @@ struct {
 } filepool;
 struct device_rw_handler device_rw_handler[NDEV];
 void console_init();
-void console_init(){
-    device_rw_handler[CONSOLE].read = console_read;
-    device_rw_handler[CONSOLE].write = console_write;
-}
+void cpu_device_init();
+void mem_device_init();
 
 /**
  * @brief Call xxx_init of all devices
@@ -29,6 +27,8 @@ void console_init(){
  */
 void device_init() {
     console_init();
+    cpu_device_init();
+    mem_device_init();
     // more devices in the future
 }
 /**

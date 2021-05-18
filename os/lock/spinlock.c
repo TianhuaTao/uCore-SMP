@@ -2,13 +2,13 @@
 #include <arch/riscv.h>
 #include <proc/proc.h>
 #include <ucore/ucore.h>
-
+#include <arch/timer.h>
 // if you get a deadlock in debugging, define TIMEOUT so that spinlock will panic after
 // some time, and you will see the debugging information
 // but this will impact the performance greatly 
 
 // #define TIMEOUT
-#define SPIN_TIME_LIMIT 0xFFFFFF
+
 
 void init_spin_lock(struct spinlock *slock) {
     slock->locked = 0;
@@ -26,19 +26,20 @@ void init_spin_lock_with_name(struct spinlock *slock, const char *name) {
 void acquire(struct spinlock *slock) {
     push_off(); // disable interrupts to avoid deadlock.
     if (holding(slock)) {
+        errorf("spinlock timeout");
         errorf("lock \"%s\" is held by core %d, cannot be acquired", slock->name, slock->cpu - cpus);
         panic("This cpu is acquiring a acquired lock");
     }
 
     #ifdef TIMEOUT
-    uint64 start = r_time();
+    uint64 start = r_cycle();
     #endif
 
     while (__sync_lock_test_and_set(&slock->locked, 1) != 0)
         {
     #ifdef TIMEOUT
-            uint64 now = r_time();
-            if(now-start > SPIN_TIME_LIMIT){
+            uint64 now = r_cycle();
+            if(now-start > SECOND_TO_CYCLE(10)){
                 errorf("timeout lock name: %s, hold by cpu %d",slock->name, slock->cpu->core_id);
                 panic("spinlock timeout");
             }

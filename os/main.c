@@ -84,6 +84,22 @@ void main(uint64 hartid, uint64 a1) {
         init_booted();
         booted[hartid] = 1;
 
+        // measure time
+        // for (int i = 0; i < 20; i++)
+        // {
+        //     uint64 start = r_time();
+        //     while (1)
+        //     {
+        //         uint64 cycle = r_time();
+        //         uint64 delta = cycle- start ;
+        //         if(delta>12500000){
+        //             printf_k("%d %p %p\n",i, cycle,delta);
+        //             break;
+        //         }
+        //     }
+        // }
+        
+
         for (int i = 0; i < NCPU; i++) {
             if (i != hartid) // not this hart
             {

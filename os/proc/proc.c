@@ -108,6 +108,8 @@ void proc_free_mem_and_pagetable(struct proc* p) {
 
 /**
  * @brief clean a process struct
+ * The only useful action is "p->state = UNUSED"
+ * the others are just for safety
  * should hold p->lock
  * 
  * @param p the proc
@@ -147,7 +149,21 @@ void freeproc(struct proc *p) {
     // still holding the lock
 }
 
-struct proc *allocproc(void) {
+/**
+ * @brief Allocate a unused proc in the pool
+ * and it's initialized to some extend
+ * 
+ * these are not initialized or you should set them:
+ * 
+ * parent           NULL
+ * ustack_bottom    0
+ * total_size       0
+ * cwd              NULL
+ * name             ""
+ * 
+ * @return struct proc* p with lock 
+ */
+struct proc *alloc_proc(void) {
     struct proc *p;
     acquire(&pool_lock);
     for (p = pool; p < &pool[NPROC]; p++) {
@@ -193,10 +209,7 @@ found:
     }
     p->cwd = NULL;
     p->name[0] = '\0';
-    // if (init_mailbox(&p->mb) == 0) {
-    //     panic("init mailbox failed");
-    // }
-    // debugf("before return");
+
     return p;
 }
 
