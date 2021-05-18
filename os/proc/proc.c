@@ -15,6 +15,7 @@ __attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 struct spinlock pool_lock;
+// struct spinlock proc_tree_lock;
 struct
 {
     int pid; // the next available pid
@@ -45,7 +46,8 @@ struct proc *findproc(int pid) {
 void procinit(void) {
     struct proc *p;
     init_spin_lock_with_name(&pool_lock, "pool_lock");
-    init_spin_lock_with_name(&wait_lock, "pool_lock");
+    init_spin_lock_with_name(&wait_lock, "wait_lock");
+    // init_spin_lock_with_name(&proc_tree_lock, "proc_tree_lock");
     for (p = pool; p < &pool[NPROC]; p++) {
         init_spin_lock_with_name(&p->lock, "proc.lock");
         p->state = UNUSED;
@@ -73,7 +75,7 @@ pagetable_t proc_pagetable(struct proc *p) {
 
     if (mappages(pagetable, TRAMPOLINE, PGSIZE,
                  (uint64)trampoline, PTE_R | PTE_X) < 0) {
-        free_user_mem_and_pagetables(pagetable, 0);
+        free_pagetable_pages(pagetable);
         return 0;
     }
 
@@ -93,24 +95,56 @@ pagetable_t proc_pagetable(struct proc *p) {
 
 // Free a process's page table, and free the
 // physical memory it refers to.
-void proc_free_mem_and_pagetable(pagetable_t pagetable, uint64 sz) {
-    uvmunmap(pagetable, TRAMPOLINE, 1, FALSE);
-    uvmunmap(pagetable, TRAPFRAME, 1, FALSE);
-    free_user_mem_and_pagetables(pagetable, sz);
+void proc_free_mem_and_pagetable(struct proc* p) {
+    uvmunmap(p->pagetable, TRAMPOLINE, 1, FALSE);  // unmap, don't recycle physical, shared
+    uvmunmap(p->pagetable, TRAPFRAME, 1, TRUE);   // unmap, should recycle physical
+    p->trapframe = NULL;
+    free_user_mem_and_pagetables(p->pagetable, p->total_size);
+    p->pagetable = NULL;
+    p->total_size = 0;
 }
 
-void
-freeproc(struct proc *p) {
-    if (p->trapframe)
-        recycle_physical_page((void *)p->trapframe);
-    p->trapframe = NULL;
-    if (p->pagetable)
-        proc_free_mem_and_pagetable(p->pagetable, p->total_size);
-    p->pagetable = NULL;
 
-    p->state = UNUSED;
+
+/**
+ * @brief clean a process struct
+ * should hold p->lock
+ * 
+ * @param p the proc
+ */
+void freeproc(struct proc *p) {
+    KERNEL_ASSERT(holding(&p->lock), "should lock the process to free");
+
+    KERNEL_ASSERT(p->trapframe == NULL, "p->trapfram is pointing somewhere, did you forget to free trapframe?");
+    KERNEL_ASSERT(p->pagetable == NULL, "p->pagetable is pointing somewhere, did you forget to free pagetable?");
+    KERNEL_ASSERT(p->cwd == NULL, "p->cwd is not NULL, did you forget to release the inode?");
+    KERNEL_ASSERT(p->waiting_target == NULL, "p->cwd is waiting something");
+    KERNEL_ASSERT(p->total_size == 0, "memory not freed");
+    KERNEL_ASSERT(p->heap_sz == 0, "heap not freed");
+
+
+    p->state = UNUSED;  // very important
+    p->pid = 0;
+    p->killed = FALSE;
     p->parent = NULL;
-    // TODO: set more fields to zero
+    p->exit_code = 0;
+    p->parent = NULL;
+    p->ustack_bottom = 0;
+    p->kstack = 0;
+    memset(&p->context, 0, sizeof(p->context));
+    p->stride = 0;
+    p->priority = 0;
+    p->cpu_time = 0;
+    p->last_start_time = 0;
+    for (int i = 0; i < FD_MAX; i++)
+    {
+        KERNEL_ASSERT(p->files[i] == NULL, "some file is not closed");
+    }
+    memset(p->name, 0, PROC_NAME_MAX);
+    
+
+    // now everything should be clean
+    // still holding the lock
 }
 
 struct proc *allocproc(void) {
@@ -243,9 +277,11 @@ void print_proc(struct proc *proc) {
     printf_k("* ustack_bottom:      %p\n", proc->ustack_bottom);
     printf_k("* kstack:             %p\n", proc->kstack);
     printf_k("* trapframe:          %p\n", proc->trapframe);
-    printf_k("*     ra:             %p\n", proc->trapframe->ra);
-    printf_k("*     sp:             %p\n", proc->trapframe->sp);
-    printf_k("*     epc:            %p\n", proc->trapframe->epc);
+    if(proc->trapframe){
+        printf_k("*     ra:             %p\n", proc->trapframe->ra);
+        printf_k("*     sp:             %p\n", proc->trapframe->sp);
+        printf_k("*     epc:            %p\n", proc->trapframe->epc);
+    }
     printf_k("* context:            \n");
     printf_k("*     ra:             %p\n", proc->context.ra);
     printf_k("*     sp:             %p\n", proc->context.sp);
@@ -306,8 +342,10 @@ void wakeup(void *waiting_target) {
 // Atomically release lock and sleep on chan.
 // Reacquires lock when awakened.
 void sleep(void *waiting_target, struct spinlock *lk) {
+    
     struct proc *p = curr_proc();
 
+    tracecore("sleep");
     // Must acquire p->lock in order to
     // change p->state and then call switch_to_scheduler.
     // Once we hold p->lock, we can be
@@ -316,7 +354,7 @@ void sleep(void *waiting_target, struct spinlock *lk) {
     // so it's okay to release lk.
     // print_proc(p);
 
-    acquire(&p->lock); //DOC: sleeplock1
+    acquire(&p->lock); 
 
     release(lk);
 

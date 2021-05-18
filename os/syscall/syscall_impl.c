@@ -196,11 +196,7 @@ int sys_execv( char *pathname_va, char * argv_va[]) {
 }
 
 pid_t sys_waitpid(pid_t pid, int *wstatus_va) {
-    struct proc *p = curr_proc();
-    // TODO: bug
-    // TODO: use copyout
-    int *code = (int *)virt_addr_to_physical(p->pagetable, (uint64)wstatus_va);
-    return wait(pid, code);
+    return wait(pid, wstatus_va);
 }
 
 uint64 sys_time_ms() {

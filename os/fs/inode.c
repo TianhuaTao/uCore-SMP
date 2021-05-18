@@ -196,40 +196,6 @@ iget(uint dev, uint inum) {
     return inode_ptr;
 }
 
-// Increment reference count for ip.
-// Returns ip to enable ip = idup(ip1) idiom.
-struct inode *
-idup(struct inode *ip) {
-    KERNEL_ASSERT(ip != NULL, "inode can not be NULL");
-    acquire(&itable.lock);
-    ip->ref++;
-    release(&itable.lock);
-    return ip;
-}
-// Common idiom: unlock, then put.
-void iunlockput(struct inode *ip) {
-    iunlock(ip);
-    iput(ip);
-}
-// Reads the inode from disk if necessary.
-void ivalid(struct inode *ip) {
-    debugcore("ivalid");
-
-    struct buf *bp;
-    struct dinode *dip;
-    if (ip->valid == 0) {
-        bp = acquire_buf_and_read(ip->dev, BLOCK_CONTAINING_INODE(ip->inum, sb));
-        dip = (struct dinode *)bp->data + ip->inum % INODES_PER_BLOCK;
-        ip->type = dip->type;
-        ip->size = dip->size;
-        memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
-        release_buf(bp);
-        ip->valid = 1;
-        if (ip->type == 0)
-            panic("ivalid: no type");
-    }
-}
-
 // Drop a reference to an in-memory inode.
 // If that was the last reference, the inode table entry can
 // be recycled.
@@ -263,6 +229,48 @@ void iput(struct inode *ip) {
     ip->ref--;
     release(&itable.lock);
 }
+
+// Increment reference count for ip.
+// Returns ip to enable ip = idup(ip1) idiom.
+struct inode *
+idup(struct inode *ip) {
+    KERNEL_ASSERT(ip != NULL, "inode can not be NULL");
+    acquire(&itable.lock);
+    ip->ref++;
+    release(&itable.lock);
+    return ip;
+}
+
+
+
+// Common idiom: unlock, then put.
+void iunlockput(struct inode *ip) {
+    iunlock(ip);
+    iput(ip);
+}
+
+
+
+// Reads the inode from disk if necessary.
+void ivalid(struct inode *ip) {
+    debugcore("ivalid");
+
+    struct buf *bp;
+    struct dinode *dip;
+    if (ip->valid == 0) {
+        bp = acquire_buf_and_read(ip->dev, BLOCK_CONTAINING_INODE(ip->inum, sb));
+        dip = (struct dinode *)bp->data + ip->inum % INODES_PER_BLOCK;
+        ip->type = dip->type;
+        ip->size = dip->size;
+        memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
+        release_buf(bp);
+        ip->valid = 1;
+        if (ip->type == 0)
+            panic("ivalid: no type");
+    }
+}
+
+
 
 
 // Read data from inode.
@@ -329,19 +337,7 @@ int writei(struct inode *ip, int user_src, void *src, uint off, uint n) {
     return tot;
 }
 
-struct inode *
-inode_by_name(char *path) {
-    char name[DIRSIZ];
-    return inode_or_parent_by_name(path, 0, name);
-}
 
-// Unlock the given inode.
-void iunlock(struct inode *ip) {
-    if (ip == NULL || !holdingsleep(&ip->lock) || ip->ref < 1)
-        panic("iunlock");
-
-    release_mutex_sleep(&ip->lock);
-}
 
 // Lock the given inode.
 // Reads the inode from disk if necessary.
@@ -370,6 +366,23 @@ void ilock(struct inode *ip) {
             panic("ilock: no type, this disk inode is invalid");
         }
     }
+}
+
+// Unlock the given inode.
+void iunlock(struct inode *ip) {
+    if (ip == NULL || !holdingsleep(&ip->lock) || ip->ref < 1)
+        panic("iunlock");
+
+    release_mutex_sleep(&ip->lock);
+}
+
+
+
+
+struct inode *
+inode_by_name(char *path) {
+    char name[DIRSIZ];
+    return inode_or_parent_by_name(path, 0, name);
 }
 
 struct inode *
@@ -487,6 +500,3 @@ void itrunc(struct inode *ip) {
     ip->size = 0;
     iupdate(ip);
 }
-
-static struct inode *
-inode_or_parent_by_name(char *path, int nameiparent, char *name);

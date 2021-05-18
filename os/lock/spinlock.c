@@ -3,6 +3,13 @@
 #include <proc/proc.h>
 #include <ucore/ucore.h>
 
+// if you get a deadlock in debugging, define TIMEOUT so that spinlock will panic after
+// some time, and you will see the debugging information
+// but this will impact the performance greatly 
+
+// #define TIMEOUT
+#define SPIN_TIME_LIMIT 0xFFFFFF
+
 void init_spin_lock(struct spinlock *slock) {
     slock->locked = 0;
     slock->cpu = NULL;
@@ -14,7 +21,6 @@ void init_spin_lock_with_name(struct spinlock *slock, const char *name) {
     slock->cpu = NULL;
     slock->name = name;
 }
-
 // Acquire the lock.
 // Loops (spins) until the lock is acquired.
 void acquire(struct spinlock *slock) {
@@ -23,12 +29,22 @@ void acquire(struct spinlock *slock) {
         errorf("lock \"%s\" is held by core %d, cannot be acquired", slock->name, slock->cpu - cpus);
         panic("This cpu is acquiring a acquired lock");
     }
-    // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
-    //   a5 = 1
-    //   s1 = &slock->locked
-    //   amoswap.w.aq a5, a5, (s1)
+
+    #ifdef TIMEOUT
+    uint64 start = r_time();
+    #endif
+
     while (__sync_lock_test_and_set(&slock->locked, 1) != 0)
-        ;
+        {
+    #ifdef TIMEOUT
+            uint64 now = r_time();
+            if(now-start > SPIN_TIME_LIMIT){
+                errorf("timeout lock name: %s, hold by cpu %d",slock->name, slock->cpu->core_id);
+                panic("spinlock timeout");
+            }
+    #endif
+
+        }
 
     // Tell the C compiler and the processor to not move loads or stores
     // past this point, to ensure that the critical section's memory
@@ -79,7 +95,6 @@ int holding(struct spinlock *lk) {
 // push_off/pop_off are like intr_off()/intr_on() except that they are matched:
 // it takes two pop_off()s to undo two push_off()s.  Also, if interrupts
 // are initially off, then push_off, pop_off leaves them off.
-
 void push_off(void) {
     int old = intr_get();
 

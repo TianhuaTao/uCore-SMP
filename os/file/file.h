@@ -10,21 +10,7 @@
 #define major(dev) ((dev) >> 16 & 0xFFFF)
 #define minor(dev) ((dev)&0xFFFF)
 #define mkdev(m, n) ((uint)((m) << 16 | (n)))
-struct inode {
-    uint dev;  // Device number
-    uint inum; // Inode number
-    int ref;   // Reference count
-    struct mutex lock;
-    int valid;  // inode has been read from disk?
 
-    // disk side information, only valid if this->valid == true
-    short type; 
-    short major;
-    short minor;
-    short num_link;
-    uint size;
-    uint addrs[NDIRECT + 1];
-};
 
 // map major device number to device functions.
 struct device_rw_handler {

@@ -2,44 +2,55 @@
 /**
  * wait for child process with pid to exit
  */
-int wait(int pid, int *code) {
-    // TODO: use sleep
-    struct proc *np;
-    int havekids;
+int wait(int pid, int *wstatus_va)
+{
     struct proc *p = curr_proc();
-    acquire(&p->lock);
-    for (;;) {
-        // Scan through table looking for exited children.
-        havekids = FALSE;
-        for (np = pool; np < &pool[NPROC]; np++) {
-            // info("pid=%d, np->pid=%d, p=%d, parent=%d,\n",pid,np->pid,p, np->parent);
-            if (np->parent == p) {
-                KERNEL_ASSERT(np->state != UNUSED, "");
-                acquire(&np->lock);
-                if (pid <= 0 || np->pid == pid) {
+    struct proc *maybe_child;
+
+    acquire(&wait_lock);
+
+    for (;;)
+    {
+
+        bool havekids = FALSE;
+        for (maybe_child = pool; maybe_child < &pool[NPROC]; maybe_child++)
+        {
+            if (maybe_child->parent == p)
+            {
+                debugf(" aa");
+                acquire(&maybe_child->lock);
+                debugf("baa");
+                if (pid < 0 || maybe_child->pid == pid) // this is one of the target
+                {
                     havekids = TRUE;
-                    if (np->state == ZOMBIE) {
+                    if (maybe_child->state == ZOMBIE)
+                    {
                         // Found one.
-                        np->state = UNUSED;
-                        pid = np->pid;
-                        *code = np->exit_code;
-                        freeproc(np);
-                        release(&np->lock);
-                        release(&p->lock);
-                        return pid;
+                        int child_pid = maybe_child->pid;
+                        int wstatus = maybe_child->exit_code;
+                        if (wstatus_va && copyout(p->pagetable, (uint64)wstatus_va, (char *)&wstatus,  sizeof(wstatus)) < 0)
+                        {
+                            release(&maybe_child->lock);
+                            release(&wait_lock);
+                            return -1;
+                        }
+                        freeproc(maybe_child);
+                        release(&maybe_child->lock);
+                        release(&wait_lock);
+                        return child_pid;
                     }
                 }
-                release(&np->lock);
+                release(&maybe_child->lock);
             }
         }
-        if (!havekids) {
-            debugcore("no kids\n");
-            release(&p->lock);
+
+        if (!havekids || p->killed)
+        {
+            release(&wait_lock);
             return -1;
         }
 
-        // debugf("pid %d keep waiting", p->pid);
-        p->state = RUNNABLE;
-        switch_to_scheduler();
+        // Wait for a child to exit.
+        sleep(p, &wait_lock); 
     }
 }

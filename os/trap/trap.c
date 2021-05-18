@@ -39,7 +39,7 @@ void kernel_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
         irq = plic_claim();
         if (irq == VIRTIO0_IRQ) {
             virtio_disk_intr();
-        } else {
+        } else if(irq>0) {
             warnf("unexpected interrupt irq=%d", irq);
         }
         if (irq) {
@@ -117,6 +117,7 @@ void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
         break;
     case LoadPageFault:
         infof("LoadPageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        print_proc(curr_proc());
         exit(-2);
         break;
     case IllegalInstruction:

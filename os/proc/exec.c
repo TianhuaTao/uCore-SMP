@@ -16,7 +16,8 @@ int exec(char *name, int argc, const char **argv) {
     if (id < 0)
         return -1;
     struct proc *p = curr_proc();
-    proc_free_mem_and_pagetable(p->pagetable, p->total_size);
+
+    proc_free_mem_and_pagetable(p);
     p->total_size = 0;
     p->pagetable = proc_pagetable(p);
     if (p->pagetable == 0) {
