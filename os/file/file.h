@@ -27,12 +27,12 @@ struct inode {
 };
 
 // map major device number to device functions.
-struct devsw {
+struct device_rw_handler {
     int64 (*read)(char *dst, int64 len, int to_user);
     int64 (*write)(char *src, int64 len, int from_user);
 };
 
-extern struct devsw devsw[];
+extern struct device_rw_handler device_rw_handler[];
 
 struct pipe {
     char data[PIPESIZE];

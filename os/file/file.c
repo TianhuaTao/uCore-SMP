@@ -16,11 +16,11 @@ struct {
     struct file files[FILE_MAX];    // system level files
     struct spinlock lock;
 } filepool;
-struct devsw devsw[NDEV];
+struct device_rw_handler device_rw_handler[NDEV];
 void console_init();
 void console_init(){
-    devsw[CONSOLE].read = console_read;
-    devsw[CONSOLE].write = console_write;
+    device_rw_handler[CONSOLE].read = console_read;
+    device_rw_handler[CONSOLE].write = console_write;
 }
 
 /**
@@ -220,9 +220,9 @@ ssize_t filewrite(struct file *f, void* src_va, size_t len) {
     if (f->type == FD_PIPE) {
         ret = pipewrite(f->pipe, (uint64)src_va, len);
     } else if (f->type == FD_DEVICE) {
-        if (f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+        if (f->major < 0 || f->major >= NDEV || !device_rw_handler[f->major].write)
             return -1;
-        ret = devsw[f->major].write((char*)src_va, len, TRUE);
+        ret = device_rw_handler[f->major].write((char*)src_va, len, TRUE);
     } else if (f->type == FD_INODE) {
         // write a few blocks at a time to avoid exceeding
         // the maximum log transaction size, including
@@ -267,9 +267,9 @@ ssize_t fileread(struct file *f, void* dst_va, size_t len) {
     if (f->type == FD_PIPE) {
         r = piperead(f->pipe, (uint64)dst_va, len);
     } else if (f->type == FD_DEVICE) {
-        if (f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
+        if (f->major < 0 || f->major >= NDEV || !device_rw_handler[f->major].read)
             return -1;
-        r = devsw[f->major].read( dst_va, len, TRUE);
+        r = device_rw_handler[f->major].read( dst_va, len, TRUE);
     } else if (f->type == FD_INODE) {
         ilock(f->ip);
         if ((r = readi(f->ip, TRUE, dst_va, f->off, len)) > 0)

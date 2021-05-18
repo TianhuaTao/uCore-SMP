@@ -55,9 +55,8 @@ void scheduler(void) {
             if (!any_proc) {
                 debugcore("zero proc in pool");
                 break;
+                // end scheduler, kernel will shutdown
             }
-            // debugcore("no proc to run intr=%d", intr_get());
-            // break;
         }
     }
 }

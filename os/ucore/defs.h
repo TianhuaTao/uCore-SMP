@@ -48,17 +48,17 @@ void syscall();
 void swtch(struct context *, struct context *);
 
 // loader.c
-void batchinit();
-int run_all_app();
-int get_id_by_name(char *name);
-void loader(int, void *);
+void init_app_names();
+int make_shell_proc();
+int get_app_id_by_name(char *name);
+void loader(int, struct proc *);
 
 // proc.c
 struct proc *curr_proc();
 void exit(int);
 void procinit();
 void scheduler(); // __attribute__((noreturn));
-void sched();
+void switch_to_scheduler();
 void yield();
 int fork(void);
 int exec(char *name, int argc, const char **argv);
@@ -129,7 +129,7 @@ int dirlink(struct inode *, char *, uint);
 struct inode *dirlookup(struct inode *, char *, uint *);
 struct inode *alloc_disk_inode(uint, short);
 struct inode *idup(struct inode *);
-void iinit();
+void inode_table_init();
 void ivalid(struct inode *);
 void iput(struct inode *);
 void iunlock(struct inode *);

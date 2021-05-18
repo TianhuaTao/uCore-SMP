@@ -192,7 +192,7 @@ void forkret(void) {
 // be proc->intena and proc->noff, but that would
 // break in the few places where a lock is held but
 // there's no process.
-void sched(void) {
+void switch_to_scheduler(void) {
     int base_interrupt_status;
 
     struct proc *p = curr_proc();
@@ -202,9 +202,9 @@ void sched(void) {
     KERNEL_ASSERT(!intr_get(), "interrput should be off");                // interrput is off
 
     base_interrupt_status = mycpu()->base_interrupt_status;
-    // debugcore("in sched before swtch base_interrupt_status=%d", base_interrupt_status);
+    // debugcore("in switch_to_scheduler before swtch base_interrupt_status=%d", base_interrupt_status);
     swtch(&p->context, &mycpu()->context); // will goto scheduler()
-    // debugcore("in sched after swtch");
+    // debugcore("in switch_to_scheduler after swtch");
     mycpu()->base_interrupt_status = base_interrupt_status;
 }
 
@@ -273,140 +273,6 @@ void print_proc(struct proc *proc) {
     printf_k("\n");
 }
 
-// Give up the CPU for one scheduling round.
-void yield(void) {
-    struct proc *p = curr_proc();
-    KERNEL_ASSERT(p != NULL, "yield() has no current proc");
-    acquire(&p->lock);
-    p->state = RUNNABLE;
-    sched();
-    release(&p->lock);
-}
-
-// int spawn(char *filename) {
-//     int pid;
-//     struct proc *np;
-//     struct proc *p = curr_proc();
-
-//     // Allocate process.
-//     if ((np = allocproc()) == 0) {
-//         panic("allocproc\n");
-//     }
-//     // info("alloc\n");
-//     // Copy user memory from parent to child.
-//     if (uvmcopy(p->pagetable, np->pagetable, p->total_size) < 0) {
-//         panic("uvmcopy\n");
-//     }
-//     np->total_size = p->total_size;
-
-//     // copy saved user registers.
-//     *(np->trapframe) = *(p->trapframe);
-
-//     // Cause fork to return 0 in the child.
-//     np->trapframe->a0 = 0;
-//     pid = np->pid;
-//     np->parent = p;
-//     np->state = RUNNABLE;
-
-//     // info("fork done\n");
-
-//     char name[200];
-//     copyinstr(p->pagetable, name, (uint64)filename, 200);
-//     infof("sys_exec %s\n", name);
-
-//     int id = get_id_by_name(name);
-//     // info("id=%d\n", id);
-//     if (id < 0)
-//         return -1;
-//     // info("free\n");
-//     proc_free_mem_and_pagetable(np->pagetable, np->total_size);
-//     np->total_size = 0;
-//     np->pagetable = proc_pagetable(np);
-//     if (np->pagetable == 0) {
-//         panic("");
-//     }
-//     // info("load\n");
-//     loader(id, np);
-//     release(&np->lock);
-//     return pid;
-// }
-
-/**
- * wait for child process with pid to exit
- */
-int wait(int pid, int *code) {
-    // TODO: use sleep
-    struct proc *np;
-    int havekids;
-    struct proc *p = curr_proc();
-    acquire(&p->lock);
-    for (;;) {
-        // Scan through table looking for exited children.
-        havekids = FALSE;
-        for (np = pool; np < &pool[NPROC]; np++) {
-            // info("pid=%d, np->pid=%d, p=%d, parent=%d,\n",pid,np->pid,p, np->parent);
-            if (np->parent == p) {
-                KERNEL_ASSERT(np->state != UNUSED, "");
-                acquire(&np->lock);
-                if (pid <= 0 || np->pid == pid) {
-                    havekids = TRUE;
-                    if (np->state == ZOMBIE) {
-                        // Found one.
-                        np->state = UNUSED;
-                        pid = np->pid;
-                        *code = np->exit_code;
-                        freeproc(np);
-                        release(&np->lock);
-                        release(&p->lock);
-                        return pid;
-                    }
-                }
-                release(&np->lock);
-            }
-        }
-        if (!havekids) {
-            debugcore("no kids\n");
-            release(&p->lock);
-            return -1;
-        }
-
-        // debugf("pid %d keep waiting", p->pid);
-        p->state = RUNNABLE;
-        sched();
-    }
-}
-
-static void close_proc_files(struct proc *p) {
-    // close files
-    for (int i = 0; i < FD_MAX; ++i) {
-        if (p->files[i] != NULL) {
-            fileclose(p->files[i]);
-            p->files[i] = NULL;
-        }
-    }
-}
-
-/**
- * Exit current running process
- */
-void exit(int code) {
-    struct proc *p = curr_proc();
-    acquire(&p->lock);
-    p->exit_code = code;
-
-    close_proc_files(p);
-
-    // freeproc(p);
-
-    if (p->parent != NULL) {
-        p->state = ZOMBIE;
-    } else {
-        p->state = UNUSED;
-        freeproc(p);
-    }
-    infof("proc %d exit with %d\n", p->pid, code);
-    sched();
-}
 
 /**
  * Allocate a file descriptor of this process for the given file
@@ -443,7 +309,7 @@ void sleep(void *waiting_target, struct spinlock *lk) {
     struct proc *p = curr_proc();
 
     // Must acquire p->lock in order to
-    // change p->state and then call sched.
+    // change p->state and then call switch_to_scheduler.
     // Once we hold p->lock, we can be
     // guaranteed that we won't miss any wakeup
     // (wakeup locks p->lock),
@@ -458,7 +324,7 @@ void sleep(void *waiting_target, struct spinlock *lk) {
     p->waiting_target = waiting_target;
     p->state = SLEEPING;
 
-    sched();
+    switch_to_scheduler();
 
     // Tidy up.
     p->waiting_target = NULL;
@@ -482,9 +348,4 @@ struct file *get_proc_file_by_fd(struct proc *p, int fd) {
     }
 
     return p->files[fd];
-}
-
-int kill(int pid){
-
-    return -1;
 }

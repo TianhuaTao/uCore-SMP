@@ -70,16 +70,16 @@ void main(uint64 hartid, uint64 a1) {
         plicinit();     // set up interrupt controller
         plicinithart(); // ask PLIC for device interrupts
         binit();        // buffer cache
-        iinit();        // inode cache
+        inode_table_init();        // inode cache
         fileinit();     // file table
         // virtio_disk_init();
         init_abstract_disk();
         kvminit();
         kvminithart();
         timerinit();    // do nothing
-        batchinit();
+        init_app_names();
         init_scheduler();
-        run_all_app();
+        make_shell_proc();
 
         init_booted();
         booted[hartid] = 1;

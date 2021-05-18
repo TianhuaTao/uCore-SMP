@@ -19,7 +19,8 @@ struct
 } kmem;
 
 /**
- * Kernel init
+ * Kernel mem init
+ * collect kernel pages
  */
 void kinit() {
     init_spin_lock_with_name(&kmem.lock, "kmem.lock");

@@ -85,7 +85,6 @@ char *syscall_names(int id)
     }
 }
 
-#define SYSCALL_NAMES_MAX (sizeof(syscall_names) / sizeof(syscall_names[0]))
 // dispatch syscalls to different functions
 void syscall()
 {

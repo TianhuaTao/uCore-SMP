@@ -3,6 +3,7 @@
 
 #include <ucore/types.h>
 #include <file/stat.h>
+#include "inode.h"
 // On-disk file system format.
 // Both the kernel and user programs use this header file.
 
@@ -72,6 +73,8 @@ struct dirent {
     ushort inum;
     char name[DIRSIZ];
 };
+extern struct superblock sb;
+
 struct inode *root_dir();
 struct inode *inode_by_name(char *path);
 void ilock(struct inode *ip);

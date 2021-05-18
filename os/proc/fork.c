@@ -1,6 +1,11 @@
 #include <proc/proc.h>
 #include <trap/trap.h>
 
+/**
+ * @brief fork current process
+ * 
+ * @return int 0 or child pid, -1 on error
+ */
 int fork() {
     int i, pid;
     struct proc *np;

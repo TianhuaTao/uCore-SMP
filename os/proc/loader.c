@@ -7,10 +7,11 @@ static int app_cur, app_num;
 static uint64 *app_info_ptr;
 extern char _app_num[], _app_names[];
 // const uint64 BASE_ADDRESS = 0x1000; // user text start
-#define APP_MAX_CNT 100
-char names[40][APP_MAX_CNT];
+#define APP_NAME_MAX 100
+#define APP_MAX_CNT 40
+char names[APP_MAX_CNT][APP_NAME_MAX];
 
-void batchinit()
+void init_app_names()
 {
     char *s;
     app_info_ptr = (uint64 *)_app_num;
@@ -28,11 +29,11 @@ void batchinit()
     }
 }
 
-int get_id_by_name(char *name)
+int get_app_id_by_name(char *name)
 {
     for (int i = 0; i < app_num; ++i)
     {
-        if (strncmp(name, names[i], APP_MAX_CNT) == 0)
+        if (strncmp(name, names[i], APP_NAME_MAX) == 0)
             return i;
     }
     return -1;
@@ -69,17 +70,18 @@ void bin_loader(uint64 start, uint64 end, struct proc *p)
     p->total_size = USTACK_SIZE + length;
 }
 
-void loader(int id, void *p)
-{
+void loader(int id, struct proc *p) {
     infof("loader %s", names[id]);
     bin_loader(app_info_ptr[id], app_info_ptr[id + 1], p);
 }
 
-int run_all_app()
+// load shell from kernel data section
+// and make it a proc
+int make_shell_proc()
 {
     struct proc *p = allocproc();
     p->parent = NULL;
-    int id = get_id_by_name( "shell" );
+    int id = get_app_id_by_name( "shell" );
     if (id < 0)
         panic("no user shell");
     loader(id, p);

@@ -27,7 +27,8 @@ void set_kerneltrap(void) {
     intr_on();
 }
 
-void kernel_interrupt_handler(uint64 cause) {
+void kernel_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
+    uint64 cause = scause & 0xff;
     int irq;
     switch (cause) {
     case SupervisorTimer:
@@ -36,21 +37,17 @@ void kernel_interrupt_handler(uint64 cause) {
         break;
     case SupervisorExternal:
         irq = plic_claim();
-        if (irq == UART0_IRQ) {
-            infof("unexpected interrupt irq=UART0_IRQ");
-
-        } else if (irq == VIRTIO0_IRQ) {
+        if (irq == VIRTIO0_IRQ) {
             virtio_disk_intr();
-        } else if (irq) {
-            infof("unexpected interrupt irq=%d", irq);
+        } else {
+            warnf("unexpected interrupt irq=%d", irq);
         }
         if (irq) {
-
             plic_complete(irq);
         }
         break;
     default:
-        errorf("unknown kernel interrupt: %p, stval = %p\n", r_scause(), r_stval());
+        errorf("unknown kernel interrupt: %p, sepc=%p, stval = %p\n", scause, sepc, stval);
         panic("kernel interrupt");
         break;
     }
@@ -262,7 +259,7 @@ void kerneltrap() {
 
     if (scause & (1ULL << 63)) // interrput
     {
-        kernel_interrupt_handler(scause & 0xff);
+        kernel_interrupt_handler(scause, stval, sepc);
     } else // exception
     {
         kernel_exception_handler(scause, stval, sepc);
