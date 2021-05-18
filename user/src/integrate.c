@@ -1,5 +1,6 @@
-#include <unistd.h>
+#include <stddef.h>
 #include <stdlib.h>
+#include <ucore.h>
 
 double abs(double x)
 {
@@ -28,8 +29,8 @@ const double eps = 1e-5;
 int main(void)
 {
     sleep(10);
-    uint64 start_time = get_time();
+    uint64 start_time = time_ms();
     double res = integ(0.0, 1.0, 1e-6);
     assert(abs(res - (1.0 / 4.0)) < eps, -33);
-    return get_time() - start_time;
+    return time_ms() - start_time;
 }

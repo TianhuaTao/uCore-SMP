@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <stddef.h>
 #include <dsid.h>
+#include <ucore.h>
 
 void MonitorTraffic(void)
 {
@@ -10,7 +11,7 @@ void MonitorTraffic(void)
         prev_l2_traffic[dsid] = get_l2_traffic(dsid);
     for (int i = 0; i < 10; ++i)
     {
-        printf("current time(ms): %d | l1 to l2 speed(KB/s) | ", get_time());
+        printf("current time(ms): %d | l1 to l2 speed(KB/s) | ", time_ms());
         for (int dsid = 0; dsid <= 3; ++dsid)
         {
             int64 l2_traffic = get_l2_traffic(dsid);
@@ -50,7 +51,7 @@ void GenerateWorkload(const char *name)
     }
     MonitorTraffic();
     for (int j = 1; j <= 3; ++j)
-        wait(pid_arr[j], &time_usage[j]);
+        waitpid(pid_arr[j], &time_usage[j]);
     printf("%s task time usage(ms) | ", name);
     for (int j = 1; j <= 3; ++j)
         printf("dsid %d: %d | ", j, time_usage[j]);

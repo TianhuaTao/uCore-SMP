@@ -151,21 +151,21 @@ found:
     p->context.sp = p->kstack + KSTACK_SIZE;
 
     p->stride = 0;
-    uint64 min_stride = 0xFFFFFFFFFFFFFFFULL;
-    for (struct proc *q = pool; q < &pool[NPROC]; ++q)
-        switch (q->state)
-        {
-        case SLEEPING:
-        case RUNNABLE:
-        case RUNNING:
-            if (q->stride < min_stride)
-                min_stride = q->stride;
-        default:
-            continue;
-        }
-    if (min_stride == 0xFFFFFFFFFFFFFFFULL)
-        min_stride = 0;
-    p->stride = min_stride;
+    // uint64 min_stride = 0xFFFFFFFFFFFFFFFULL;
+    // for (struct proc *q = pool; q < &pool[NPROC]; ++q)
+    //     switch (q->state)
+    //     {
+    //     case SLEEPING:
+    //     case RUNNABLE:
+    //     case RUNNING:
+    //         if (q->stride < min_stride)
+    //             min_stride = q->stride;
+    //     default:
+    //         continue;
+    //     }
+    // if (min_stride == 0xFFFFFFFFFFFFFFFULL)
+    //     min_stride = 0;
+    // p->stride = min_stride;
     p->priority = 16;
     p->cpu_time = 0;
     p->last_start_time = 0;
@@ -195,7 +195,7 @@ void forkret(void) {
         // regular process (e.g., because it calls sleep), and thus cannot
         // be run from main().
         first = FALSE;
-        // fsinit();
+        fsinit();
     }
 
     usertrapret();

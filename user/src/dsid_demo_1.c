@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <stddef.h>
 #include <dsid.h>
+#include <ucore.h>
 
 const char str[] = "the quick brown fox jumps over the lazy dog";
 

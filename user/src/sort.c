@@ -1,5 +1,6 @@
-#include <unistd.h>
+#include <stddef.h>
 #include <stdlib.h>
+#include <ucore.h>
 
 #define kArrLen 12345
 const uint32 kSeed = 202105;
@@ -48,9 +49,9 @@ int CheckSortResult(uint32 arr[], uint32 n)
 int main(void)
 {
     sleep(10);
-    uint64 start_time = get_time();
+    uint64 start_time = time_ms();
     InitSortData(sort_arr, kArrLen, kSeed);
     InsertionSort(sort_arr, kArrLen);
     assert(CheckSortResult(sort_arr, kArrLen) == 1, -10);
-    return get_time() - start_time;
+    return time_ms() - start_time;
 }
