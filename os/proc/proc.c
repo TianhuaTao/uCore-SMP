@@ -195,7 +195,7 @@ void forkret(void) {
         // regular process (e.g., because it calls sleep), and thus cannot
         // be run from main().
         first = FALSE;
-        fsinit();
+        // fsinit();
     }
 
     usertrapret();
