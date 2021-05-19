@@ -31,6 +31,5 @@ uint64 get_time_ms() {
 }
 
 uint64 get_time_us() {
-    // TODO: use variables, not literal numbers
-    return r_time() * 10 / 125 ;
+    return r_time() * USEC_PER_SEC / TICK_FREQ;
 }

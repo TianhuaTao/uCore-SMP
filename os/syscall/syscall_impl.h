@@ -51,4 +51,6 @@ int64 sys_setpriority(int64 priority);
 
 int64 sys_getpriority();
 
+void* sys_sharedmem(char* name_va, size_t len);
+
 #endif // SYSCALL_IMPL_H

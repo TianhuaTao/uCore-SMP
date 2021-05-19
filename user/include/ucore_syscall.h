@@ -53,7 +53,7 @@ int64 setpriority(int64 priority);
 
 int64 getpriority();
 
-
+void* sharedmem(char* name, size_t len);
 //////////////////////
 
 

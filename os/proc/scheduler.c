@@ -64,8 +64,8 @@ void scheduler(void)
             uint64 time_delta = get_time_ms() - next_proc->last_start_time;
             next_proc->cpu_time += time_delta;
 
-            mycore->proc = NULL;
             stop_timer_interrupt();
+            mycore->proc = NULL;
 
             release(&next_proc->lock);
         }

@@ -11,7 +11,7 @@ static void debug_print_args(char *name, int argc, const char **argv) {
 
 int exec(char *name, int argc, const char **argv) {
     debug_print_args(name, argc, argv);
-
+    
     int id = get_app_id_by_name(name);
     if (id < 0)
         return -1;

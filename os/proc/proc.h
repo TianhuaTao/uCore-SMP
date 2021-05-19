@@ -12,6 +12,7 @@
 #define TRAPFRAME_SIZE (4096)
 #define FD_MAX (16)
 #define PROC_NAME_MAX (16)
+#define MAX_PROC_SHARED_MEM_INSTANCE (32)   // every proc
 
 extern char trampoline[];
 extern char boot_stack_top[];
@@ -54,7 +55,8 @@ struct proc {
     uint64 last_start_time;     // ms
     struct file *files[FD_MAX]; // Opened files
     struct inode *cwd;          // Current directory
-    // struct mailbox mb;
+    struct shared_mem * shmem[MAX_PROC_SHARED_MEM_INSTANCE];
+    void* next_shmem_addr;
     char name[PROC_NAME_MAX]; // Process name (debugging)
 };
 struct proc *findproc(int pid);

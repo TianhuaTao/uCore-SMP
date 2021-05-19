@@ -114,7 +114,6 @@ void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
         break;
     case LoadPageFault:
         infof("LoadPageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
-        print_proc(curr_proc());
         exit(-2);
         break;
     case IllegalInstruction:

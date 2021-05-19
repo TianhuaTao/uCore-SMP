@@ -160,6 +160,7 @@ void freeproc(struct proc *p) {
  * total_size       0
  * cwd              NULL
  * name             ""
+ * next_shmem_addr  0
  * 
  * @return struct proc* p with lock 
  */
@@ -209,7 +210,12 @@ found:
     }
     p->cwd = NULL;
     p->name[0] = '\0';
-
+    for (int i = 0; i < MAX_PROC_SHARED_MEM_INSTANCE; i++)
+    {
+       p->shmem[i] = NULL;
+    }
+    p->next_shmem_addr = 0;
+    
     return p;
 }
 

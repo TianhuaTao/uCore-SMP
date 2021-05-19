@@ -1,6 +1,6 @@
 #include <proc/proc.h>
 #include <trap/trap.h>
-
+#include <mem/shared.h>
 /**
  * @brief fork current process
  * 
@@ -35,6 +35,15 @@ int fork() {
         if (p->files[i])
             np->files[i] = filedup(p->files[i]);
     np->cwd = idup(p->cwd);
+
+    // dup shared mem
+    for (int i = 0; i < MAX_PROC_SHARED_MEM_INSTANCE; i++)
+    {
+        
+        np->shmem[i] = p->shmem[i] == NULL? NULL: dup_shared_mem(p->shmem[i]);
+    }
+    
+    np->next_shmem_addr = p->next_shmem_addr;
 
     safestrcpy(np->name, p->name, sizeof(p->name));
 

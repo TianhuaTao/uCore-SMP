@@ -67,6 +67,7 @@ void bin_loader(uint64 start, uint64 end, struct proc *p)
 
     p->trapframe->epc = USER_TEXT_START;
     alloc_ustack(p);
+    p->next_shmem_addr = (void*) p->ustack_bottom+PGSIZE;
     p->total_size = USTACK_SIZE + length;
 }
 
@@ -86,7 +87,8 @@ int make_shell_proc()
     //  * ustack_bottom    
     //  * total_size       
     //  * cwd              
-    //  * name             
+    //  * name
+    //  * next_shmem_addr             
 
     // parent
     p->parent = NULL;
@@ -94,7 +96,7 @@ int make_shell_proc()
     int id = get_app_id_by_name( "shell" );
     if (id < 0)
         panic("no user shell");
-    loader(id, p);  // will fill ustack_bottom and total_size
+    loader(id, p);  // will fill ustack_bottom, next_shmem_addr and total_size
 
     // name
     safestrcpy(p->name, "shell", PROC_NAME_MAX);

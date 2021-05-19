@@ -391,7 +391,6 @@ int uvmcopy(pagetable_t old_pagetable, pagetable_t new_pagetable, uint64 total_s
         }
     }
 
-    // TODO: use dynamic ustack size (process stack size may change)
     total_size -= USTACK_SIZE;
     // debugcore("to copy bin, sz=%d", total_size);
     // free any other

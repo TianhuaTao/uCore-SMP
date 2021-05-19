@@ -144,4 +144,7 @@ int64 getpriority(){
     return syscall(SYS_getpriority);
 }
 
+void* sharedmem(char* name, size_t len){
+    return syscall(SYS_sharedmem, name, len);
+}
 // =============================================================

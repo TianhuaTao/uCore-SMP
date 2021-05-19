@@ -90,7 +90,7 @@ void syscall()
 {
     struct proc *p = curr_proc();
     struct trapframe *trapframe = p->trapframe;
-    int id = trapframe->a7, ret;
+    uint64 id = trapframe->a7, ret;
     uint64 args[7] = {trapframe->a0, trapframe->a1, trapframe->a2, trapframe->a3, trapframe->a4, trapframe->a5, trapframe->a6};
 
     // ignore read and write so that shell command don't get interrupted
@@ -167,6 +167,9 @@ void syscall()
         break;
     case SYS_unlink:
         ret = sys_unlink((char *)args[0]);
+        break;
+    case SYS_sharedmem:
+        ret = (uint64)sys_sharedmem((char *)args[0], args[1]);
         break;
     default:
         ret = -1;

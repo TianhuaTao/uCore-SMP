@@ -3,6 +3,7 @@
 #include <file/file.h>
 #include <proc/proc.h>
 #include <file/stat.h>
+#include <mem/shared.h>
 #define min(a, b) (a) < (b) ? (a) : (b);
 
 int sys_fstat(int fd, struct stat *statbuf_va){
@@ -74,15 +75,19 @@ pid_t sys_getpid() {
     return curr_proc()->pid;
 }
 
-pid_t sys_getppid() {
-    // TODO: use lock
-    struct proc* p = curr_proc();
-    struct proc* parent = p->parent;
+pid_t sys_getppid()
+{
+    struct proc *p = curr_proc();
+    acquire(&wait_lock);
+    struct proc *parent = p->parent;
     int ppid;
-    if(parent){
+    if (parent)
+    {
         ppid = parent->pid;
+        release(&wait_lock);
         return ppid;
     }
+    release(&wait_lock);
     return -1;
 }
 
@@ -172,22 +177,26 @@ int sys_execv( char *pathname_va, char * argv_va[]) {
     if (argv_va == NULL) {
         // nothing
     } else {
-        const char **argv_pa = (const char **)virt_addr_to_physical(p->pagetable, (uint64)argv_va);
-        if (argv_pa == NULL) {
-            // invalid argv_va
-            // TODO: kill
-            return -1;
-        }
-        while (*argv_pa) {
-            const char *argv_one_va = *argv_pa;
 
-            if (copyinstr(p->pagetable, argv_str[argc], (uint64)argv_one_va, MAX_EXEC_ARG_LENGTH) < 0) {
-                // TODO: failed, exit
+        while (argc < MAX_EXEC_ARG_COUNT)
+        {
+            char* argv_i;   // the argv[i]
+            if (copyin(p->pagetable, (char*)&argv_i, (uint64) &argv_va[argc], sizeof(char*))<0){
                 return -1;
             }
-            argv[argc] = argv_str[argc];
+
+            if (argv_i == NULL){
+                // no more argv
+                break;
+            }
+
+            // copy *argv[i] (the string)
+            if (copyinstr(p->pagetable,argv_str[argc], (uint64)argv_i, MAX_EXEC_ARG_LENGTH) < 0) {
+                return -1;
+            }
+
+            argv[argc] = argv_str[argc];    // point at the copied string
             argc++;
-            argv_pa++;
         }
     }
     tracecore("argv_va=%d argc=%d", argv_va, argc);
@@ -489,4 +498,41 @@ bad:
     return -1;
 }
 
+void*sys_sharedmem(char* name_va, size_t len){
+    char name[MAX_SHARED_NAME];
 
+    struct proc* p = curr_proc();
+    err_t err = copyinstr(p->pagetable ,name, (uint64)name_va, MAX_SHARED_NAME);
+    if(err <0){
+        return NULL;
+    }
+
+
+    if(len %PGSIZE != 0){
+        return NULL;
+    }
+
+    if(len >MAX_SHARED_MEM_SIZE){
+        return NULL;
+    }
+
+
+
+   struct shared_mem * shmem = get_shared_mem_by_name(name, len/PGSIZE);
+   if(shmem==NULL){
+       return NULL;
+   }
+
+    if (len >0 && shmem->page_cnt != len/PGSIZE){
+        // get a shared mem but different size -> created by some one else
+        drop_shared_mem(shmem);
+        shmem = NULL;
+        return NULL;
+    }
+
+
+    void* shmem_va=  map_shared_mem(shmem);
+
+
+    return shmem_va;
+}
