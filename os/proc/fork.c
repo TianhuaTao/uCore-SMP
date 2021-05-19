@@ -40,7 +40,8 @@ int fork() {
     for (int i = 0; i < MAX_PROC_SHARED_MEM_INSTANCE; i++)
     {
         
-        np->shmem[i] = p->shmem[i] == NULL? NULL: dup_shared_mem(p->shmem[i]);
+        np->shmem[i] = (p->shmem[i] == NULL)? NULL: dup_shared_mem(p->shmem[i]);
+        np->shmem_map_start[i] = p->shmem_map_start[i] ;
     }
     
     np->next_shmem_addr = p->next_shmem_addr;

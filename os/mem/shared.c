@@ -92,6 +92,7 @@ void drop_shared_mem(struct shared_mem *shmem)
 
     if (shmem->ref == 0)
     {
+        debugcore("a shared mem ref decreased to 0, recycle %d pages", shmem->page_cnt);
         shmem->used = FALSE;
         memset(shmem->name, 0, MAX_SHARED_NAME);
         for (int j = 0; j < shmem->page_cnt; j++)
@@ -111,6 +112,18 @@ void *map_shared_mem(struct shared_mem *shmem)
 
     void *start_addr_va = p->next_shmem_addr;
 
+        int j;  // empty id
+    for ( j= 0; j < MAX_PROC_SHARED_MEM_INSTANCE; j++)
+    {
+        if(p->shmem[j] == NULL){
+            break;
+        }
+    }
+    if (j >= MAX_PROC_SHARED_MEM_INSTANCE)
+    {   
+        // full
+        return NULL;
+    }
     for (int i = 0; i < shmem->page_cnt; i++)
     {
         int err = mappages(p->pagetable, (uint64)(start_addr_va + i * PGSIZE), PGSIZE, (uint64)shmem->mem_pages[i], PTE_R | PTE_W | PTE_X | PTE_U);
@@ -119,6 +132,9 @@ void *map_shared_mem(struct shared_mem *shmem)
             panic("map_shared_mem");
         }
     }
+
+    p->shmem[j]=shmem;
+    p->shmem_map_start[j]=start_addr_va;
 
     p->next_shmem_addr = start_addr_va + shmem->page_cnt* PGSIZE + PGSIZE;  // one guard page
     return start_addr_va;

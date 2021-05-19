@@ -56,6 +56,7 @@ struct proc {
     struct file *files[FD_MAX]; // Opened files
     struct inode *cwd;          // Current directory
     struct shared_mem * shmem[MAX_PROC_SHARED_MEM_INSTANCE];
+    void * shmem_map_start[MAX_PROC_SHARED_MEM_INSTANCE];
     void* next_shmem_addr;
     char name[PROC_NAME_MAX]; // Process name (debugging)
 };

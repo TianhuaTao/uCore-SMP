@@ -67,7 +67,7 @@ struct proc *alloc_proc();
 void init_scheduler();
 int fdalloc(struct file *);
 
-// kalloc.c
+uint64 get_free_page_count();
 void *alloc_physical_page(void);
 void recycle_physical_page(void *);
 void kinit(void);

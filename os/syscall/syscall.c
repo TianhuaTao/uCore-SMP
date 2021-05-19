@@ -80,6 +80,8 @@ char *syscall_names(int id)
         return "SYS_mailread";
     case SYS_mailwrite:
         return "SYS_mailwrite";
+    case SYS_sharedmem:
+        return "SYS_sharedmem";
     default:
         return "?";
     }
@@ -98,7 +100,7 @@ void syscall()
     {
         char *name=syscall_names(id);
         (void) name;
-        tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
+        tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", (int)id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
     }
     switch (id)
     {
@@ -173,11 +175,11 @@ void syscall()
         break;
     default:
         ret = -1;
-        warnf("unknown syscall %d", id);
+        warnf("unknown syscall %d", (int)id);
     }
     trapframe->a0 = ret; // return value
     if (id != SYS_write && id != SYS_read)
     {
-        tracecore("syscall %d ret %d", id, ret);
+        tracecore("syscall %d ret %l", (int)id, ret);
     }
 }
