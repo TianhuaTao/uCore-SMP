@@ -132,7 +132,7 @@ void *map_shared_mem(struct shared_mem *shmem)
             panic("map_shared_mem");
         }
     }
-
+    // p->total_size +=     // TODO
     p->shmem[j]=shmem;
     p->shmem_map_start[j]=start_addr_va;
 

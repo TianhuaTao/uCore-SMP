@@ -25,7 +25,7 @@ void init_app_names()
         int len = strlen(s);
         strncpy(names[i], (const char *)s, len);
         s += len + 1;
-        tracef("app name: %s", names[i]);
+        printf("app name: %s\n", names[i]);
     }
 }
 
