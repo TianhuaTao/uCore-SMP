@@ -48,7 +48,6 @@ int CheckSortResult(uint32 arr[], uint32 n)
 
 int main(void)
 {
-    sleep(10);
     uint64 start_time = time_ms();
     InitSortData(sort_arr, kArrLen, kSeed);
     InsertionSort(sort_arr, kArrLen);

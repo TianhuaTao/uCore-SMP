@@ -505,6 +505,7 @@ int sys_set_dsid(int pid, uint32 dsid)
 }
 
 #include "../dsid/dsid.h"
+#include "../arch/timer.h"
 
 int sys_set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32 mask)
 {
@@ -520,7 +521,14 @@ int sys_set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32
         cp_reg_w(CP_BUCKET_INC - CP_HART_DSID, inc);
     if (mask != 0)
         cp_reg_w(CP_WAYMASK - CP_HART_DSID, mask);
-    infof("set dsid: %d, freq: %d, size: 0x%x, inc: 0x%x, mask: 0x%x", dsid, cp_reg_r(CP_BUCKET_FREQ - CP_HART_DSID), cp_reg_r(CP_BUCKET_SIZE - CP_HART_DSID), cp_reg_r(CP_BUCKET_INC - CP_HART_DSID), cp_reg_r(CP_WAYMASK - CP_HART_DSID));
+    freq = cp_reg_r(CP_BUCKET_FREQ - CP_HART_DSID);
+    size = cp_reg_r(CP_BUCKET_SIZE - CP_HART_DSID);
+    inc = cp_reg_r(CP_BUCKET_INC - CP_HART_DSID);
+    mask = cp_reg_r(CP_WAYMASK - CP_HART_DSID);
+    int bandwidth = 0;
+    if (freq != 0)
+        bandwidth = CYCLE_FREQ * inc * 8 / freq / 1024;
+    infof("set dsid: %d, bucket freq: %d, size: %d, inc: %d, cache mask: 0x%x, mem bandwidth: %d KB/s", dsid, freq, size, inc, mask, bandwidth);
     release(&dsid_lock);
     return 0;
 }

@@ -44,11 +44,92 @@ void init_booted() {
     }
 }
 
+void test_misaligned(void)
+{
+    char arr[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
+    printf_k("arr: %p\n", (uint64)arr);
+    printf_k("load half: ");
+    uint64 res;
+    for (int i = 0; i < 2; ++i)
+    {
+        uint64 addr = ((uint64)arr) + i;
+        asm("lh  %0, 0(%1)"
+            : "=r"(res)
+            : "r"(addr));
+        printf_k("%x  ", res);
+    }
+    printf_k("\n");
+
+    printf_k("load word: ");
+    for (int i = 0; i < 4; ++i)
+    {
+        uint64 addr = ((uint64)arr) + i;
+        asm("lw  %0, 0(%1)"
+            : "=r"(res)
+            : "r"(addr));
+        printf_k("%x  ", res);
+    }
+    printf_k("\n");
+
+    printf_k("load dword: ");
+    for (int i = 0; i < 8; ++i)
+    {
+        uint64 addr = ((uint64)arr) + i;
+        asm("ld  %0, 0(%1)"
+            : "=r"(res)
+            : "r"(addr));
+        printf_k("%x  ", res);
+    }
+    printf_k("\n");
+
+    printf_k("save half:\n");
+    for (int i = 0; i < 2; ++i)
+    {
+        uint64 addr = ((uint64)arr) + i;
+        uint16 val = 0x7BCD;
+        asm("sh  %0, 0(%1)"
+            :
+            : "r"(val), "r"(addr));
+        for (int j = 0; j < 16; ++j)
+            printf_k("%x ", arr[j]);
+        printf_k("\n");
+    }
+
+    printf_k("save word:\n");
+    for (int i = 0; i < 4; ++i)
+    {
+        uint64 addr = ((uint64)arr) + i;
+        uint32 val = 0xDEADBEEF;
+        asm("sw  %0, 0(%1)"
+            :
+            : "r"(val), "r"(addr));
+        for (int j = 0; j < 16; ++j)
+            printf_k("%x ", arr[j]);
+        printf_k("\n");
+    }
+
+    printf_k("save dword:\n");
+    for (int i = 0; i < 8; ++i)
+    {
+        uint64 addr = ((uint64)arr) + i;
+        uint64 val = 0xD00DDAD0BAD0DEEDULL;
+        asm("sd  %0, 0(%1)"
+            :
+            : "r"(val), "r"(addr));
+        for (int j = 0; j < 16; ++j)
+            printf_k("%x ", arr[j]);
+        printf_k("\n");
+    }
+    printf_k("\n");
+    ebreak();
+}
+
 extern char _entry[];
 void main(uint64 hartid, uint64 a1) {
     if (first_hart) {
         w_tp(hartid);
         first_hart = FALSE;
+        // test_misaligned();
         printf_k("\n");
         printf_k("[ucore] Boot hartid=%d\n", hartid);
         printf_k("[ucore] Core count: %d\n", NCPU);
@@ -91,8 +172,8 @@ void main(uint64 hartid, uint64 a1) {
         //     {
         //         uint64 cycle = r_time();
         //         uint64 delta = cycle- start ;
-        //         if(delta>12500000){
-        //             printf_k("%d %p %p\n",i, cycle,delta);
+        //         if(delta>10000000){
+        //             printf_k("%d %p %p %d\n",i, cycle,delta, r_cycle());
         //             break;
         //         }
         //     }

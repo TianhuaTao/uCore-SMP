@@ -28,7 +28,7 @@ int wait(int pid, int *wstatus_va)
                         // Found one.
                         int child_pid = maybe_child->pid;
                         int wstatus = maybe_child->exit_code;
-                        if (wstatus_va && copyout(p->pagetable, (uint64)wstatus_va, (char *)&wstatus,  sizeof(wstatus)) < 0)
+                        if (wstatus_va && copyout(p->pagetable, (uint64)wstatus_va, (char *)&wstatus,  sizeof(int)) < 0)
                         {
                             release(&maybe_child->lock);
                             release(&wait_lock);
@@ -51,6 +51,6 @@ int wait(int pid, int *wstatus_va)
         }
 
         // Wait for a child to exit.
-        sleep(p, &wait_lock); 
+        sleep(p, &wait_lock);
     }
 }

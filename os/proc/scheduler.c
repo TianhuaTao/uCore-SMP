@@ -47,7 +47,7 @@ void scheduler(void)
         if (next_proc != NULL)
         {
                 // printf("Core %d pick proc %s\n", cpuid(),next_proc->name);
-            
+
             struct cpu *mycore = mycpu();
             mycore->proc = next_proc;
             next_proc->state = RUNNING;
@@ -65,8 +65,8 @@ void scheduler(void)
             uint64 time_delta = get_time_ms() - next_proc->last_start_time;
             next_proc->cpu_time += time_delta;
 
-            mycore->proc = NULL;
             stop_timer_interrupt();
+            mycore->proc = NULL;
 
             release(&next_proc->lock);
         }
@@ -88,7 +88,7 @@ void scheduler(void)
         if (all > (MS_TO_CYCLE(100)))
         {
             struct cpu *core = mycpu();
-            
+
             // record one sample
             int next_slot = core->next_slot;
             core->sample_duration[next_slot] = all;

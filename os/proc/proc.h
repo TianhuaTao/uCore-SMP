@@ -36,7 +36,7 @@ struct proc {
     int killed;            // If non-zero, have been killed
     pagetable_t pagetable; // User page table
     void *waiting_target;  // used by sleep and wakeup, a pointer of anything
-    uint64 exit_code;      // Exit status to be returned to parent's wait
+    int exit_code;      // Exit status to be returned to parent's wait
 
     // proc_tree_lock must be held when using this:
     struct proc *parent; // Parent process

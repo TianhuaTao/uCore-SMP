@@ -102,6 +102,7 @@ void proc_free_mem_and_pagetable(struct proc* p) {
     free_user_mem_and_pagetables(p->pagetable, p->total_size);
     p->pagetable = NULL;
     p->total_size = 0;
+    mmiowb();
 }
 
 
@@ -242,7 +243,7 @@ void forkret(void) {
         // regular process (e.g., because it calls sleep), and thus cannot
         // be run from main().
         first = FALSE;
-        // fsinit();
+        fsinit();
     }
 
     usertrapret();

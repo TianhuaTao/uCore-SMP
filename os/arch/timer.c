@@ -26,10 +26,10 @@ void set_next_timer() {
 
 
 uint64 get_time_ms() {
-    return get_cycle() / (CPU_FREQ / MSEC_PER_SEC);
+    return r_time() / (TICK_FREQ / MSEC_PER_SEC);
 }
 
 uint64 get_time_us() {
     // TODO: use variables, not literal numbers
-    return get_cycle() / (CPU_FREQ / USEC_PER_SEC);
+    return r_time() / (TICK_FREQ / USEC_PER_SEC);
 }

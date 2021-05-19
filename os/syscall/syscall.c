@@ -99,6 +99,7 @@ void syscall()
         char *name=syscall_names(id);
         (void) name;
         tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
+        (void)name;
     }
     switch (id)
     {

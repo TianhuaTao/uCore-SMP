@@ -240,9 +240,7 @@ static inline uint64 r_mcounteren() {
 // wall clock tik counter
 static inline uint64 r_time() {
     uint64 x;
-    // asm volatile("csrr %0, time"
-    //              : "=r"(x));
-    asm volatile("csrr %0, cycle"
+    asm volatile("csrr %0, time"
                  : "=r"(x));
     return x;
 }

@@ -163,7 +163,7 @@ void printf_k(char *fmt, ...) {
                 printint64(va_arg(ap, int64), 10, 1);
                 break;
             case 'x':
-                printint(va_arg(ap, int), 16, 1);
+                printint64(va_arg(ap, int64), 16, 1);
                 break;
             case 'p':
                 printptr(va_arg(ap, uint64));

@@ -413,6 +413,7 @@ int uvmcopy(pagetable_t old_pagetable, pagetable_t new_pagetable, uint64 total_s
             goto err;
         }
     }
+    mmiowb();
     return 0;
 
 err_ustack:
