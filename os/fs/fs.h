@@ -3,6 +3,7 @@
 
 #include <ucore/types.h>
 #include <file/stat.h>
+#include "inode.h"
 // On-disk file system format.
 // Both the kernel and user programs use this header file.
 
@@ -34,9 +35,7 @@ struct superblock {
 
 #define FSMAGIC 0x10203040
 
-#define NDIRECT 12
-#define NINDIRECT (BSIZE / sizeof(uint))
-#define MAXFILE (NDIRECT + NINDIRECT)
+
 
 // File type
 #define T_DIR     1   // Directory
@@ -72,6 +71,8 @@ struct dirent {
     ushort inum;
     char name[DIRSIZ];
 };
+extern struct superblock sb;
+
 struct inode *root_dir();
 struct inode *inode_by_name(char *path);
 void ilock(struct inode *ip);
@@ -82,4 +83,8 @@ int readi(struct inode *ip, int user_dst, void *dst, uint off, uint n);
 void stati(struct inode *ip, struct stat *st);
 int isdirempty(struct inode *dp);
 int namecmp(const char *s, const char *t);
+
+
+
+
 #endif //!__FS_H__

@@ -31,6 +31,7 @@ struct context
   uint64 s11;
 };
 
+#define SAMPLE_SLOT_COUNT 8
 // Per-CPU state.
 struct cpu
 {
@@ -39,6 +40,15 @@ struct cpu
   int noff;               // Depth of push_off() nesting.
   int base_interrupt_status;        // Were interrupts enabled before push_off()?
   int core_id;
+
+  uint64 last_time_stamp; // not used
+  uint64 sample_duration[SAMPLE_SLOT_COUNT];  
+  uint64 busy_time[SAMPLE_SLOT_COUNT];
+  uint64 user_time[SAMPLE_SLOT_COUNT];  // not used
+
+  int next_slot;
+  int start_cycle;
+
 };
 
 // debug print

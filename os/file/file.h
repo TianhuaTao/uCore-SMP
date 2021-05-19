@@ -10,29 +10,15 @@
 #define major(dev) ((dev) >> 16 & 0xFFFF)
 #define minor(dev) ((dev)&0xFFFF)
 #define mkdev(m, n) ((uint)((m) << 16 | (n)))
-struct inode {
-    uint dev;  // Device number
-    uint inum; // Inode number
-    int ref;   // Reference count
-    struct mutex lock;
-    int valid;  // inode has been read from disk?
 
-    // disk side information, only valid if this->valid == true
-    short type; 
-    short major;
-    short minor;
-    short num_link;
-    uint size;
-    uint addrs[NDIRECT + 1];
-};
 
 // map major device number to device functions.
-struct devsw {
+struct device_rw_handler {
     int64 (*read)(char *dst, int64 len, int to_user);
     int64 (*write)(char *src, int64 len, int from_user);
 };
 
-extern struct devsw devsw[];
+extern struct device_rw_handler device_rw_handler[];
 
 struct pipe {
     char data[PIPESIZE];
@@ -85,5 +71,8 @@ int filestat(struct file *f, uint64 addr);
 #define FILE_MAX (128 * 16)
 
 #define CONSOLE 1
+#define CPU_DEVICE 2
+#define MEM_DEVICE 3
+#define PROC_DEVICE 4
 
 #endif //!__FILE_H__

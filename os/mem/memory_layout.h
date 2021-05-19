@@ -13,9 +13,9 @@
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))  // 256 GB
 
-#define USER_TOP (MAXVA)
-#define TRAMPOLINE (USER_TOP - PGSIZE)
-#define TRAPFRAME (TRAMPOLINE - PGSIZE)
+#define USER_TOP (MAXVA)    // virtual address
+#define TRAMPOLINE (USER_TOP - PGSIZE)  // virtual address
+#define TRAPFRAME (TRAMPOLINE - PGSIZE) // virtual address
 
 // qemu puts UART registers here in physical memory.
 #define UART0 0x10000000L   // 256 MB

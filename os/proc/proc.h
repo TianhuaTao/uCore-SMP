@@ -65,6 +65,7 @@ struct proc *curr_proc();
 extern struct proc pool[NPROC];
 extern struct spinlock pool_lock;
 extern struct spinlock wait_lock;
+// extern struct spinlock proc_tree_lock;
 
 void sleep(void *waiting_target, struct spinlock *lk);
 void wakeup(void *waiting_target);
@@ -72,8 +73,8 @@ void wakeup(void *waiting_target);
 void print_proc(struct proc *proc);
 void forkret(void);
 
-void proc_free_mem_and_pagetable(pagetable_t pagetable, uint64 sz);
-struct proc *allocproc(void);
+void proc_free_mem_and_pagetable(struct proc* p);
+struct proc *alloc_proc(void);
 struct file *get_proc_file_by_fd(struct proc *p, int fd);
 pagetable_t proc_pagetable(struct proc *p);
 void freeproc(struct proc *p);

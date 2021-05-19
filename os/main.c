@@ -69,19 +69,35 @@ void main(uint64 hartid, uint64 a1) {
         plicinit();     // set up interrupt controller
         plicinithart(); // ask PLIC for device interrupts
         binit();        // buffer cache
-        iinit();        // inode cache
+        inode_table_init();        // inode cache
         fileinit();     // file table
         // virtio_disk_init();
         init_abstract_disk();
         kvminit();
         kvminithart();
-        timerinit(); // do nothing
-        batchinit();
+        timerinit();    // do nothing
+        init_app_names();
         init_scheduler();
-        run_all_app();
+        make_shell_proc();
 
         init_booted();
         booted[hartid] = 1;
+
+        // measure time
+        // for (int i = 0; i < 20; i++)
+        // {
+        //     uint64 start = r_time();
+        //     while (1)
+        //     {
+        //         uint64 cycle = r_time();
+        //         uint64 delta = cycle- start ;
+        //         if(delta>12500000){
+        //             printf_k("%d %p %p\n",i, cycle,delta);
+        //             break;
+        //         }
+        //     }
+        // }
+
 
         for (int i = 0; i < NCPU; i++) {
             if (i != hartid) // not this hart

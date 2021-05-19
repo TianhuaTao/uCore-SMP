@@ -85,7 +85,6 @@ char *syscall_names(int id)
     }
 }
 
-#define SYSCALL_NAMES_MAX (sizeof(syscall_names) / sizeof(syscall_names[0]))
 // dispatch syscalls to different functions
 void syscall()
 {
@@ -98,6 +97,7 @@ void syscall()
     if (id != SYS_write && id != SYS_read)
     {
         char *name=syscall_names(id);
+        (void) name;
         tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
     }
     switch (id)

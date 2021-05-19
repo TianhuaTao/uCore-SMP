@@ -49,6 +49,29 @@ printint(int64 xx, int base, int sign) {
 }
 
 static void
+printint64(int64 xx, int64 base, int64 sign) {
+    char buf[32];
+    int64 i;
+    uint64 x;
+
+    if (sign && (sign = xx < 0))
+        x = -xx;
+    else
+        x = xx;
+
+    i = 0;
+    do {
+        buf[i++] = digits[x % base];
+    } while ((x /= base) != 0);
+
+    if (sign)
+        buf[i++] = '-';
+
+    while (--i >= 0)
+        sbi_console_putchar(buf[i]);
+}
+
+static void
 printptr(uint64 x) {
     int i;
     sbi_console_putchar('0');
@@ -83,6 +106,9 @@ void printf(char *fmt, ...) {
         switch (c) {
             case 'd':
                 printint(va_arg(ap, int64), 10, 1);
+                break;
+            case 'l':
+                printint64(va_arg(ap, int64), 10, 1);
                 break;
             case 'x':
                 printint(va_arg(ap, int64), 16, 1);
@@ -132,6 +158,9 @@ void printf_k(char *fmt, ...) {
         switch (c) {
             case 'd':
                 printint(va_arg(ap, int), 10, 1);
+                break;
+            case 'l':
+                printint64(va_arg(ap, int64), 10, 1);
                 break;
             case 'x':
                 printint(va_arg(ap, int), 16, 1);

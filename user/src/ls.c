@@ -45,10 +45,10 @@ void ls(char *path)
   switch (st.type)
   {
   case T_FILE:
-    printf("%s FIL %d %p\n", fmtname(path), st.ino, st.size);
+    printf("%s FIL %d %l\n", fmtname(path), st.ino, st.size);
     break;
   case T_DEVICE:
-    printf("%s DEV %d %p\n", fmtname(path), st.ino, st.size);
+    printf("%s DEV %d %l\n", fmtname(path), st.ino, st.size);
     break;
   case T_DIR:
     if (strlen(path) + 1 + DIRSIZ + 1 > sizeof buf)
@@ -87,7 +87,7 @@ void ls(char *path)
       {
         printf("UNK ");
       }
-      printf("%d %p\n", st.ino, st.size);
+      printf("%d %l\n", st.ino, st.size);
     }
     break;
   default:

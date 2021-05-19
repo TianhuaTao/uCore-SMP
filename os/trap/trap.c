@@ -27,7 +27,8 @@ void set_kerneltrap(void) {
     intr_on();
 }
 
-void kernel_interrupt_handler(uint64 cause) {
+void kernel_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
+    uint64 cause = scause & 0xff;
     int irq;
     switch (cause) {
     case SupervisorTimer:
@@ -36,21 +37,17 @@ void kernel_interrupt_handler(uint64 cause) {
         break;
     case SupervisorExternal:
         irq = plic_claim();
-        if (irq == UART0_IRQ) {
-            infof("unexpected interrupt irq=UART0_IRQ");
-
-        } else if (irq == VIRTIO0_IRQ) {
+        if (irq == VIRTIO0_IRQ) {
             virtio_disk_intr();
-        } else if (irq) {
-            infof("unexpected interrupt irq=%d", irq);
+        } else if(irq>0) {
+            warnf("unexpected interrupt irq=%d", irq);
         }
         if (irq) {
-
             plic_complete(irq);
         }
         break;
     default:
-        errorf("unknown kernel interrupt: %p, stval = %p\n", r_scause(), r_stval());
+        errorf("unknown kernel interrupt: %p, sepc=%p, stval = %p\n", scause, sepc, stval);
         panic("kernel interrupt");
         break;
     }
@@ -61,10 +58,7 @@ void user_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
     switch (scause & 0xff) {
     case SupervisorTimer:
         set_next_timer();
-        // if form user, allow yield
-        if ((r_sstatus() & SSTATUS_SPP) == 0) {
-            yield();
-        }
+        yield();
         break;
     case SupervisorExternal:
         irq = plic_claim();
@@ -120,6 +114,7 @@ void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
         break;
     case LoadPageFault:
         infof("LoadPageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        print_proc(curr_proc());
         exit(-2);
         break;
     case IllegalInstruction:
@@ -266,7 +261,7 @@ void kerneltrap() {
 
     if (scause & (1ULL << 63)) // interrput
     {
-        kernel_interrupt_handler(scause & 0xff);
+        kernel_interrupt_handler(scause, stval, sepc);
     } else // exception
     {
         kernel_exception_handler(scause, stval, sepc);

@@ -334,21 +334,23 @@ void free_pagetable_pages(pagetable_t pagetable)
 
 // Free user memory pages,
 // then free page-table pages.
-// If sz == 0, only free pagetable pages
-void free_user_mem_and_pagetables(pagetable_t pagetable, uint64 sz)
+// total_size used for checking
+void free_user_mem_and_pagetables(pagetable_t pagetable, uint64 total_size)
 {
-    // TODO: fix this
-    if (sz > 0)
-    {
-        // free ustack
-        debugcore("free_user_mem_and_pagetables free stack");
-        uvmunmap(pagetable, USER_STACK_BOTTOM - USTACK_SIZE, USTACK_SIZE / PGSIZE, TRUE);
-        sz -= USTACK_SIZE;
 
-        // free bin
-        debugcore("free_user_mem_and_pagetables free bin");
-        uvmunmap(pagetable, USER_TEXT_START, PGROUNDUP(sz) / PGSIZE, TRUE);
-    }
+    // free ustack
+    debugcore("free_user_mem_and_pagetables free stack");
+    uvmunmap(pagetable, USER_STACK_BOTTOM - USTACK_SIZE, USTACK_SIZE / PGSIZE, TRUE);
+    total_size -= USTACK_SIZE;
+
+    // free bin
+    debugcore("free_user_mem_and_pagetables free bin");
+    uvmunmap(pagetable, USER_TEXT_START, PGROUNDUP(total_size) / PGSIZE, TRUE);
+    total_size -= PGROUNDUP(total_size);
+
+    KERNEL_ASSERT(total_size==0, "");
+
+    // free page-table pages
     free_pagetable_pages(pagetable);
 }
 
