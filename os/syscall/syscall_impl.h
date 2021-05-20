@@ -57,4 +57,6 @@ int sys_set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32
 
 uint32 sys_get_l2_traffic(uint32 dsid);
 
+void *sys_sharedmem(char *name_va, size_t len);
+
 #endif // SYSCALL_IMPL_H

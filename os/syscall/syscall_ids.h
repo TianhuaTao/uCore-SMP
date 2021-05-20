@@ -31,6 +31,7 @@
 #define SYS_fork 220
 #define SYS_mmap 222
 #define SYS_execv 281
+#define SYS_sharedmem 282
 #define SYS_spawn 400
 #define SYS_mailread 401
 #define SYS_mailwrite 402

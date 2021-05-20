@@ -80,6 +80,8 @@ char *syscall_names(int id)
         return "SYS_mailread";
     case SYS_mailwrite:
         return "SYS_mailwrite";
+    case SYS_sharedmem:
+        return "SYS_sharedmem";
     default:
         return "?";
     }
@@ -90,7 +92,7 @@ void syscall()
 {
     struct proc *p = curr_proc();
     struct trapframe *trapframe = p->trapframe;
-    int id = trapframe->a7, ret;
+    uint64 id = trapframe->a7, ret;
     uint64 args[7] = {trapframe->a0, trapframe->a1, trapframe->a2, trapframe->a3, trapframe->a4, trapframe->a5, trapframe->a6};
 
     // ignore read and write so that shell command don't get interrupted
@@ -98,7 +100,7 @@ void syscall()
     {
         char *name=syscall_names(id);
         (void) name;
-        tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
+        tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", (int)id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
         (void)name;
     }
     switch (id)
@@ -177,14 +179,16 @@ void syscall()
         break;
     case SYS_get_l2_traffic:
         ret = sys_get_l2_traffic(args[0]);
+    case SYS_sharedmem:
+        ret = (uint64)sys_sharedmem((char *)args[0], args[1]);
         break;
     default:
         ret = -1;
-        warnf("unknown syscall %d", id);
+        warnf("unknown syscall %d", (int)id);
     }
     trapframe->a0 = ret; // return value
     if (id != SYS_write && id != SYS_read)
     {
-        tracecore("syscall %d ret %d", id, ret);
+        tracecore("syscall %d ret %l", (int)id, ret);
     }
 }

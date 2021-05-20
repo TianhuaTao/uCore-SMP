@@ -31,7 +31,5 @@ uint64 get_time_ms() {
 }
 
 uint64 get_time_us() {
-    // mmiowb();
-    // TODO: use variables, not literal numbers
-    return r_time() / (TICK_FREQ / USEC_PER_SEC);
+    return r_time() * USEC_PER_SEC / TICK_FREQ;
 }

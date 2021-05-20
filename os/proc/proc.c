@@ -6,6 +6,7 @@
 #include <trap/trap.h>
 #include <ucore/defs.h>
 #include <utils/log.h>
+#include <mem/shared.h>
 struct proc pool[NPROC];
 
 __attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
@@ -99,6 +100,23 @@ void proc_free_mem_and_pagetable(struct proc* p) {
     uvmunmap(p->pagetable, TRAMPOLINE, 1, FALSE);  // unmap, don't recycle physical, shared
     uvmunmap(p->pagetable, TRAPFRAME, 1, TRUE);   // unmap, should recycle physical
     p->trapframe = NULL;
+
+    // unmap shared memory
+    for (int i = 0; i < MAX_PROC_SHARED_MEM_INSTANCE; i++)
+    {
+        if (p->shmem[i])
+        { // active shared memory
+            debugcore("free shared mem");
+            uvmunmap(p->pagetable, (uint64)p->shmem_map_start[i], p->shmem[i]->page_cnt, FALSE);
+            // debugcore("free page = %d", get_free_page_count());
+            drop_shared_mem(p->shmem[i]);
+            p->shmem[i]=NULL;
+            p->shmem_map_start[i] = 0;
+            // debugcore("free page = %d", get_free_page_count());
+
+        }
+    }
+
     free_user_mem_and_pagetables(p->pagetable, p->total_size);
     p->pagetable = NULL;
     p->total_size = 0;
@@ -226,6 +244,12 @@ found:
     }
     p->cwd = NULL;
     p->name[0] = '\0';
+    for (int i = 0; i < MAX_PROC_SHARED_MEM_INSTANCE; i++)
+    {
+       p->shmem[i] = NULL;
+       p->shmem_map_start[i]= 0;
+    }
+    p->next_shmem_addr = 0;
 
     return p;
 }

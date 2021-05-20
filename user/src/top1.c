@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     16,14,12,10,8,6,4,2};
     char name[] = {'n','a','m','e','0','0','\0'};
     int child_id;
-    for (int i = 0; i < 15; i++)
+    for (int i = 0; i < 1; i++)
     {
         pid = fork();
         if (pid == 0)

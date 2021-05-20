@@ -116,33 +116,33 @@ int main(int argc, char *argv[]) {
     strcpy(de.name, "..");
     iappend(rootino, &de, sizeof(de));
     
-    for (i = 2; i < argc; i++) {
-        // get rid of "target/bin/"
-        char *shortname;
-        if (strncmp(argv[i], "target/bin/_", 12) == 0)
-            shortname = argv[i] + 12;
-        else
-            shortname = argv[i];
+    // for (i = 2; i < argc; i++) {
+    //     // get rid of "target/bin/"
+    //     char *shortname;
+    //     if (strncmp(argv[i], "target/bin/_", 12) == 0)
+    //         shortname = argv[i] + 12;
+    //     else
+    //         shortname = argv[i];
 
-        assert(index(shortname, '/') == 0);
+    //     assert(index(shortname, '/') == 0);
 
-        if ((fd = open(argv[i], 0)) < 0) {
-            perror(argv[i]);
-            exit(1);
-        }
+    //     if ((fd = open(argv[i], 0)) < 0) {
+    //         perror(argv[i]);
+    //         exit(1);
+    //     }
 
-        inum = ialloc(T_FILE);
+    //     inum = ialloc(T_FILE);
 
-        bzero(&de, sizeof(de));
-        de.inum = xshort(inum);
-        strncpy(de.name, shortname, DIRSIZ);
-        iappend(rootino, &de, sizeof(de));
+    //     bzero(&de, sizeof(de));
+    //     de.inum = xshort(inum);
+    //     strncpy(de.name, shortname, DIRSIZ);
+    //     iappend(rootino, &de, sizeof(de));
 
-        while ((cc = read(fd, buf, sizeof(buf))) > 0)
-            iappend(inum, buf, cc);
+    //     while ((cc = read(fd, buf, sizeof(buf))) > 0)
+    //         iappend(inum, buf, cc);
 
-        close(fd);
-    }
+    //     close(fd);
+    // }
 
     // fix size of root inode dir
     rinode(rootino, &din);
