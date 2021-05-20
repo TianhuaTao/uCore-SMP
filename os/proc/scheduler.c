@@ -58,8 +58,11 @@ void scheduler(void)
             uint64 pass = BIGSTRIDE / (next_proc->priority);
             next_proc->stride += pass;
             w_dsid(next_proc->dsid);
+            if (is_panic_addr(next_proc->context.ra))
+                debugcore("1070 in scheduler !\n");
             mmiowb();
             swtch(&mycpu()->context, &next_proc->context);
+            mmiowb();
 
             busy += r_cycle() - busy_start;
             uint64 time_delta = get_time_ms() - next_proc->last_start_time;

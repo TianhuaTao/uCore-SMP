@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <ucore.h>
 
-const int kMax = 2021;
+const int kMax = 52021;
 
 inline int IsPrime(int x)
 {

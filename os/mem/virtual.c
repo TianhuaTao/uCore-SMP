@@ -185,6 +185,7 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
         pa += PGSIZE;
     }
     // debugf("map page cnt=%d", cnt);
+    mmiowb();
     return 0;
 }
 
@@ -223,7 +224,7 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
     uint64 a;
     pte_t *pte;
-    debugf("va=%p npages=%d do_free=%d", va, npages, do_free);
+    // debugf("va=%p npages=%d do_free=%d", va, npages, do_free);
     if ((va % PGSIZE) != 0)
         panic("uvmunmap: not aligned");
 
@@ -242,6 +243,7 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
         }
         *pte = 0;
     }
+    mmiowb();
 }
 
 // create an empty user page table.
@@ -372,6 +374,8 @@ int uvmcopy(pagetable_t old_pagetable, pagetable_t new_pagetable, uint64 total_s
     uint64 pa, cur_addr;
     uint flags;
     char *mem;
+    mmiowb();
+    printf(" \b");
     // debugcore("to copy ustack, sz=%d", total_size);
     // copy ustack
     for (cur_addr = USER_STACK_BOTTOM - USTACK_SIZE; cur_addr < USER_STACK_BOTTOM; cur_addr += PGSIZE)
@@ -391,6 +395,8 @@ int uvmcopy(pagetable_t old_pagetable, pagetable_t new_pagetable, uint64 total_s
             goto err_ustack;
         }
     }
+    mmiowb();
+    printf(" \b");
 
     // TODO: use dynamic ustack size (process stack size may change)
     total_size -= USTACK_SIZE;
@@ -413,6 +419,7 @@ int uvmcopy(pagetable_t old_pagetable, pagetable_t new_pagetable, uint64 total_s
             goto err;
         }
     }
+    printf(" \b");
     mmiowb();
     return 0;
 

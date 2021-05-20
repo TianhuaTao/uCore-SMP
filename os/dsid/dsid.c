@@ -101,17 +101,17 @@ const char *cp_reg_name[] = {
         CP_HART_DSID] = "l2_stat_reset",
 };
 
-static volatile uint32 *cpbase = (uint32 *)DSID_CP_BASE;
 struct spinlock dsid_lock;
+volatile uint32 *cpbase = (uint32 *)DSID_CP_BASE;
 
 void init_dsid(void)
 {
-    init_spin_lock_with_name(&dsid_lock, "dsid lock");
+    init_spin_lock_with_name(&dsid_lock, "dsid_lock");
 }
 
 uint32 cp_reg_r(uint32 dm_reg)
 {
-    return (uint32) * (cpbase + dm_reg);
+    return (uint32) * ((uint32 *)DSID_CP_BASE + dm_reg);
 }
 
 void cp_reg_w(uint32 dm_reg, uint32 val)
@@ -122,7 +122,7 @@ void cp_reg_w(uint32 dm_reg, uint32 val)
     }
     else
     {
-        *(cpbase + dm_reg) = val;
+        *((uint32 *)DSID_CP_BASE + dm_reg) = val;
         mmiowb();
     }
 }

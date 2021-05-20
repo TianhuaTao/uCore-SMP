@@ -6,13 +6,13 @@
 #define MSEC_PER_SEC 1000    // 1s = 1000 ms
 #define USEC_PER_SEC 1000000 // 1s = 1000000 us
 
-#define TICK_FREQ 10000000    // 12.5 MHz   for csr time
+#define TICK_FREQ 10000000    // 10 MHz   for csr time
 #define TICK_TO_MS(tick) ((tick) / (TICK_FREQ / MSEC_PER_SEC))
 #define TICK_TO_US(tick) ((tick) / (TICK_FREQ / USEC_PER_SEC)) // not accurate
 #define MS_TO_TICK(ms) ((ms) * (TICK_FREQ / MSEC_PER_SEC))
 #define SECOND_TO_TICK(sec) ((sec)*TICK_FREQ)
 
-#define CYCLE_FREQ 100000000    // 3 GHz I guess  for csr cycle
+#define CYCLE_FREQ 100000000ULL    // 100MHz  for csr cycle
 #define CYCLE_TO_MS(cycle) ((cycle) / (CYCLE_FREQ / MSEC_PER_SEC))
 #define CYCLE_TO_US(cycle) ((cycle) / (CYCLE_FREQ / USEC_PER_SEC))
 #define MS_TO_CYCLE(ms) ((ms) * (CYCLE_FREQ / MSEC_PER_SEC))

@@ -310,10 +310,27 @@ static inline void ebreak(void) { asm volatile("ebreak"); }
 
 static inline void mmiowb(void)
 {
-    asm volatile("fence iorw, iorw"
+    asm volatile("fence iorw, iorw\n\t"
+                 "fence.i"
                  :
                  :
                  : "memory");
+}
+
+static inline int is_panic_addr(uint64 addr)
+{
+    switch (addr)
+    {
+    case 0x105a:
+    case 0x106c:
+    case 0x106e:
+    case 0x1070:
+    case 0x1072:
+    case 0x1076:
+        return 1;
+    default:
+        return 0;
+    }
 }
 
 static inline void w_dsid(uint64 x)

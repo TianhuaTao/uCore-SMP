@@ -71,7 +71,7 @@ void bin_loader(uint64 start, uint64 end, struct proc *p)
 }
 
 void loader(int id, struct proc *p) {
-    infof("loader %s", names[id]);
+    // infocore("loader %s", names[id]);
     bin_loader(app_info_ptr[id], app_info_ptr[id + 1], p);
     mmiowb();
 }
@@ -82,12 +82,12 @@ int make_shell_proc()
 {
     struct proc *p = alloc_proc();
 
-    // still need to init: 
-    //  * parent           
-    //  * ustack_bottom    
-    //  * total_size       
-    //  * cwd              
-    //  * name             
+    // still need to init:
+    //  * parent
+    //  * ustack_bottom
+    //  * total_size
+    //  * cwd
+    //  * name
 
     // parent
     p->parent = NULL;

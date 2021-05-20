@@ -26,10 +26,10 @@ void printfinit(void)
 }
 
 static void
-printint(int64 xx, int base, int sign) {
+printint(int xx, int base, int sign) {
     char buf[25];
     int i;
-    uint64 x;
+    int x;
 
     if (sign && (sign = xx < 0))
         x = -xx;
@@ -105,13 +105,13 @@ void printf(char *fmt, ...) {
             break;
         switch (c) {
             case 'd':
-                printint(va_arg(ap, int64), 10, 1);
+                printint(va_arg(ap, int), 10, 1);
                 break;
             case 'l':
                 printint64(va_arg(ap, int64), 10, 1);
                 break;
             case 'x':
-                printint(va_arg(ap, int64), 16, 1);
+                printint(va_arg(ap, int), 16, 1);
                 break;
             case 'p':
                 printptr(va_arg(ap, uint64));

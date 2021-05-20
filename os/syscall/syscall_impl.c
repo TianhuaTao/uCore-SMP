@@ -164,7 +164,7 @@ int sys_execv( char *pathname_va, char * argv_va[]) {
     char name[MAXPATH];
     char argv_str[MAX_EXEC_ARG_COUNT][MAX_EXEC_ARG_LENGTH];
     copyinstr(p->pagetable, name, (uint64)pathname_va, MAXPATH);
-    infof("sys_exec %s", name);
+    infocore("sys_exec \'%s\' with pid %d", name, p->pid);
 
     int argc = 0;
     const char *argv[MAX_EXEC_ARG_COUNT];
@@ -511,6 +511,7 @@ int sys_set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32
 {
     if (mask > 0xFFFF)
         mask = 0xFFFF;
+    // tracecore("lock addr: %p\n", &dsid_lock);
     acquire(&dsid_lock);
     cp_reg_w(CP_DSID_SEL - CP_HART_DSID, dsid << 2);
     if (freq != 0)
@@ -525,9 +526,10 @@ int sys_set_dsid_param(uint32 dsid, uint32 freq, uint32 size, uint32 inc, uint32
     size = cp_reg_r(CP_BUCKET_SIZE - CP_HART_DSID);
     inc = cp_reg_r(CP_BUCKET_INC - CP_HART_DSID);
     mask = cp_reg_r(CP_WAYMASK - CP_HART_DSID);
+    mmiowb();
     int bandwidth = 0;
     if (freq != 0)
-        bandwidth = CYCLE_FREQ * inc * 8 / freq / 1024;
+        bandwidth = CYCLE_FREQ * 8 / 1024 * inc / freq;
     infof("set dsid: %d, bucket freq: %d, size: %d, inc: %d, cache mask: 0x%x, mem bandwidth: %d KB/s", dsid, freq, size, inc, mask, bandwidth);
     release(&dsid_lock);
     return 0;

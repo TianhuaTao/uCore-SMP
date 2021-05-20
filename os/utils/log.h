@@ -7,9 +7,9 @@ void printf(char *, ...);
 
 // #define LOG_LEVEL_NONE
 #define LOG_LEVEL_CRITICAL
-#define LOG_LEVEL_DEBUG
+// #define LOG_LEVEL_DEBUG
 #define LOG_LEVEL_INFO
-#define LOG_LEVEL_TRACE
+// #define LOG_LEVEL_TRACE
 // #define LOG_LEVEL_ALL
 
 #if defined(LOG_LEVEL_CRITICAL)
@@ -70,8 +70,14 @@ extern int debug_core_color[];
 #if defined(USE_LOG_ERROR)
 
 #define errorf(fmt, ...) printf("\x1b[%dm[%s] %s:%d: " fmt "\x1b[0m\n", RED, "ERROR", __FILE__, __LINE__, ##__VA_ARGS__)
+#define errorcore(fmt, ...)                                                                             \
+    do {                                                                                                      \
+        uint64 hartid = cpuid();                                                                              \
+        printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", debug_core_color[hartid], "ERROR", hartid, ##__VA_ARGS__); \
+    } while (0)
 #else
 #define errorf(fmt, ...)
+#define errorcore(fmt, ...)
 #endif //
 
 #if defined(USE_LOG_DEBUG)
@@ -110,8 +116,15 @@ extern int debug_core_color[];
 #if defined(USE_LOG_INFO)
 
 #define infof(fmt, ...) printf("\x1b[%dm[%s] " fmt "\x1b[0m\n", BLUE, "INFO", ##__VA_ARGS__)
+#define infocore(fmt, ...)                                                                                   \
+    do {                                                                                                      \
+        uint64 hartid = cpuid();                                                                              \
+        printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", debug_core_color[hartid], "INFO", hartid, ##__VA_ARGS__); \
+    } while (0)
+
 #else
 #define infof(fmt, ...)
+#define infocore(fmt, ...)
 #endif //
 
 #endif //!__LOG_H__

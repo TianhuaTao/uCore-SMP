@@ -33,12 +33,12 @@ endif
 -include $(HEADER_DEP)
 
 ifndef CPUS
-CPUS := 2
+CPUS := 4
 endif
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
 CFLAGS += -MD
-CFLAGS += -mcmodel=medany -mstrict-align -march=rv64imac -mabi=lp64
+CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I$K
 CFLAGS += -DNCPU=$(CPUS)

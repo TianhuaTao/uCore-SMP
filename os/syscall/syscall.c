@@ -168,6 +168,7 @@ void syscall()
         break;
     case SYS_unlink:
         ret = sys_unlink((char *)args[0]);
+        break;
     case SYS_set_dsid:
         ret = sys_set_dsid(args[0], args[1]);
         break;

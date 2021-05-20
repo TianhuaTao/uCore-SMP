@@ -42,12 +42,16 @@ kernelvec:
         sd t4, 224(sp)
         sd t5, 232(sp)
         sd t6, 240(sp)
+        fence iorw, iorw
+        fence.i
 
 	// call the C trap handler in trap.c
         call kerneltrap
 
 kernelret:
         // restore registers.
+        fence iorw, iorw
+        fence.i
         ld ra, 0(sp)
         ld sp, 8(sp)
         ld gp, 16(sp)

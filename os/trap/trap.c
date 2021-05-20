@@ -139,7 +139,8 @@ void usertrap() {
     uint64 stval = r_stval();
 
     KERNEL_ASSERT(!intr_get(), "");
-    // debugcore("Enter user trap handler scause=%p", scause);
+    // if ((scause & 0xFF) != SupervisorTimer)
+    //     debugcore("Enter user trap handler scause=%p", scause);
 
     w_stvec((uint64)kernelvec & ~0x3); // DIRECT
     // debugcore("usertrap");
@@ -147,7 +148,8 @@ void usertrap() {
 
     if ((sstatus & SSTATUS_SPP) != 0)
     {
-        errorf("sepc: %p, scause: 0x%x, stval: %p, sstatus: 0x%x", sepc, scause, stval, sstatus);
+        debugcore("sepc: %p, scause: 0x%x, stval: %p, sstatus: 0x%x\n", sepc, scause, stval, sstatus);
+        errorcore("sepc: %p, scause: 0x%x, stval: %p, sstatus: 0x%x", sepc, scause, stval, sstatus);
     }
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) == 0, "usertrap: not from user mode");
 
@@ -169,24 +171,22 @@ void usertrapret() {
     // we're about to switch the destination of traps from
     // kerneltrap() to usertrap(), so turn off interrupts until
     // we're back in user space, where usertrap() is correct.
-    // intr_off();
-    set_usertrap();
+    intr_off();
     struct proc *p = curr_proc();
     struct trapframe *trapframe = p->trapframe;
+    // if ((trapframe->scause & 0xFF) != SupervisorTimer)
+    //     debugcore("About to return to user mode");
+
     trapframe->kernel_satp = r_satp();         // kernel page table
     trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
     trapframe->kernel_trap = (uint64)usertrap;
     trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
-    // debugf("epc=%p",trapframe->epc);
+    // if ((trapframe->scause & 0xFF) != SupervisorTimer)
+    //     debugcore("epc=%p\n", trapframe->epc);
     w_sepc(trapframe->epc);
     // set up the registers that trampoline.S's sret will use
     // to get to user space.
 
-    // set S Previous Privilege mode to User.
-    uint64 x = r_sstatus();
-    x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
-    x |= SSTATUS_SPIE; // enable interrupts in user mode
-    w_sstatus(x);
 
     // tell trampoline.S the user page table to switch to.
     uint64 satp = MAKE_SATP(p->pagetable);
@@ -195,7 +195,20 @@ void usertrapret() {
     // switches to the user page table, restores user registers,
     // and switches to user mode with sret.
     uint64 fn = TRAMPOLINE + (userret - trampoline);
-    // debugcore("return to user, satp=%p, trampoline=%p, kernel_trap=%p\n",satp, fn,  trapframe->kernel_trap);
+    // if ((trapframe->scause & 0xFF) != SupervisorTimer && trapframe->a7 != 64 && trapframe->a7 != 63 && trapframe->a7 != 124 && trapframe->a7 != 153)
+    // if ((trapframe->scause & 0xFF) != SupervisorTimer && (is_panic_addr(trapframe->epc) || is_panic_addr(trapframe->ra) || is_panic_addr(p->context.ra)))
+    // {
+    //     infocore("return to user, satp=%p, trampoline=%p, kernel_trap=%p, epc=%p", satp, fn, trapframe->kernel_trap, trapframe->epc);
+    //     mmiowb();
+    // }
+
+    // set S Previous Privilege mode to User.
+    uint64 x = r_sstatus();
+    x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
+    x |= SSTATUS_SPIE; // enable interrupts in user mode
+    w_sstatus(x);
+    set_usertrap();
+
     ((void (*)(uint64, uint64))fn)(TRAPFRAME, satp);
 }
 
@@ -257,7 +270,8 @@ void kerneltrap() {
 
     KERNEL_ASSERT(!intr_get(), "Interrupt can not be turned on in trap handler");
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) != 0, "kerneltrap: not from supervisor mode");
-    // debugcore("Enter kernel trap handler, scause=%p, sepc=%p", scause,sepc);
+    if ((scause & 0xFF) != SupervisorTimer || (sepc & 0x1076) == 0x1076)
+        debugcore("Enter kernel trap handler, scause=%p, sepc=%p", scause, sepc);
 
     if (scause & (1ULL << 63)) // interrput
     {
@@ -271,7 +285,8 @@ void kerneltrap() {
     // so restore trap registers for use by kernelvec.S's sepc instruction.
     w_sepc(sepc);
     w_sstatus(sstatus);
-    // debugcore("About to return from kernel trap handler");
+    if ((scause & 0xFF) != SupervisorTimer || (sepc & 0x1076) == 0x1076)
+        debugcore("About to return from kernel trap handler");
 
     // go back to kernelvec.S
 }

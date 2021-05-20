@@ -51,6 +51,8 @@ struct trapframe {
     /* 264 */ uint64 t4;
     /* 272 */ uint64 t5;
     /* 280 */ uint64 t6;
+    /* 288 */ uint64 scause;
+
 };
 
 enum {

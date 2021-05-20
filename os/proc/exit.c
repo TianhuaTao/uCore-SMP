@@ -15,12 +15,12 @@ static void close_proc_files(struct proc *p)
 
 /**
  * @brief make p->parent = NULL
- * 
+ *
  * If p is zombie, just free the struct
  * don't need to free the memory or files because they should be freed before p
  * became a zombie
- * 
- * @param p 
+ *
+ * @param p
  */
 void reparent(struct proc *p)
 {
@@ -43,18 +43,19 @@ void reparent(struct proc *p)
  * 1. close files and dir
  * 2. reparent this process's children
  * 3. free all the memory and pagetables
- * 4. set the state to ZOMBIE if parent is alive 
+ * 4. set the state to ZOMBIE if parent is alive
  *    or just free this proc struct if parent is dead
  */
 void exit(int code)
-{   
+{
     tracecore("exit");
     struct proc *p = curr_proc();
     int pid_tmp = p->pid;   // keep for infof
     (void) pid_tmp;
     acquire(&p->lock);
     p->exit_code = code;
-
+    char name_tmp[PROC_NAME_MAX];
+    safestrcpy(name_tmp, p->name, PROC_NAME_MAX - 1);
     // 1. close files
     close_proc_files(p);
 
@@ -103,6 +104,6 @@ void exit(int code)
     }
     release(&wait_lock);
 
-    infof("proc %d exit with %d\n", pid_tmp, code);
+    infocore("proc %d \'%s\' exit with %d", pid_tmp, name_tmp, code);
     switch_to_scheduler();
 }

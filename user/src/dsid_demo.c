@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define MAX_DSID 4
-#define MAX_TASK_NUM 3
+#define MAX_TASK_NUM 5
 
 int task_num;
 char *task_name[MAX_TASK_NUM + 1];
@@ -54,6 +54,7 @@ void GenerateWorkload(void)
         {
             sched_yield();
             exec(task_name[i]);
+            return;
         }
         else
         {
@@ -61,7 +62,7 @@ void GenerateWorkload(void)
             task_pid[i] = pid;
         }
     }
-    // MonitorTraffic();
+    MonitorTraffic();
     for (int i = 0; i < task_num; ++i)
         waitpid(task_pid[i], &time_usage[i]);
     puts("time usage:");
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
 {
     DsidParam dsid_param[MAX_DSID + 1] = {
         {780, 0x800, 5, 0xF},      // 5008
-        {1e2, 0x800, 1e2, 0xFFF0}, // inf
+        {100, 0x800, 100, 0xFFF0}, // inf
         {970, 0x800, 10, 0xF0},    // 8054
         {780, 0x800, 4, 0xF00},    // 4006
         {1e3, 0x800, 5, 0xF000},   // 3906
