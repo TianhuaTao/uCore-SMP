@@ -93,9 +93,9 @@ int main(int argc, char *argv[])
             {
 
                 printf("Core    %d\n", i);
-                printf("busy cycle:    %l\n", stat_buf[i].sample_busy_duration);
-                printf("all cycle:     %l\n", stat_buf[i].sample_duration);
-                printf("uptime cycle:  %l\n", stat_buf[i].uptime);
+                // printf("busy cycle:    %l\n", stat_buf[i].sample_busy_duration);
+                // printf("all cycle:     %l\n", stat_buf[i].sample_duration);
+                // printf("uptime cycle:  %l\n", stat_buf[i].uptime);
                 int per = (100 * stat_buf[i].sample_busy_duration) / stat_buf[i].sample_duration;
                 printf("[\x1b[31m");
                 int tens = (per + 1) / 2;
@@ -139,6 +139,9 @@ int main(int argc, char *argv[])
 
                 for (int i = 0; i < p_cnt; i++)
                 {
+                    if (pstat[i].state == ZOMBIE){
+                        continue;
+                    }
                     printf("%s   ", pstat[i].name);
                     printf("%d   ", pstat[i].pid);
                     printf("%d   ", pstat[i].ppid);

@@ -120,15 +120,15 @@ int main() {
 
     if (open("cpu", O_RDWR) < 0) {
         mknod("cpu", 2, 0);
-        open("cpu", O_RDWR);
+        // open("cpu", O_RDWR);
     }
         if (open("mem", O_RDWR) < 0) {
         mknod("mem", 3, 0);
-        open("mem", O_RDWR);
+        // open("mem", O_RDWR);
     }
     if (open("proc", O_RDWR) < 0) {
         mknod("proc", 4, 0);
-        open("proc", O_RDWR);
+        // open("proc", O_RDWR);
     }
     printf("C user shell\n");
     printf(">> ");
