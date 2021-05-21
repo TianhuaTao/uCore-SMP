@@ -5,7 +5,6 @@
 #include <ucore.h>
 #include <string.h>
 
-#define MAX_DSID 4
 #define MAX_TASK_NUM 5
 
 int task_num;
@@ -15,7 +14,7 @@ int task_dsid[MAX_TASK_NUM + 1];
 void MonitorTraffic(void)
 {
     sleep(100);
-    int64 prev_l2_traffic[4];
+    int64 prev_l2_traffic[MAX_TASK_NUM + 1];
     for (int i = 0; i <= task_num; ++i)
         prev_l2_traffic[task_dsid[i]] = get_l2_traffic(task_dsid[i]);
     puts("L1 to L2 traffic speed(KB/s): ");
@@ -78,17 +77,43 @@ typedef struct
 
 int main(int argc, char *argv[])
 {
-    DsidParam dsid_param[MAX_DSID + 1] = {
-        {780, 0x800, 5, 0xF},      // 5008
-        {100, 0x800, 100, 0xFFF0}, // inf
-        {970, 0x800, 10, 0xF0},    // 8054
-        {780, 0x800, 4, 0xF00},    // 4006
-        {1e3, 0x800, 5, 0xF000},   // 3906
+    DsidParam dsid_param[] = {
+        // for kernel and monitor
+        {10000, 0x800, 40, 0x000F}, // 3125 0
+        // no limit
+        {100, 0x800, 100, 0xFFF0}, // inf   1
+
+        // asymmetric
+        // mem limited, cache isolated
+        {7800, 0x800, 80, 0xFFC0}, // 8012  2
+        {7800, 0x800, 10, 0x0030}, // 1001  3
+        // mem limit, cache shared
+        {7800, 0x800, 80, 0xFFF0}, // 8012  4
+        {7800, 0x800, 10, 0xFFF0}, // 1001  5
+        // mem inf, cache isolated
+        {100, 0x800, 100, 0xFFC0}, //       6
+        {100, 0x800, 100, 0x0030}, //       7
+
+        // symmetric
+        // mem limited, cache isolated
+        {9300, 0x800, 60, 0x03F0}, //       8
+        {9300, 0x800, 60, 0xFC00}, //       9
+        // mem limit, cache shared
+        {9300, 0x800, 60, 0xFFF0}, // 5040  10
+        // mem inf, cache isolated
+        {100, 0x800, 100, 0xFC00}, //       11
+        {100, 0x800, 100, 0x03F0}, //       12
+
+        // asymmetric
+        // mem limited, cache isolated
+        {7800, 0x800, 70, 0xFFC0}, // 7010  13
+        {7800, 0x800, 20, 0x0030}, // 2003  14
+        // mem limit, cache shared
+        {7800, 0x800, 70, 0xFFF0}, // 7010  15
+        {7800, 0x800, 20, 0xFFF0}, // 2003  16
     };
 
-    for (int i = 0; i <= MAX_DSID; ++i)
-        set_dsid_param(i, dsid_param[i].bucket_freq, dsid_param[i].bucket_size,
-                       dsid_param[i].bucket_inc, dsid_param[i].l2_mask);
+    int dsid_param_limit = sizeof(dsid_param) / sizeof(DsidParam);
     if (argc < 2 || argc % 2 == 0 || argc > 2 * MAX_TASK_NUM + 1)
     {
         puts("please input correct workload and dsid!");
@@ -100,17 +125,24 @@ int main(int argc, char *argv[])
     for (int i = 0; i < task_num; ++i)
     {
         task_name[i] = argv[i * 2 + 1];
-        task_dsid[i] = atoi(argv[i * 2 + 2]);
-        task_dsid[i] = argv[i * 2 + 2][0] - '0';
-        if (task_dsid[i] > MAX_DSID || task_dsid[i] < 0)
+        task_dsid[i] = i + 1;
+        int dsid_param_id = atoi(argv[i * 2 + 2]);
+        set_dsid_param(task_dsid[i],
+                       dsid_param[dsid_param_id].bucket_freq,
+                       dsid_param[dsid_param_id].bucket_size,
+                       dsid_param[dsid_param_id].bucket_inc,
+                       dsid_param[dsid_param_id].l2_mask);
+        if (dsid_param_id > dsid_param_limit || dsid_param_id < 0)
         {
-            printf("workload %s dsid %d out of range!", task_name[i], task_dsid[i]);
+            printf("workload %s dsid %d out of range!", task_name[i], dsid_param_id);
             return -2;
         }
     }
 
     task_dsid[task_num] = 0;
     task_name[task_num] = "others";
+    set_dsid_param(0, dsid_param[0].bucket_freq, dsid_param[0].bucket_size,
+                   dsid_param[0].bucket_inc, dsid_param[0].l2_mask);
     GenerateWorkload();
     puts("dsid demo finished!");
     return 0;

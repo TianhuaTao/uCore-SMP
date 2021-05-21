@@ -3,9 +3,9 @@
 
 #include <ucore/ucore.h>
 
-#define MAX_SHARED_NAME (64)    
+#define MAX_SHARED_NAME (64)
 #define MAX_SHARED_MEM_INSTANCE (256) // system level
-#define MAX_SHARED_MEM_SIZE (1*1024*1024) // 1MB
+#define MAX_SHARED_MEM_SIZE (4*1024*1024) // 4MB
 #define MAX_SHARED_MEM_PAGE (MAX_SHARED_MEM_SIZE)/PGSIZE // 256 pages
 
 struct shared_mem{

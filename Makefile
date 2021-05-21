@@ -80,7 +80,7 @@ build/kernel: $(OBJS) os/kernel_app.ld os/link_app.S
 	$(LD) $(LDFLAGS) -T os/kernel_app.ld -o $(BUILDDIR)/kernel $(OBJS)
 	$(OBJDUMP) -S $(BUILDDIR)/kernel > $(BUILDDIR)/kernel.asm
 	$(OBJDUMP) -t $(BUILDDIR)/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILDDIR)/kernel.sym
-	$(OBJCOPY) -O binary $(BUILDDIR)/kernel $(BUILDDIR)/ucore-kernel.bin
+	$(OBJCOPY) -O binary $(BUILDDIR)/kernel $(BUILDDIR)/ucore-smp.bin
 	@echo 'Build kernel done'
 
 clean:

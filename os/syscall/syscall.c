@@ -179,6 +179,7 @@ void syscall()
         break;
     case SYS_get_l2_traffic:
         ret = sys_get_l2_traffic(args[0]);
+        break;
     case SYS_sharedmem:
         ret = (uint64)sys_sharedmem((char *)args[0], args[1]);
         break;

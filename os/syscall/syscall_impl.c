@@ -508,8 +508,8 @@ int sys_set_dsid(int pid, uint32 dsid)
     }
     acquire(&p->lock);
     p->dsid = dsid;
+    infof("set pid: %d, dsid: %d", pid, p->dsid);
     release(&p->lock);
-    infof("set pid: %d, dsid: %d", pid, dsid);
     return 0;
 }
 
