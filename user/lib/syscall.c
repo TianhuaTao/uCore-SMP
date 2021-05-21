@@ -160,6 +160,6 @@ uint32 get_l2_traffic(uint32 dsid)
 
 void *sharedmem(char *name, size_t len)
 {
-    return syscall(SYS_sharedmem, name, len);
+    return (void *)syscall(SYS_sharedmem, name, len);
 }
 // =============================================================

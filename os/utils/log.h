@@ -2,6 +2,8 @@
 #define __LOG_H__
 
 void printf(char *, ...);
+int cpuid();
+void printtrace();
 
 // Please use one of these
 
@@ -69,11 +71,11 @@ extern int debug_core_color[];
 
 #if defined(USE_LOG_ERROR)
 
-#define errorf(fmt, ...) printf("\x1b[%dm[%s] %s:%d: " fmt "\x1b[0m\n", RED, "ERROR", __FILE__, __LINE__, ##__VA_ARGS__)
-#define errorcore(fmt, ...)                                                                             \
-    do {                                                                                                      \
-        uint64 hartid = cpuid();                                                                              \
-        printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", debug_core_color[hartid], "ERROR", hartid, ##__VA_ARGS__); \
+#define errorf(fmt, ...)                                                                                          \
+    do {                                                                                                          \
+        int hartid = cpuid();                                      \
+        printf("\x1b[%dm[%s %d] %s:%d: " fmt "\x1b[0m\n", RED, "ERROR", hartid, __FILE__, __LINE__, ##__VA_ARGS__);\
+        printtrace();   \
     } while (0)
 #else
 #define errorf(fmt, ...)
@@ -86,7 +88,7 @@ extern int debug_core_color[];
 
 #define debugcore(fmt, ...)                                                                                   \
     do {                                                                                                      \
-        uint64 hartid = cpuid();                                                                              \
+        int hartid = cpuid();                                                                              \
         printf("\x1b[%dm[%s %d] " fmt "\x1b[0m\n", debug_core_color[hartid], "DEBUG", hartid, ##__VA_ARGS__); \
     } while (0)
 
@@ -96,7 +98,7 @@ extern int debug_core_color[];
 #else
 #define debugf(fmt, ...)
 #define debugcore(fmt, ...)
-#define phex(var_name)
+#define phex(var_name) (void)(var_name);
 #endif //
 
 #if defined(USE_LOG_TRACE)

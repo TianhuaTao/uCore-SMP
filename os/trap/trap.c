@@ -148,7 +148,7 @@ void usertrap() {
     if ((sstatus & SSTATUS_SPP) != 0)
     {
         debugcore("sepc: %p, scause: 0x%x, stval: %p, sstatus: 0x%x\n", sepc, scause, stval, sstatus);
-        errorcore("sepc: %p, scause: 0x%x, stval: %p, sstatus: 0x%x", sepc, scause, stval, sstatus);
+        errorf("sepc: %p, scause: 0x%x, stval: %p, sstatus: 0x%x", sepc, scause, stval, sstatus);
     }
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) == 0, "usertrap: not from user mode");
 
@@ -157,6 +157,7 @@ void usertrap() {
     } else { // interrput = 0
         user_exception_handler(scause, stval, sepc);
     }
+    pushtrace(0x3036);
     usertrapret();
 }
 
@@ -171,13 +172,14 @@ void usertrapret() {
     // kerneltrap() to usertrap(), so turn off interrupts until
     // we're back in user space, where usertrap() is correct.
     intr_off();
+    pushtrace(0x3001);
     struct proc *p = curr_proc();
     struct trapframe *trapframe = p->trapframe;
     // if ((trapframe->scause & 0xFF) != SupervisorTimer)
     //     debugcore("About to return to user mode");
 
     trapframe->kernel_satp = r_satp();         // kernel page table
-    trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
+    trapframe->kernel_sp = p->kstack + KSTACK_SIZE; // process's kernel stack
     trapframe->kernel_trap = (uint64)usertrap;
     trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
     // if ((trapframe->scause & 0xFF) != SupervisorTimer)
@@ -266,7 +268,7 @@ void kerneltrap() {
     uint64 sstatus = r_sstatus();
     uint64 scause = r_scause();
     uint64 stval = r_stval();
-
+    pushtrace(0x3000);
     KERNEL_ASSERT(!intr_get(), "Interrupt can not be turned on in trap handler");
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) != 0, "kerneltrap: not from supervisor mode");
     if ((scause & 0xFF) != SupervisorTimer || (sepc & 0x1076) == 0x1076)

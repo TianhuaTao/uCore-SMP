@@ -26,14 +26,13 @@ void init_spin_lock_with_name(struct spinlock *slock, const char *name) {
 void acquire(struct spinlock *slock) {
     push_off(); // disable interrupts to avoid deadlock.
     if (holding(slock)) {
-        errorf("spinlock timeout");
-        errorf("lock \"%s\" is held by core %d, cannot be acquired", slock->name, slock->cpu - cpus);
+        printf("lock \"%s\" is held by core %d, cannot be reacquired", slock->name, slock->cpu - cpus);
         panic("This cpu is acquiring a acquired lock");
     }
 
     #ifdef TIMEOUT
     uint64 start = r_cycle();
-    #endif
+#endif
 
     while (__sync_lock_test_and_set(&slock->locked, 1) != 0)
         {

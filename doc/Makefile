@@ -4,7 +4,7 @@
 
 ASCIIDOCTOR = asciidoctor
 DITAA = ditaa
-IMAGES = riscv-sbi-hsm.png
+IMAGES = riscv-sbi-hsm.png ucore-memory-layout.png shared-mem.png
 TARGETS = ucore-smp.pdf
 TARGETS += ucore-smp.html
 
@@ -14,6 +14,14 @@ all: $(IMAGES) $(TARGETS)
 %.png: %.ditaa
 	rm -f $@
 	$(DITAA) $<
+
+ucore-memory-layout.png: ucore-memory-layout.ditaa
+	rm -f $@
+	$(DITAA) -E $<
+
+shared-mem.png: shared-mem.ditaa
+	rm -f $@
+	$(DITAA) -E $<
 
 %.html: %.adoc $(IMAGES)
 	$(ASCIIDOCTOR) -d book -b html $<

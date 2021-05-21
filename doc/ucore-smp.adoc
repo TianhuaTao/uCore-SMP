@@ -21,7 +21,7 @@ I'm glad to see some other lab project ever considered using this kernel as its 
 
 As time is limited, not enough testing is conducted, and comments and documentation are not sufficient. Refinement will be needed.
 
-I hope some part of this kernel implementation is better than that of xv6's, and is a good extension of *ucore-Tutorial*. I try to make the code more understandable, use names that make sense and seperate modules. If anyone happen to be reading xv6 codes wondering "What does this mean", and then comes to my code, saying "Oh I got it", I feel it's a success.
+I hope some part of this kernel implementation is better than that of xv6's, and is a good extension of *ucore-Tutorial*. I try to make the code more understandable, use names that make sense and separate modules. If anyone happen to be reading xv6 codes wondering "What does this mean", and then comes to my code, saying "Oh I got it", I feel it's a success.
 
 == Checkout Code
 
@@ -33,6 +33,7 @@ See here: https://github.com/TianhuaTao/uCore-SMP
 |===
 | module      | description
 | arch      |     CPU architecture
+| device    | Device File code
 | driver    | Device driver code
 | file      | File abstraction
 | fs        | File system
@@ -251,7 +252,7 @@ int pipe(int pipefd[2]);
 
 On success, zero is returned. On error, -1 is returned.
 
-=== yield
+=== sched_yield
 
 [source, C]
 ----
@@ -321,7 +322,7 @@ Return a time measured in ms. Only the difference between two time return values
 int link(const char *oldpath, const char *newpath);
 ----
 
-`link()` creates a new link (also known as a hard link) to an existing file. If newpath exists, it will not be overwritten.
+`link()` creates a new link (also known as a hard link) to an existing file. If `newpath` exists, it will not be overwritten.
 
 *Returns* 
 
@@ -336,10 +337,24 @@ int unlink(const char *pathname);
 
 `unlink()` deletes a name from the filesystem. If that name was the last link to a file and no processes have the file open, the file is deleted and the space it was using is made available for reuse.
 
-
 *Returns* 
 
 On success, zero is returned.  On error, -1 is returned.
+
+=== sharedmem
+
+[source, C]
+----
+void *sharedmem(char *name, size_t len);
+----
+
+`sharedmem()` allocate a shared memory for current process. The shared memory is named by `name`, and of size `len` bytes. If no shared memory with the same time exists, one will be created using the size given. If a previous one with the same exists, then `len` should be either 0 or the previously used size, otherwise error will occur. Shared memory with the same name will be mapped to the same physical pages. When a process exited, the memory will be unmapped or freed (if necessary) by the kernel. If no process is using a shared memory, it will be freed totally, and its name can be used to create a new shared memory of different size.
+
+`len` should be a multiple of PGSIZE (4096).
+
+*Returns* 
+
+On success, a non-zero address is returned, pointing at the start address of the shared memory.  On error, NULL is returned.
 
 === Compare with xv6
 
@@ -359,9 +374,10 @@ On success, zero is returned.  On error, -1 is returned.
 | chdir             | √ | √
 | dup               | √ | √  
 | getpid            | √ | √
+| getppid            |  | √
 | sbrk              | √ | 
-| sleep             | √ | √ (yield)
-| uptime            | √ | √ (time_ms)
+| sleep             | √ | √ 
+| uptime            | √ | (use cpu stat)
 | open              | √ | √  
 | write             | √ | √  
 | mknod             | √ | √  
@@ -369,16 +385,18 @@ On success, zero is returned.  On error, -1 is returned.
 | link              | √ | √
 | mkdir             | √ | √
 | close             | √ | √  
+| time_ms           |  | √  
+| sched_yield             |  | √  
 | setpriority       |  | √  
 | getpriority       |  | √  
-| gettimeofday      |  | √  
+| sharedmem         |  | √  
 |===
 
 ==== Functionality
 
-[cols="2,1,1,1", width=70%, align="center", options="header"]
+[cols="2,1,1,1", width=85%, align="center", options="header"]
 |===
-| syscall Name      | xv6 | uCore-SMP       | ucore-tutorial
+| Function       | xv6 | uCore-SMP       | ucore-tutorial
 | Virtual Memory              | √ | √ | √ 
 | SBI               |  | √ | √ 
 | Fully Multiprocessing          | √ | √ | 
@@ -387,8 +405,13 @@ On success, zero is returned.  On error, -1 is returned.
 | Multi-level Directory              | √ | √ |  
 | Stride Scheduler              | | √ | √ 
 | Ram Disk              |  | √ | 
+| Interprocess Shared Memory          |  | √ | 
+| Read CPU Stat          |  | √ | 
+| Read Process Stat          |  | √ | 
+| Read Mem Stat          |  | √ | 
 | Kernel Timer Interrupt              | √ | √ | 
 | Supply kernel header              |  | √ | 
+| Resource Monitor App              |  | √ | 
 |===
 
 == Developers' Guide
@@ -429,6 +452,14 @@ LOG_LEVEL_TRACE: `infof`, `tracef`, `tracecore`.
 
 LOG_LEVEL_ALL: Everything.
 
+=== Memory Layout
+
+Current implementation uses sv39 virtual memory, supporting up to 256GB user memory space. TEXT start at `0x1000`. stack bottom is at 3GB. All shared memory are mapped above user stack, each separated by a guard page.
+
+[#fig_memory_layout]
+.User Program Memory Layout
+image::ucore-memory-layout.png[]
+
 === Multiprocessing
 
 The matter is how to utilize more than one CPU core. 
@@ -451,7 +482,7 @@ There are two types of locks: `spinlock` and `mutex`.
 
 To `acuqire()` a spinlock, the cpu will keep spinning before it finally acquired it.
 
-To `acquire_mutex_sleep()` a mutex, the cpu will try lock and go to sleep if failed, setting current process's `waiting_target` to it. When anyone is done with a mutex, it checks all processes, waking up the ones waiting for this muxtex. Which woken process will get mutex is not determined.
+To `acquire_mutex_sleep()` a mutex, the cpu will try lock and go to sleep if failed, setting current process's `waiting_target` to it. When anyone is done with a mutex, it checks all processes, waking up the ones waiting for this mutex. Which woken process will get mutex is not determined.
 
 === Use ramdisk
 
@@ -465,3 +496,73 @@ To shift between `virtio_disk` and `ram_disk` more easily, a new layer `abstract
 
 `ram_disk` will allocate enough memory during initialization, and any incoming read/write operations will be turned into kernel memory access. One thing that gets complicated is that when using `virtio_disk`, we init the disk contents before compilation (to write superblocks, etc.). But for `ram_disk` it has to be done by kernel at runtime. Check `init_ram_disk()` for more.
 
+=== Use Shared Memory
+
+Shared memory are easy ways for multiple processes to communicate with each other. One can create a shared memory with a name and size, and others can use it by that name. The shared memory refer to the same physical pages, but will be mapped into each process's own virtual memory system.
+
+[#figure_shared]
+.Shared memory shares physical pages
+image::shared-mem.png[]
+
+Right now you can't deallocate a shared memory except the process exits. The kernel will recycle the pages as needed.
+
+
+=== Devices
+
+The kernel supports four kinds of devices (major id): console(1), CPU(2), memory(3), proc(4).
+
+*What are Devices?*
+
+A device is a kind of file (fs file type: `T_DEVICE`) that can read or write. In practice, to implement a device, you should: 1) provide a `xxx_device_init()` 2) provide `xxx_write()` and `xxx_read()`. 
+
+*How to Use Devices?*
+
+A device is only useful when it's integrated in the file system, which means it's made into a inode by calling `mknod()`. For example, when shell launched, the first thing it does is to make device CONSOLE (major id = 1) into a file called "console". It then opens the file "console" (fd=1) and read or write to it like a regular file. The device minor number is not used.
+
+[source, C]
+----
+if (open("console", O_RDWR) < 0) {
+    mknod("console", 1, 0);
+    open("console", O_RDWR);
+}
+
+dup(0); // stdout
+dup(0); // stderr
+----
+
+The same thing happens for "cpu", "mem" and "proc". After appropriate files are made, user programs can form a resource monitor application by reading information of cpu, mem, and process like shown below.
+
+[source, C]
+----
+----------------------------------------------------------------------
+ uCore-SMP Resource Monitor                            Time: 2 s
+----------------------------------------------------------------------
+
+Core    0
+[||||||||||||||||||||||                            ] 44%
+
+Core    1
+[|||||||||||||||||||||                             ] 41%
+
+Core    2
+[||||||||||||||||||||||||                          ] 47%
+
+Core    3
+[|||||||||||||||||||                               ] 37%
+
+Memory
+Total :   128 MB
+Free  :   112 MB
+[||||||                                            ] 11%
+
+----------------------------------------------------------------------
+Process | pid | ppid | heap | mem   | cpu time
+shell       1     -1    0    12288    1445       SLEEPING
+top1        2      1    0    217088   1448       RUNNING
+top1        3      2    0    217088   1693       RUNNING
+----------------------------------------------------------------------
+----
+
+== License
+
+MIT License.

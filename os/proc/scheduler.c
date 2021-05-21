@@ -57,9 +57,12 @@ void scheduler(void)
             next_proc->last_start_time = get_time_ms();
             uint64 pass = BIGSTRIDE / (next_proc->priority);
             next_proc->stride += pass;
-            w_dsid(next_proc->dsid);
+            pushtrace(0x3011);
+            pushtrace(next_proc->context.ra);
+
             if (is_panic_addr(next_proc->context.ra))
                 debugcore("1070 in scheduler !\n");
+            w_dsid(next_proc->dsid);
             mmiowb();
             swtch(&mycpu()->context, &next_proc->context);
             mmiowb();
@@ -67,6 +70,7 @@ void scheduler(void)
             busy += r_cycle() - busy_start;
             uint64 time_delta = get_time_ms() - next_proc->last_start_time;
             next_proc->cpu_time += time_delta;
+            pushtrace(0x3007);
 
             stop_timer_interrupt();
             mycore->proc = NULL;
@@ -81,15 +85,19 @@ void scheduler(void)
                 break;
                 // end scheduler, kernel will shutdown
             }
+            pushtrace(0x3019);
         }
         // printf("core%d\n",cpuid());
         // sample cpu usage
         uint64 now = r_cycle();
         all += now - timestamp1;
         timestamp1 = now;
+        pushtrace(0x3010);
         // sample rate 10 Hz
         if (all > (MS_TO_CYCLE(100)))
         {
+            pushtrace(0x3009);
+            push_off();
             struct cpu *core = mycpu();
 
             // record one sample
@@ -100,6 +108,7 @@ void scheduler(void)
             // printf("busy/all = %d/%d\n", (int)busy, (int)all);
             all = 0;
             busy = 0;
+            pop_off();
         }
     }
 }

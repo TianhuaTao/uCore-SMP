@@ -87,7 +87,10 @@ void parse_line(){
     } else if (strcmp(argv[0], "help") == 0) {
         print_help();
     } else if (strcmp(argv[0], "cd") == 0) {
-        chdir(argv[1]);
+        int err = chdir(argv[1]);
+        if(err){
+            printf("Shell: can not cd %s\n", argv[1]);
+        }
     } else {
         int pid = fork();
         if (pid == 0) {
@@ -120,15 +123,15 @@ int main() {
 
     if (open("cpu", O_RDWR) < 0) {
         mknod("cpu", 2, 0);
-        open("cpu", O_RDWR);
+        // open("cpu", O_RDWR);
     }
         if (open("mem", O_RDWR) < 0) {
         mknod("mem", 3, 0);
-        open("mem", O_RDWR);
+        // open("mem", O_RDWR);
     }
     if (open("proc", O_RDWR) < 0) {
         mknod("proc", 4, 0);
-        open("proc", O_RDWR);
+        // open("proc", O_RDWR);
     }
     printf("C user shell\n");
     printf(">> ");

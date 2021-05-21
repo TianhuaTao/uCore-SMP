@@ -106,4 +106,5 @@ void exit(int code)
 
     infocore("proc %d \'%s\' exit with %d", pid_tmp, name_tmp, code);
     switch_to_scheduler();
+    pushtrace(0x3032);
 }

@@ -8,7 +8,7 @@ static uint64 *app_info_ptr;
 extern char _app_num[], _app_names[];
 // const uint64 BASE_ADDRESS = 0x1000; // user text start
 #define APP_NAME_MAX 100
-#define APP_MAX_CNT 40
+#define APP_MAX_CNT 50
 char names[APP_MAX_CNT][APP_NAME_MAX];
 
 void init_app_names()

@@ -7,7 +7,7 @@
 #include <file/file.h>
 #include <lock/lock.h>
 #define NPROC (256)
-#define KSTACK_SIZE (4096)
+#define KSTACK_SIZE (8192)
 #define USTACK_SIZE (4096)
 #define TRAPFRAME_SIZE (4096)
 #define FD_MAX (16)

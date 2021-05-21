@@ -47,7 +47,7 @@ struct cpu
   uint64 user_time[SAMPLE_SLOT_COUNT];  // not used
 
   int next_slot;
-  int start_cycle;
+  uint64 start_cycle;
 
 };
 

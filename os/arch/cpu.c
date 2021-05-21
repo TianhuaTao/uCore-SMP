@@ -1,11 +1,12 @@
 #include <arch/cpu.h>
 #include <arch/riscv.h>
-
+#include <utils/assert.h>
 struct cpu cpus[NCPU];
 // Return this CPU's cpu struct.
 // Interrupts must be disabled.
 struct cpu *
 mycpu(void) {
+    KERNEL_ASSERT(!intr_get(), "mycpu");
     int id = cpuid();
     struct cpu *c = &cpus[id];
     return c;

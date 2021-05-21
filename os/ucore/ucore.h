@@ -13,4 +13,5 @@
 #include <utils/log.h>
 #include <arch/riscv.h>
 #include <utils/assert.h>
+#include <utils/trace.h>
 #endif // UCORE_H
