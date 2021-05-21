@@ -87,7 +87,10 @@ void parse_line(){
     } else if (strcmp(argv[0], "help") == 0) {
         print_help();
     } else if (strcmp(argv[0], "cd") == 0) {
-        chdir(argv[1]);
+        int err = chdir(argv[1]);
+        if(err){
+            printf("Shell: can not cd %s\n", argv[1]);
+        }
     } else {
         int pid = fork();
         if (pid == 0) {

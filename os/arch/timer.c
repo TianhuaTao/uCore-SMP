@@ -20,7 +20,7 @@ void stop_timer_interrupt(){
 /// Set the next timer interrupt (10 ms)
 void set_next_timer() {
     // 100Hz @ QEMU
-    const uint64 timebase = TICK_FREQ / TICKS_PER_SEC; // how many ticks
+    const uint64 timebase = TICK_FREQ / TIME_SLICE_PER_SEC; // how many ticks
     set_timer(r_time() + timebase);
 }
 

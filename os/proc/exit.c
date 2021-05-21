@@ -105,4 +105,5 @@ void exit(int code)
 
     infof("proc %d exit with %d\n", pid_tmp, code);
     switch_to_scheduler();
+    pushtrace(0x3032);
 }

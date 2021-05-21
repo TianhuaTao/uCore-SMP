@@ -22,8 +22,7 @@ int main(int argc, char *argv[]) {
     assert(bytes == sizeof(struct cpu_stat) * NCPU, -2); // only four
 
     int pid;
-    int runtime[] = {30, 28, 26, 24, 22, 20, 18,
-                     16, 14, 12, 10, 8, 6, 4, 2};
+    int runtime[] = { 6, 4, 2};
     char name[] = {'n', 'a', 'm', 'e', '0', '0', '\0'};
     int child_id;
     for (int i = 0; i < 1; i++) {
@@ -66,7 +65,7 @@ int main(int argc, char *argv[]) {
         while (1) {
             sleep(1000);
             uint64 time_sec = (time_ms() - start_time) / 1000;
-            if (time_sec > 40)
+            if (time_sec > 10)
                 exit(0);
             bytes = read(fd, stat_buf, sizeof(stat_buf));
             int bytes_mem = read(fd_mem, &mstat, sizeof(mstat));
@@ -74,7 +73,7 @@ int main(int argc, char *argv[]) {
             int p_cnt = bytes_proc / sizeof(struct proc_stat);
             assert(bytes == sizeof(struct cpu_stat) * NCPU, -6); // only four
             assert(bytes_mem == sizeof(struct mem_stat), -8);    // only four
-            printf("\x1b[2J");                                   // clear
+            // printf("\x1b[2J");                                   // clear
             printf("----------------------------------------------------------------------\n");
             printf(" uCore-SMP Resource Monitor                            Time: %l s\n", time_sec);
             printf("----------------------------------------------------------------------\n\n");

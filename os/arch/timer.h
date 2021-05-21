@@ -2,7 +2,7 @@
 #define TIMER_H
 
 #include <ucore/defs.h>
-#define TICKS_PER_SEC 100    // 10 ms
+#define TIME_SLICE_PER_SEC 100    // 10 ms
 #define MSEC_PER_SEC 1000    // 1s = 1000 ms
 #define USEC_PER_SEC 1000000 // 1s = 1000000 us
 

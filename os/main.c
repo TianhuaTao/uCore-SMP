@@ -1,6 +1,7 @@
 #include <arch/riscv.h>
 #include <ucore/ucore.h>
 #include <file/file.h>
+#include <proc/proc.h>
 extern char s_bss[];
 extern char e_bss[];
 extern char s_text[];
@@ -72,6 +73,7 @@ void main(uint64 hartid, uint64 a1) {
         binit();        // buffer cache
         inode_table_init();        // inode cache
         fileinit();     // file table
+        init_trace();
         // virtio_disk_init();
         init_abstract_disk();
         kvminit();
@@ -84,28 +86,14 @@ void main(uint64 hartid, uint64 a1) {
         init_booted();
         booted[hartid] = 1;
 
-        // measure time
-        // for (int i = 0; i < 20; i++)
-        // {
-        //     uint64 start = r_time();
-        //     while (1)
-        //     {
-        //         uint64 cycle = r_time();
-        //         uint64 delta = cycle- start ;
-        //         if(delta>12500000){
-        //             printf_k("%d %p %p\n",i, cycle,delta);
-        //             break;
-        //         }
-        //     }
-        // }
-        
+
 
         for (int i = 0; i < NCPU; i++) {
-            if (i != hartid) // not this hart
-            {
-                printf("[ucore] start hart %d\n", i);
-                start_hart(i, (uint64)_entry, 0);
-            }
+        if (i != hartid) // not this hart
+        {
+            printf("[ucore] start hart %d\n", i);
+            start_hart(i, (uint64)_entry, 0);
+        }
         }
 
         wait_all_boot();

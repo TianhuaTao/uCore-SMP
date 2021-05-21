@@ -94,7 +94,7 @@ void syscall()
     struct trapframe *trapframe = p->trapframe;
     uint64 id = trapframe->a7, ret;
     uint64 args[7] = {trapframe->a0, trapframe->a1, trapframe->a2, trapframe->a3, trapframe->a4, trapframe->a5, trapframe->a6};
-
+    
     // ignore read and write so that shell command don't get interrupted
     if (id != SYS_write && id != SYS_read)
     {
@@ -102,8 +102,8 @@ void syscall()
         (void) name;
         tracecore("syscall %d (%s) args:%p %p %p %p %p %p %p", (int)id, name ,args[0] , args[1], args[2], args[3], args[4], args[5], args[6]);
     }
-    switch (id)
-    {
+    pushtrace(id);
+    switch (id) {
     case SYS_write:
         ret = sys_write(args[0], (void *)args[1], args[2]);
         break;
@@ -182,4 +182,5 @@ void syscall()
     {
         tracecore("syscall %d ret %l", (int)id, ret);
     }
+    pushtrace(0x3033);
 }

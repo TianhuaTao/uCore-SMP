@@ -151,6 +151,7 @@ void usertrap() {
     } else { // interrput = 0
         user_exception_handler(scause, stval, sepc);
     }
+    pushtrace(0x3036);
     usertrapret();
 }
 
@@ -166,10 +167,11 @@ void usertrapret() {
     // we're back in user space, where usertrap() is correct.
     // intr_off();
     set_usertrap();
+    pushtrace(0x3001);
     struct proc *p = curr_proc();
     struct trapframe *trapframe = p->trapframe;
     trapframe->kernel_satp = r_satp();         // kernel page table
-    trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
+    trapframe->kernel_sp = p->kstack + KSTACK_SIZE; // process's kernel stack
     trapframe->kernel_trap = (uint64)usertrap;
     trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
     // debugf("epc=%p",trapframe->epc);
@@ -249,7 +251,7 @@ void kerneltrap() {
     uint64 sstatus = r_sstatus();
     uint64 scause = r_scause();
     uint64 stval = r_stval();
-
+    pushtrace(0x3000);
     KERNEL_ASSERT(!intr_get(), "Interrupt can not be turned on in trap handler");
     KERNEL_ASSERT((sstatus & SSTATUS_SPP) != 0, "kerneltrap: not from supervisor mode");
     // debugcore("Enter kernel trap handler, scause=%p, sepc=%p", scause,sepc);

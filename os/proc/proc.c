@@ -241,7 +241,7 @@ found:
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void forkret(void) {
-    // debugcore("forkret");
+    pushtrace(0x3200);
     static int first = TRUE;
     // Still holding p->lock from scheduler.
     release(&curr_proc()->lock);
@@ -266,7 +266,8 @@ void forkret(void) {
 // there's no process.
 void switch_to_scheduler(void) {
     int base_interrupt_status;
-
+    uint64 old_ra = r_ra();
+    pushtrace(0x3006);
     struct proc *p = curr_proc();
     KERNEL_ASSERT(p->state != RUNNING, "current proc shouldn't be running");
     KERNEL_ASSERT(holding(&p->lock), "should hold currernt proc's lock"); // holding currernt proc's lock
@@ -275,9 +276,16 @@ void switch_to_scheduler(void) {
 
     base_interrupt_status = mycpu()->base_interrupt_status;
     // debugcore("in switch_to_scheduler before swtch base_interrupt_status=%d", base_interrupt_status);
+    uint64 old_sp = r_sp();
     swtch(&p->context, &mycpu()->context); // will goto scheduler()
+    uint64 new_sp = r_sp();
     // debugcore("in switch_to_scheduler after swtch");
     mycpu()->base_interrupt_status = base_interrupt_status;
+    pushtrace(0x3020);
+    pushtrace(old_sp);
+    pushtrace(new_sp);
+    pushtrace(old_ra);
+    pushtrace(*(uint64*)(r_sp()+40));
 }
 
 /**
@@ -401,6 +409,7 @@ void sleep(void *waiting_target, struct spinlock *lk) {
     p->state = SLEEPING;
 
     switch_to_scheduler();
+    pushtrace(0x3031);
 
     // Tidy up.
     p->waiting_target = NULL;
