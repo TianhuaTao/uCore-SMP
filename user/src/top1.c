@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
             int p_cnt = bytes_proc / sizeof(struct proc_stat);
             assert(bytes == sizeof(struct cpu_stat) * NCPU, -6); // only four
             assert(bytes_mem == sizeof(struct mem_stat), -8);    // only four
-            // printf("\x1b[2J");                                   // clear
+            printf("\x1b[2J");                                   // clear
             printf("----------------------------------------------------------------------\n");
             printf(" uCore-SMP Resource Monitor                            Time: %l s\n", time_sec);
             printf("----------------------------------------------------------------------\n\n");
