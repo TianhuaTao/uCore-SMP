@@ -46,6 +46,7 @@ struct proc_stat
     char name[PROC_NAME_MAX];
     int pid;
     int ppid; // Parent process
+    int dsid;
     int state;
     uint64 heap_sz;
     uint64 total_size;

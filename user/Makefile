@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := fs.img
+.DEFAULT_GOAL := bin
 
 ARCH ?= riscv64
 MODE ?= release

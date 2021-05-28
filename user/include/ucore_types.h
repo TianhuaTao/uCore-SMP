@@ -37,6 +37,7 @@ enum procstate {
     SLEEPING,
     RUNNABLE,
     RUNNING,
-    ZOMBIE
+    ZOMBIE,
+    PROCSTATE_NUM
 };
 #endif // UCORE_TYPES_H

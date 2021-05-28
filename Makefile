@@ -119,6 +119,7 @@ debug: build/kernel .gdbinit
 
 user:
 	make -C user
+	@rm os/kernel_app.ld os/link_app.S
 
 doc:
 	make -C doc

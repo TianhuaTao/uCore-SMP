@@ -24,7 +24,8 @@ enum procstate {
     SLEEPING,
     RUNNABLE,
     RUNNING,
-    ZOMBIE
+    ZOMBIE,
+    PROCSTATE_NUM
 };
 
 // Per-process state

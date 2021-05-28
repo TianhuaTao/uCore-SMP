@@ -17,8 +17,8 @@ int main()
 {
     uint64 start_time = time_ms();
     int prime_num = 0;
-        for (int i = 2; i < kMax; ++i)
-            prime_num += IsPrime(i);
+    for (int i = 2; i < kMax; ++i)
+        prime_num += IsPrime(i);
     assert(prime_num > 0, -2);
     a[1] = prime_num;
     return time_ms() - start_time;

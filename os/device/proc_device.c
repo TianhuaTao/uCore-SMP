@@ -9,6 +9,7 @@ struct proc_stat
     char name[PROC_NAME_MAX];
     int pid;
     int ppid; // Parent process
+    int dsid;
     int state;
     uint64 heap_sz;
     uint64 total_size;
@@ -53,7 +54,7 @@ int64 proc_read(char *dst, int64 len, int to_user)
             stat_buf[cnt].total_size = p->total_size;
             stat_buf[cnt].cpu_time = p->cpu_time;
             stat_buf[cnt].state = p->state;
-
+            stat_buf[cnt].dsid = p->dsid;
             release(&p->lock);
             cnt++;
         }

@@ -61,7 +61,14 @@ void GenerateWorkload(void)
             task_pid[i] = pid;
         }
     }
-    MonitorTraffic();
+    // MonitorTraffic();
+    int monitor_pid = fork(), monitor_ret;
+    if (monitor_pid == 0)
+    {
+        exec("monitor");
+        exit(0);
+    }
+    waitpid(monitor_pid, &monitor_ret);
     for (int i = 0; i < task_num; ++i)
         waitpid(task_pid[i], &time_usage[i]);
     puts("time usage:");
@@ -80,6 +87,7 @@ int main(int argc, char *argv[])
     DsidParam dsid_param[] = {
         // for kernel and monitor
         {10000, 0x800, 40, 0x000F}, // 3125 0
+        // {100, 0x800, 100, 0x000F}, // 3125 0
         // no limit
         {100, 0x800, 100, 0xFFF0}, // inf   1
 
@@ -116,6 +124,9 @@ int main(int argc, char *argv[])
     int dsid_param_limit = sizeof(dsid_param) / sizeof(DsidParam);
     if (argc < 2 || argc % 2 == 0 || argc > 2 * MAX_TASK_NUM + 1)
     {
+        printf("argc: %d\n");
+        for (int i = 0; i < argc; ++i)
+            puts(argv[i]);
         puts("please input correct workload and dsid!");
         return -1;
     }

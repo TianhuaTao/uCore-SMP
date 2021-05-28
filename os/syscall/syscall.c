@@ -94,7 +94,7 @@ void syscall()
     struct trapframe *trapframe = p->trapframe;
     uint64 id = trapframe->a7, ret;
     uint64 args[7] = {trapframe->a0, trapframe->a1, trapframe->a2, trapframe->a3, trapframe->a4, trapframe->a5, trapframe->a6};
-    
+
     // ignore read and write so that shell command don't get interrupted
     if (id != SYS_write && id != SYS_read)
     {
@@ -187,10 +187,26 @@ void syscall()
         ret = -1;
         warnf("unknown syscall %d", (int)id);
     }
-    trapframe->a0 = ret; // return value
+
+    if(id != SYS_execv)
+        trapframe->a0 = ret; // return value
+
     if (id != SYS_write && id != SYS_read)
     {
         tracecore("syscall %d ret %l", (int)id, ret);
     }
     pushtrace(0x3033);
+
+    // if(id == SYS_execv)
+    // {
+    //         const int BUF_SIZE = 4;
+    // uint32 a[BUF_SIZE];
+    //     pushtrace(0xBADA);
+    //     pushtrace((uint64)p->trapframe);
+    //     pushtrace(virt_addr_to_physical(p->pagetable, 0x1000));
+    //     copyin(p->pagetable, (char *)a, 0x106C, BUF_SIZE * sizeof(uint32));
+    //     for (int i = 0; i < BUF_SIZE; ++i)
+    //         pushtrace(a[i]);
+    //     pushtrace(0xBADB);
+    // }
 }

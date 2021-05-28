@@ -1,6 +1,7 @@
 #include <arch/cpu.h>
 #include <file/file.h>
 #include <ucore/ucore.h>
+#include <mem/memory_layout.h>
 uint64 get_free_page_count();
 
 struct mem_stat
@@ -24,7 +25,7 @@ int64 mem_read(char *dst, int64 len, int to_user)
     }
 
     stat_buf.physical_free = get_free_page_count() * PGSIZE;
-    stat_buf.physical_total = 128 * 1024 * 1024;
+    stat_buf.physical_total = MEM_SIZE;
     // printf("get_free_page_count=%d\n", get_free_page_count());
 
     if (either_copyout(dst, &stat_buf, len, to_user) < 0)

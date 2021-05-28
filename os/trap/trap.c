@@ -81,6 +81,7 @@ void user_interrupt_handler(uint64 scause, uint64 stval, uint64 sepc) {
         break;
     }
 }
+
 void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
     struct proc *p = curr_proc();
     struct trapframe *trapframe = p->trapframe;
@@ -196,12 +197,11 @@ void usertrapret() {
     // switches to the user page table, restores user registers,
     // and switches to user mode with sret.
     uint64 fn = TRAMPOLINE + (userret - trampoline);
-    // if ((trapframe->scause & 0xFF) != SupervisorTimer && trapframe->a7 != 64 && trapframe->a7 != 63 && trapframe->a7 != 124 && trapframe->a7 != 153)
-    // if ((trapframe->scause & 0xFF) != SupervisorTimer && (is_panic_addr(trapframe->epc) || is_panic_addr(trapframe->ra) || is_panic_addr(p->context.ra)))
-    // {
-    //     infocore("return to user, satp=%p, trampoline=%p, kernel_trap=%p, epc=%p", satp, fn, trapframe->kernel_trap, trapframe->epc);
-    //     mmiowb();
-    // }
+    if ((trapframe->scause & 0xFF) != SupervisorTimer && (is_panic_addr(trapframe->epc) || is_panic_addr(trapframe->ra) || is_panic_addr(p->context.ra)))
+    {
+        infocore("return to user, satp=%p, trampoline=%p, kernel_trap=%p, epc=%p", satp, fn, trapframe->kernel_trap, trapframe->epc);
+        mmiowb();
+    }
 
     // set S Previous Privilege mode to User.
     uint64 x = r_sstatus();

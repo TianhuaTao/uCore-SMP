@@ -34,7 +34,7 @@ void printtrace() {
     int last = trace_last[tp];
     printf("traceback: ");
     for (int i = 0; i < MAX_TRACE_CNT; i++) {
-        printf("%p ", tracepool[tp][last]);
+        printf("0x%x  ", tracepool[tp][last]);
         last--;
         if (last < 0)
             last = MAX_TRACE_CNT - 1;
