@@ -1,6 +1,10 @@
 # uCore-SMP
 A Symmetric Multiprocessing OS Kernel over RISC-V
 
+## [NEW] SiFive Freedom U740 SoC
+
+<u>**Check out fu740.md for current progress.**</u>
+
 ## Usage
 
 Compile:
@@ -41,6 +45,7 @@ Also you can checkout:
 ## Available Branches
 
 - main: Fully functional OS.
+- fu740: OS for HiFive Unmatched (SiFive Freedom U740 SoC)
 - ch3-smp: Batch Processing OS + Time Sharing + SMP.
 - ch4-smp: Batch Processing OS + Time Sharing + Virtual Memory + SMP.
 - ch5-smp: Batch Processing OS + Time Sharing + Virtual Memory + Process Management + SMP.

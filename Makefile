@@ -33,7 +33,7 @@ endif
 -include $(HEADER_DEP)
 
 ifndef CPUS
-CPUS := 4
+CPUS := 1
 endif
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
@@ -79,6 +79,7 @@ build_kernel: build/kernel
 build/kernel: $(OBJS) os/kernel_app.ld os/link_app.S
 	$(LD) $(LDFLAGS) -T os/kernel_app.ld -o $(BUILDDIR)/kernel $(OBJS)
 	$(OBJDUMP) -S $(BUILDDIR)/kernel > $(BUILDDIR)/kernel.asm
+	$(OBJCOPY) -O binary -S $(BUILDDIR)/kernel $(BUILDDIR)/kernel.bin
 	$(OBJDUMP) -t $(BUILDDIR)/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILDDIR)/kernel.sym
 	@echo 'Build kernel done'
 
