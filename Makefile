@@ -81,6 +81,8 @@ build/kernel: $(OBJS) os/kernel_app.ld os/link_app.S
 	$(OBJDUMP) -S $(BUILDDIR)/kernel > $(BUILDDIR)/kernel.asm
 	$(OBJCOPY) -O binary -S $(BUILDDIR)/kernel $(BUILDDIR)/kernel.bin
 	$(OBJDUMP) -t $(BUILDDIR)/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILDDIR)/kernel.sym
+	gzip -9 -cvf $(BUILDDIR)/kernel.bin > $(BUILDDIR)/kernel.bin.gz
+	mkimage -A riscv -O linux -C gzip -T kernel -a 80200000 -e 80200000 -n "uCore-SMP" -d $(BUILDDIR)/kernel.bin.gz $(BUILDDIR)/ucore
 	@echo 'Build kernel done'
 
 clean: 

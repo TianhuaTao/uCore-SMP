@@ -177,7 +177,8 @@ void syscall()
         ret = -1;
         warnf("unknown syscall %d", (int)id);
     }
-    trapframe->a0 = ret; // return value
+    if(id != SYS_execv)
+        trapframe->a0 = ret; // return value
     if (id != SYS_write && id != SYS_read)
     {
         tracecore("syscall %d ret %l", (int)id, ret);
