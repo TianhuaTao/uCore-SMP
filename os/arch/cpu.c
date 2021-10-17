@@ -23,7 +23,7 @@ int cpuid() {
 // Barrier
 // Will not return until all cores halted
 void wait_all_halt() {
-    for (int i = 0; i < NCPU; i++) {
+    for (int i = 1; i < NCPU; i++) {
         while (!halted[i])
             ;
     }

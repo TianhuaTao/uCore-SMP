@@ -59,7 +59,7 @@ void kvminithart()
 
     // update TLB
     sfence_vma();
-    infof("enable pageing at %p", r_satp());
+    infof("enable paging at %p", r_satp());
 }
 
 // Return the address of the PTE in page table pagetable
@@ -135,6 +135,24 @@ walkaddr(pagetable_t pagetable, uint64 va)
     return pa;
 }
 
+uint64
+walkaddr_k(pagetable_t pagetable, uint64 va)
+{
+    pte_t *pte;
+    uint64 pa;
+
+    if (va >= MAXVA)
+        return 0;
+
+    pte = walk(pagetable, va, FALSE);
+    if (pte == 0)
+        return 0;
+    if ((*pte & PTE_V) == 0)
+        return 0;
+    pa = PTE2PA(*pte);
+    return pa;
+}
+
 // Look up a virtual address, return the physical address,
 uint64 virt_addr_to_physical(pagetable_t pagetable, uint64 va)
 {
@@ -177,7 +195,7 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
             return -1;
         if (*pte & PTE_V)
             panic("remap");
-        *pte = PA2PTE(pa) | perm | PTE_V;
+        *pte = PA2PTE(pa) | perm | PTE_V | PTE_A | PTE_D; // U74 requires A and D = 1
         if (a == last)
             break;
         a += PGSIZE;

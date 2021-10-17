@@ -33,7 +33,7 @@ void hart_bootcamp(uint64 hartid, uint64 a1) {
 }
 
 void wait_all_boot() {
-    for (int i = 0; i < NCPU; i++) {
+    for (int i = 1; i < NCPU; i++) {
         while (!booted[i])
             ;
     }
@@ -77,7 +77,9 @@ void main(uint64 hartid, uint64 a1) {
         // virtio_disk_init();
         init_abstract_disk();
         kvminit();
+        infof("kernel vm created");
         kvminithart();
+        infof("kernel vm enabled");
         timerinit();    // do nothing
         init_app_names();
         init_scheduler();
@@ -86,14 +88,22 @@ void main(uint64 hartid, uint64 a1) {
         init_booted();
         booted[hartid] = 1;
 
-
-
-        for (int i = 0; i < NCPU; i++) {
-        if (i != hartid) // not this hart
-        {
-            printf("[ucore] start hart %d\n", i);
-            start_hart(i, (uint64)_entry, 0);
+        if (hartid >= NCPU){
+            panic("unexpected hartid");
         }
+        int CPU_START=1;    // core 0 is not usable
+
+        for (int i = CPU_START; i < NCPU; i++) {
+            if (i != hartid && i!=0) // not this hart
+            {
+                printf("[ucore] start hart %d\n", i);
+                start_hart(i, (uint64)_entry, 0);
+                while (booted[i] == 0)
+                {
+                    // wait
+                }
+                
+            }
         }
 
         wait_all_boot();

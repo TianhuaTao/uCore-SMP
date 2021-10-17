@@ -84,6 +84,7 @@ void free_user_mem_and_pagetables(pagetable_t, uint64);
 void uvmunmap(pagetable_t, uint64, uint64, int);
 void uvmclear(pagetable_t, uint64);
 uint64 walkaddr(pagetable_t, uint64);
+uint64 walkaddr_k(pagetable_t pagetable, uint64 va);
 uint64 virt_addr_to_physical(pagetable_t, uint64);
 int copyout(pagetable_t, uint64, char *, uint64);
 int copyin(pagetable_t, char *, uint64, uint64);
