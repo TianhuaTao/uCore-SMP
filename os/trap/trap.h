@@ -53,30 +53,34 @@ struct trapframe {
     /* 280 */ uint64 t6;
 };
 
-enum {
-    InstructionMisaligned = 0,
+enum ScauseException{
+    InstructionAddressMisaligned = 0,
     InstructionAccessFault=1,
     IllegalInstruction=2,
     Breakpoint=3,
-    LoadMisaligned=4,
+    Reserved4=4,
     LoadAccessFault=5,
-    StoreMisaligned=6,
-    StoreAccessFault=7,
+    AMOAddressMisaligned=6,
+    StoreAMOAccessFault=7,
     UserEnvCall=8,
-    SupervisorEnvCall=9,
-    MachineEnvCall = 11,
+    Reserved9=9,
+    Reserved10=10,
+    Reserved11=11,
     InstructionPageFault=12,
     LoadPageFault=13,
-    StorePageFault = 15,
+    Reserved14=14,
+    StoreAMOPageFault = 15,
 };
 
-enum Interrupt {
+
+
+enum ScauseInterrupt {
     UserSoft = 0,
-    SupervisorSoft,
+    SupervisorSoft = 1,
     UserTimer = 4,
-    SupervisorTimer,
+    SupervisorTimer=5,
     UserExternal = 8,
-    SupervisorExternal,
+    SupervisorExternal=9,
 };
 
 #endif // TRAP_H

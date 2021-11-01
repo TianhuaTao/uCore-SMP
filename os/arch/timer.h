@@ -6,7 +6,7 @@
 #define MSEC_PER_SEC 1000    // 1s = 1000 ms
 #define USEC_PER_SEC 1000000 // 1s = 1000000 us
 
-#define TICK_FREQ 12500000    // 12.5 MHz   for csr time
+#define TICK_FREQ 1000000    // 1 MHz   FUF740-C000 for csr time
 #define TICK_TO_MS(tick) ((tick) / (TICK_FREQ / MSEC_PER_SEC))
 #define TICK_TO_US(tick) ((tick) / (TICK_FREQ / USEC_PER_SEC)) // not accurate 
 #define MS_TO_TICK(ms) ((ms) * (TICK_FREQ / MSEC_PER_SEC))

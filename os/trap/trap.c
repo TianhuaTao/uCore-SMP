@@ -85,40 +85,44 @@ void user_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
     struct proc *p = curr_proc();
     struct trapframe *trapframe = p->trapframe;
     switch (scause & 0xff) {
-    case UserEnvCall:
+    case InstructionAccessFault:    // 1
+        infof("InstructionAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-1);
+        break;
+    case IllegalInstruction:    // 2
+        errorf("IllegalInstruction in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-2);
+        break;
+    case LoadAccessFault:   // 5
+        infof("LoadAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-5);
+        break;
+    case AMOAddressMisaligned:  // 6
+        errorf("AMOAddressMisaligned in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-6);
+        break;
+    case StoreAMOAccessFault:  // 7
+        infof("StoreAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-8);
+        break;
+    case UserEnvCall:   // 8
         if (p->killed)
             exit(-1);
         trapframe->epc += 4;
         intr_on();
         syscall();
         break;
-    case StoreAccessFault:
-        infof("StoreAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
-        exit(-8);
-        break;
-    case StorePageFault:
-        infof("StorePageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
-        exit(-7);
-        break;
-    case InstructionAccessFault:
-        infof("InstructionAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
-        exit(-6);
-        break;
-    case InstructionPageFault:
+    case InstructionPageFault:  // 12
         infof("InstructionPageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         exit(-5);
         break;
-    case LoadAccessFault:
-        infof("LoadAccessFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
-        exit(-4);
-        break;
-    case LoadPageFault:
+    case LoadPageFault: // 13
         infof("LoadPageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         exit(-2);
         break;
-    case IllegalInstruction:
-        errorf("IllegalInstruction in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
-        exit(-3);
+    case StoreAMOPageFault:    //15
+        infof("StorePageFault in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        exit(-7);
         break;
     default:
         errorf("Unknown exception in user application: %p, stval = %p sepc = %p\n", scause, stval, sepc);
@@ -198,8 +202,8 @@ void usertrapret() {
 
 void kernel_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
     switch (scause & 0xff) {
-    case InstructionMisaligned:
-        errorf("InstructionMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    case InstructionAddressMisaligned:
+        errorf("InstructionAddressMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
     case InstructionAccessFault:
         errorf("SupervisorEnvCall in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
@@ -210,23 +214,23 @@ void kernel_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
     case Breakpoint:
         errorf("Breakpoint in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
-    case LoadMisaligned:
-        errorf("LoadMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    case Reserved4:
+        errorf("Reserved4 in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
     case LoadAccessFault:
         errorf("LoadAccessFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
-    case StoreMisaligned:
-        errorf("StoreMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    case AMOAddressMisaligned:
+        errorf("AMOAddressMisaligned in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
-    case StoreAccessFault:
-        errorf("StoreAccessFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    case StoreAMOAccessFault:
+        errorf("StoreAMOAccessFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
-    case SupervisorEnvCall:
-        errorf("SupervisorEnvCall in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    case Reserved9:
+        errorf("Reserved9 in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
-    case MachineEnvCall:
-        errorf("MachineEnvCall in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    case Reserved10:
+        errorf("Reserved10 in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
     case InstructionPageFault:
         errorf("InstructionPageFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
@@ -234,8 +238,11 @@ void kernel_exception_handler(uint64 scause, uint64 stval, uint64 sepc) {
     case LoadPageFault:
         errorf("LoadPageFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
-    case StorePageFault:
-        errorf("StorePageFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+    case Reserved14:
+        errorf("Reserved14 in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
+        break;    
+    case StoreAMOPageFault:
+        errorf("StoreAMOPageFault in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);
         break;
     default:
         errorf("Unknown exception in kernel: %p, stval = %p sepc = %p\n", scause, stval, sepc);

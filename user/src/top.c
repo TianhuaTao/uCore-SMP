@@ -3,7 +3,7 @@
 #include <ucore.h>
 #include <string.h>
 #include <fcntl.h>
-int NCPU = 4;
+int NCPU = 5;
 
 char bigdata[1024 * 200]; // 200K
 
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     int bytes = read(fd, stat_buf, sizeof(stat_buf));
     printf("cpu_device bytes read %d\n", bytes);
 
-    assert(bytes == sizeof(struct cpu_stat) * NCPU, -2); // only four
+    assert(bytes == sizeof(struct cpu_stat) * NCPU, -2); // only 5
 
     int pid;
     int runtime[] = {30,28,26,24,22,20,18,

@@ -9,6 +9,10 @@ static void debug_print_args(char *name, int argc, const char **argv) {
     }
 }
 
+static char* round_down_8 (char* p){
+    return (char*)(((uint64)p) & (~0x7ULL));
+}
+
 int exec(char *name, int argc, const char **argv) {
     debug_print_args(name, argc, argv);
     
@@ -39,17 +43,21 @@ int exec(char *name, int argc, const char **argv) {
     // the argv array (content of argv[i]) will be stored on ustack, at the very bottom
     // and the real string value of argv array (content of *argv[i]) will be stored after that
     sp_pa -= argc * sizeof(const char *);           // alloc space for argv
+    sp_pa = round_down_8(sp_pa); // round down to multiple of 4
     const char **argv_start = (const char **)sp_pa; // user main()'s argv value (physical here)
 
     for (int i = 0; i < argc; i++) {
         int arg_len = strlen(argv[i]);
         sp_pa -= arg_len + 1; // alloc space for argv[i] string, including a null
+        sp_pa = round_down_8(sp_pa); // round down to multiple of 4
         strncpy(sp_pa, argv[i], arg_len);
         sp_pa[arg_len] = '\0';                       // make sure null is there
         argv_start[i] = (sp_pa - sp_pa_bottom) + sp; // point argv[i] to here, use user space
     }
 
     p->trapframe->sp += sp_pa - sp_pa_bottom; // update user sp
+    p->trapframe->sp = (uint64)round_down_8((char*)(p->trapframe->sp)); // round down to multiple of 4
+
     p->trapframe->a0 = (uint64)argc;
 
     int64 offset = (uint64)argv_start - (uint64)sp_pa_bottom; // offset of argv in user stack
