@@ -22,7 +22,7 @@
 static struct disk {
     // the virtio driver and device mostly communicate through a set of
     // structures in RAM. pages[] allocates that memory. pages[] is a
-    // global (instead of calls to kalloc()) because it must consist of
+    // global (instead of calls to alloc_physical_page()) because it must consist of
     // two contiguous pages of page-aligned physical memory.
     char pages[2 * PGSIZE];
 

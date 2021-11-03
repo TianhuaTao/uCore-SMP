@@ -211,7 +211,7 @@ void iput(struct inode *ip) {
         // inode has no links and no other references: truncate and free.
 
         // ip->ref == 1 means no other process can have ip locked,
-        // so this acquiresleep() won't block (or deadlock).
+        // so this acquire_mutex_sleep() won't block (or deadlock).
         acquire_mutex_sleep(&ip->lock);
 
         release(&itable.lock);

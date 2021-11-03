@@ -14,7 +14,7 @@
 #define MAXPATH 128            // maximum file path name
 
 #define ROOTINO 1  // root i-number
-#define BSIZE 1024 // block size
+#define BSIZE 512 // block size
 
 // Disk layout:
 // [ boot block | super block | inode blocks | free bit map | data blocks]

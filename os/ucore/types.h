@@ -17,6 +17,30 @@ typedef uint64 pte_t;
 typedef uint64 pde_t;
 typedef uint64 *pagetable_t;// 512 PTEs
 typedef int pid_t;// 512 PTEs
+typedef unsigned long long uintptr_t;
+
 #define NULL ((void *)0)
+
+#define readb(addr) (*(volatile uint8 *)(addr))
+#define readw(addr) (*(volatile uint16 *)(addr))
+#define readd(addr) (*(volatile uint32 *)(addr))
+#define readq(addr) (*(volatile uint64 *)(addr))
+
+#define writeb(v, addr)                      \
+    {                                        \
+        (*(volatile uint8 *)(addr)) = (v); \
+    }
+#define writew(v, addr)                       \
+    {                                         \
+        (*(volatile uint16 *)(addr)) = (v); \
+    }
+#define writed(v, addr)                       \
+    {                                         \
+        (*(volatile uint32 *)(addr)) = (v); \
+    }
+#define writeq(v, addr)                       \
+    {                                         \
+        (*(volatile uint64 *)(addr)) = (v); \
+    }
 
 #endif // TYPES_H

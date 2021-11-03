@@ -70,12 +70,12 @@ void main(uint64 hartid, uint64 a1) {
         procinit();
         plicinit();     // set up interrupt controller
         plicinithart(); // ask PLIC for device interrupts
+        init_abstract_disk();
         binit();        // buffer cache
         inode_table_init();        // inode cache
         fileinit();     // file table
         init_trace();
         // virtio_disk_init();
-        init_abstract_disk();
         kvminit();
         infof("kernel vm created");
         kvminithart();
