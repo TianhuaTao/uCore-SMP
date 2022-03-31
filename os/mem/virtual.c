@@ -1,5 +1,6 @@
 #include <ucore/defs.h>
 #include <mem/memory_layout.h>
+#include <sifive/platform.h>
 #include <arch/riscv.h>
 #include <utils/log.h>
 #include <proc/proc.h>
@@ -22,6 +23,8 @@ pagetable_t kvmmake(void)
     kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
     // PLIC
     kvmmap(kpgtbl, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+    // SPI
+    kvmmap(kpgtbl, SPI2_CTRL_ADDR, SPI2_CTRL_ADDR, SPI2_CTRL_SIZE, PTE_R | PTE_W);
 
     // map kernel text executable and read-only.
     debugf("kernel text va=%p -> [%p, %p]", KERNBASE, KERNBASE, (uint64)e_text);

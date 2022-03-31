@@ -2,6 +2,7 @@
 #include <ucore/ucore.h>
 #include <file/file.h>
 #include <proc/proc.h>
+#include <fatfs/init.h>
 extern char s_bss[];
 extern char e_bss[];
 extern char s_text[];
@@ -71,6 +72,7 @@ void main(uint64 hartid, uint64 a1) {
         plicinit();     // set up interrupt controller
         plicinithart(); // ask PLIC for device interrupts
         init_abstract_disk();
+        ffinit();
         binit();        // buffer cache
         inode_table_init();        // inode cache
         fileinit();     // file table
