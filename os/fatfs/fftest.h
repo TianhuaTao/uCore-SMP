@@ -5,6 +5,7 @@
 #ifndef UCORE_SMP_FFTEST_H
 #define UCORE_SMP_FFTEST_H
 
-void fftest();
+void fftest_raw();
+void fftest_qemu();
 
 #endif //UCORE_SMP_FFTEST_H

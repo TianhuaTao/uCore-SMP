@@ -1,4 +1,4 @@
-#define USE_RAMDISK
+// #define USE_RAMDISK
 // #define USE_MMC
 #include <ucore/ucore.h>
 #include "ramdisk.h"

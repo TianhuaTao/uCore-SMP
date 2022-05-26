@@ -183,8 +183,11 @@
 /  const char* VolumeStr[FF_VOLUMES] = {"ram","flash","sd","usb",...
 */
 
-
+#ifndef QEMU
 #define FF_MULTI_PARTITION	1
+#else
+#define FF_MULTI_PARTITION	0
+#endif
 /* This option switches support for multiple volumes on the physical drive.
 /  By default (0), each logical drive number is bound to the same physical drive
 /  number and only an FAT volume found on the physical drive will be mounted.
@@ -203,7 +206,7 @@
 /  GET_SECTOR_SIZE command. */
 
 
-#define FF_LBA64		1
+#define FF_LBA64		0
 /* This option switches support for 64-bit LBA. (0:Disable or 1:Enable)
 /  To enable the 64-bit LBA, also exFAT needs to be enabled. (FF_FS_EXFAT == 1) */
 
@@ -231,7 +234,7 @@
 /  buffer in the filesystem object (FATFS) is used for the file data transfer. */
 
 
-#define FF_FS_EXFAT		1
+#define FF_FS_EXFAT		0
 /* This option switches support for exFAT filesystem. (0:Disable or 1:Enable)
 /  To enable exFAT, also LFN needs to be enabled. (FF_USE_LFN >= 1)
 /  Note that enabling exFAT discards ANSI C (C89) compatibility. */

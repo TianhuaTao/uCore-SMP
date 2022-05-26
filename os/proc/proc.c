@@ -7,6 +7,8 @@
 #include <ucore/defs.h>
 #include <utils/log.h>
 #include <mem/shared.h>
+#include <fatfs/fftest.h>
+
 struct proc pool[NPROC];
 
 __attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
@@ -251,7 +253,8 @@ void forkret(void) {
         // regular process (e.g., because it calls sleep), and thus cannot
         // be run from main().
         first = FALSE;
-        fsinit();
+//        fsinit();
+        fftest_qemu();
     }
 
     usertrapret();

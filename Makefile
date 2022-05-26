@@ -4,7 +4,7 @@ all: build_kernel
 U = user
 K = os
 
-TOOLPREFIX = riscv64-unknown-elf-
+TOOLPREFIX = /opt/riscv64/bin/riscv64-unknown-elf-
 CC = $(TOOLPREFIX)gcc
 AS = $(TOOLPREFIX)gcc
 LD = $(TOOLPREFIX)ld
@@ -36,13 +36,14 @@ ifndef CPUS
 CPUS := 5
 endif
 
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
+CFLAGS = -Wall -O -fno-omit-frame-pointer -ggdb
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I$K
 CFLAGS += -DNCPU=$(CPUS)
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+CFLAGS += -D QEMU
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)
 ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
@@ -100,7 +101,7 @@ QEMUOPTS = \
 	-machine virt \
 	-bios $(BOOTLOADER) \
 	-kernel build/kernel	\
-	-drive file=$(U)/fs-copy.img,if=none,format=raw,id=x0 \
+	-drive file=$(U)/riscv64-rootfs.img,if=none,format=raw,id=x0 \
     -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 
