@@ -279,25 +279,33 @@ void ivalid(struct inode *ip) {
 // otherwise, dst is a kernel address.
 int readi(struct inode *ip, int user_dst, void *dst, uint off, uint n) {
     // debugcore("readi");
-    uint tot, m;
-    struct buf *bp;
+    // uint tot, m;
+    // struct buf *bp;
 
-    if (off > ip->size || off + n < off)
-        return 0;
-    if (off + n > ip->size)
-        n = ip->size - off;
+    // if (off > ip->size || off + n < off)
+    //     return 0;
+    // if (off + n > ip->size)
+    //     n = ip->size - off;
 
-    for (tot = 0; tot < n; tot += m, off += m, dst += m) {
-        bp = acquire_buf_and_read(ip->dev, bmap(ip, off / BSIZE));
-        m = MIN(n - tot, BSIZE - off % BSIZE);
-        if (either_copyout((char *)dst, (char *)bp->data + (off % BSIZE), m, user_dst) == -1) {
-            release_buf(bp);
-            tot = -1;
-            break;
-        }
-        release_buf(bp);
+    // for (tot = 0; tot < n; tot += m, off += m, dst += m) {
+    //     bp = acquire_buf_and_read(ip->dev, bmap(ip, off / BSIZE));
+    //     m = MIN(n - tot, BSIZE - off % BSIZE);
+
+    //     if (either_copyout((char *)dst, (char *)bp->data + (off % BSIZE), m, user_dst) == -1) {
+    //         release_buf(bp);
+    //         tot = -1;
+    //         break;
+    //     }
+    //     release_buf(bp);
+    // }
+    //return tot;
+    UINT* br;
+    *br=off;
+    FRESULT res=f_read(ip->FAT_FILE,dst,n,br);
+    if(res!=FR_OK){
+        panic("Read file failed!");
     }
-    return tot;
+    return n;
 }
 
 // Write data to inode.
@@ -308,34 +316,42 @@ int readi(struct inode *ip, int user_dst, void *dst, uint off, uint n) {
 // If the return value is less than the requested n,
 // there was an error of some kind.
 int writei(struct inode *ip, int user_src, void *src, uint off, uint n) {
-    uint tot, m;
-    struct buf *bp;
+    // uint tot, m;
+    // struct buf *bp;
 
-    if (off > ip->size || off + n < off)
-        return -1;
-    if (off + n > MAXFILE * BSIZE)
-        return -1;
+    // if (off > ip->size || off + n < off)
+    //     return -1;
+    // if (off + n > MAXFILE * BSIZE)
+    //     return -1;
 
-    for (tot = 0; tot < n; tot += m, off += m, src += m) {
-        bp = acquire_buf_and_read(ip->dev, bmap(ip, off / BSIZE));
-        m = MIN(n - tot, BSIZE - off % BSIZE);
-        if (either_copyin((char *)bp->data + (off % BSIZE), (char *)src, m, user_src) == -1) {
-            release_buf(bp);
-            break;
-        }
-        write_buf_to_disk(bp);
-        release_buf(bp);
+    // for (tot = 0; tot < n; tot += m, off += m, src += m) {
+    //     bp = acquire_buf_and_read(ip->dev, bmap(ip, off / BSIZE));
+    //     m = MIN(n - tot, BSIZE - off % BSIZE);
+    //     if (either_copyin((char *)bp->data + (off % BSIZE), (char *)src, m, user_src) == -1) {
+    //         release_buf(bp);
+    //         break;
+    //     }
+    //     write_buf_to_disk(bp);
+    //     release_buf(bp);
+    // }
+
+    // if (off > ip->size)
+    //     ip->size = off;
+
+    // // write the i-node back to disk even if the size didn't change
+    // // because the loop above might have called bmap() and added a new
+    // // block to ip->addrs[].
+    // iupdate(ip);
+
+    // return tot;
+
+    UINT *bw;
+    *bw=off;
+    FRESULT res=f_write(ip->FAT_FILE,src,n,bw);
+    if(res!=FR_OK){
+        panic("Write file failed!");
     }
-
-    if (off > ip->size)
-        ip->size = off;
-
-    // write the i-node back to disk even if the size didn't change
-    // because the loop above might have called bmap() and added a new
-    // block to ip->addrs[].
-    iupdate(ip);
-
-    return tot;
+    return n;
 }
 
 
