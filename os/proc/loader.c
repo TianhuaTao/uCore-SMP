@@ -97,7 +97,6 @@ int make_shell_proc()
     if (id < 0)
         panic("no user shell");
     loader(id, p);  // will fill ustack_bottom, next_shmem_addr and total_size
-
     // name
     safestrcpy(p->name, "shell", PROC_NAME_MAX);
 
@@ -105,6 +104,6 @@ int make_shell_proc()
     p->cwd = inode_by_name("/");
     p->state = RUNNABLE;
     release(&p->lock);
-
+printf("ok\n");
     return 0;
 }

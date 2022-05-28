@@ -113,7 +113,6 @@ void main(uint64 hartid, uint64 a1) {
     while (!all_started) {
         ; // wait until all hard started
     }
-
     debugcore("start scheduling!");
     scheduler();
     debugf("halt");

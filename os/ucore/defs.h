@@ -62,7 +62,7 @@ void scheduler(); // __attribute__((noreturn));
 void switch_to_scheduler();
 void yield();
 int fork(void);
-int exec(char *name, int argc, const char **argv);
+int exec(char *name, int argc, const char **argv,int envc,const char ** envp);
 int wait(int, int *);
 struct proc *alloc_proc();
 void init_scheduler();

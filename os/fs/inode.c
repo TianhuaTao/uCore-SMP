@@ -2,6 +2,7 @@
 #include <fs/fs.h>
 #include <fs/buf.h>
 #include <proc/proc.h>
+#include <fatfs/ff.h>
 
  struct
 {

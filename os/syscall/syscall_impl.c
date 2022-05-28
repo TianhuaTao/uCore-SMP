@@ -201,7 +201,7 @@ int sys_execv( char *pathname_va, char * argv_va[]) {
     }
     tracecore("argv_va=%d argc=%d", argv_va, argc);
 
-    return exec(name, argc, argv);
+    return exec(name, argc, argv, 0, NULL);
 }
 
 pid_t sys_waitpid(pid_t pid, int *wstatus_va) {
@@ -359,6 +359,7 @@ ssize_t sys_read(int fd, void *dst_va, size_t len) {
         return -1;
     }
     struct proc *p = curr_proc();
+    
     struct file *f = p->files[fd];
     if (f == NULL) {
         return -1;
@@ -536,3 +537,130 @@ void*sys_sharedmem(char* name_va, size_t len){
 
     return shmem_va;
 }
+long sys_getcwd(char* buf,size_t size){
+    //TO DO
+    //获取当前进程
+    struct proc *p = curr_proc();
+    //获取当前进程的当工作目录即为inode
+    struct inode *ip=p->cwd;
+
+    //名字咋找？ char*?疑惑
+    uint off, inum;
+    struct dirent de;
+
+    if (ip->type != T_DIR)
+        panic("dirlookup not DIR");
+
+    for (off = 0; off < ip->size; off += sizeof(de))
+    {
+        if (readi(ip, 0, &de, off, sizeof(de)) != sizeof(de))
+            panic("dirlookup read");
+        if (de.inum == 0)
+            continue;
+        if (ip->inum==de.inum)
+        {
+            return de.name;
+        }
+    }
+
+    return NULL;
+}
+
+/*
+功能：复制文件描述符，并指定了新的文件描述符；
+
+输入：
+
+old：被复制的文件描述符。
+new：新的文件描述符。
+返回值：成功执行，返回新的文件描述符。失败，返回-1。
+
+*/
+
+int sys_dup3(int old,int new){
+    //TO DO
+    struct file *f;
+    int fd;
+    struct proc *p = curr_proc();
+    //获取旧的文件
+    f = get_proc_file_by_fd(p, old);
+    if (f == NULL) {
+        infof("old fd is not valid");
+        print_proc(p);
+        return -1;
+    }
+    //为提供文件分配文件描述符
+    if(new>=FD_MAX){
+        infof("new fd is larger than the biggest fd");
+        return -1;
+    }
+
+    //If the file descriptor newfd was previously open, it is closed before being reused;
+    //判断文件描述符是否打开？
+    //补充？
+    
+    p->files[new]=f;
+    //file引用自增
+    filedup(f);
+    return new;
+}
+
+int sys_getdents64(){
+    //TO DO
+}
+
+int copystrings(char *argv_str[],char* argv_va[],const char *argv[],int maxcount,int maxlen){
+    struct proc *p = curr_proc();
+    int argc = 0;
+
+    // tracecore("argv_va=%d argc=%d", argv_va, argc);
+    if (argv_va == NULL) {
+        // nothing
+    } else {
+
+        while (argc < maxcount)
+        {
+            char* argv_i;   // the argv[i]
+            if (copyin(p->pagetable, (char*)&argv_i, (uint64) &argv_va[argc], sizeof(char*))<0){
+                return -1;
+            }
+
+            if (argv_i == NULL){
+                // no more argv
+                break;
+            }
+
+            // copy *argv[i] (the string)
+            if (copyinstr(p->pagetable,argv_str[argc], (uint64)argv_i, maxlen) < 0) {
+                return -1;
+            }
+
+            argv[argc] = argv_str[argc];    // point at the copied string
+            argc++;
+        }
+    }
+    tracecore("argv_va=%d argc=%d", argv_va, argc);
+    return argc;
+}
+
+int sys_execve(char *path,char* argv_va[],char* envp_va[]){
+    struct proc *p = curr_proc();
+    char name[MAXPATH];
+    char argv_str[MAX_EXEC_ARG_COUNT][MAX_EXEC_ARG_LENGTH];
+    char envp_str[MAX_EXEC_ENVP_COUNT][MAX_EXEC_ENVP_LENGTH];
+
+    copyinstr(p->pagetable, name, (uint64)path, MAXPATH);
+    infof("sys_exec %s", name);
+
+    const char *argv[MAX_EXEC_ARG_COUNT];
+    // tracecore("argv_va=%d argc=%d", argv_va, argc);
+    int argc = copystrings(argv_str,argv_va,argv,MAX_EXEC_ARG_COUNT,MAX_EXEC_ARG_LENGTH);
+    
+    const char *envp[MAX_EXEC_ARG_COUNT];
+    int envc = copystrings(envp_str,envp_va,envp,MAX_EXEC_ENVP_COUNT,MAX_EXEC_ARG_LENGTH);
+    
+    return exec(name,argc,argv,envc,envp);
+
+}
+
+

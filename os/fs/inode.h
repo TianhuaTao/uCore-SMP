@@ -2,6 +2,7 @@
 #define INODE_H
 #include <ucore/ucore.h>
 #include <lock/lock.h>
+#include <fatfs/ff.h>
 #define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint))
 #define MAXFILE (NDIRECT + NINDIRECT)
@@ -20,6 +21,8 @@ struct inode {
     short num_link;
     uint size;
     uint addrs[NDIRECT + 1];
+    FIL* FAT_FILE;
+    DIR* DIRECTORY;
 };
 
 void inode_table_init();
