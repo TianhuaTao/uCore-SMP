@@ -27,7 +27,7 @@ struct inode {
 
 void inode_table_init();
 
-struct inode *iget(uint dev, uint inum);
+struct inode *iget(uint dev);
 void iput(struct inode *ip);
 
 struct inode * idup(struct inode *ip);

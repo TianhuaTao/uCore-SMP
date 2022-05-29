@@ -129,7 +129,7 @@ alloc_disk_inode(uint dev, short type) {
             disk_inode->type = type;
             write_buf_to_disk(bp);
             release_buf(bp);
-            return iget(dev, inum);
+            return iget(dev);
         }
         release_buf(bp);
     }
@@ -166,20 +166,51 @@ void iupdate(struct inode *ip) {
 // Find the inode with number inum on device dev
 // and return the in-memory copy. Does not read
 // it from disk.
-struct inode *
-iget(uint dev, uint inum) {
-    debugcore("iget");
+// struct inode *
+// iget(uint dev, uint inum) {
+//     debugcore("iget");
+//     assert(dev==1);
+//     struct inode *inode_ptr, *empty;
+//     acquire(&itable.lock);
+//     // Is the inode already in the table?
+//     empty = NULL;
+//     for (inode_ptr = &itable.inode[0]; inode_ptr < &itable.inode[NINODE]; inode_ptr++) {
+//         if (inode_ptr->ref > 0 && inode_ptr->dev == dev && inode_ptr->inum == inum) {
+//             inode_ptr->ref++;
+//             release(&itable.lock);
+//             return inode_ptr;
+//         }
+//         if (empty == 0 && inode_ptr->ref == 0) // Remember empty slot.
+//             empty = inode_ptr;
+//     }
 
+//     // Recycle an inode entry.
+//     if (empty == NULL)
+//         panic("iget: no inodes");
+
+//     inode_ptr = empty;
+//     inode_ptr->dev = dev;
+//     inode_ptr->inum = inum;
+//     inode_ptr->ref = 1;
+//     inode_ptr->valid = 0;
+//     release(&itable.lock);
+//     return inode_ptr;
+// }
+
+struct inode *
+iget(uint dev) {
+    debugcore("iget");
+    assert(dev==1);
     struct inode *inode_ptr, *empty;
     acquire(&itable.lock);
     // Is the inode already in the table?
     empty = NULL;
     for (inode_ptr = &itable.inode[0]; inode_ptr < &itable.inode[NINODE]; inode_ptr++) {
-        if (inode_ptr->ref > 0 && inode_ptr->dev == dev && inode_ptr->inum == inum) {
-            inode_ptr->ref++;
-            release(&itable.lock);
-            return inode_ptr;
-        }
+        // if (inode_ptr->ref > 0 && inode_ptr->dev == dev) {
+        //     inode_ptr->ref++;
+        //     release(&itable.lock);
+        //     return inode_ptr;
+        // }
         if (empty == 0 && inode_ptr->ref == 0) // Remember empty slot.
             empty = inode_ptr;
     }
@@ -190,13 +221,11 @@ iget(uint dev, uint inum) {
 
     inode_ptr = empty;
     inode_ptr->dev = dev;
-    inode_ptr->inum = inum;
     inode_ptr->ref = 1;
     inode_ptr->valid = 0;
     release(&itable.lock);
     return inode_ptr;
 }
-
 // Drop a reference to an in-memory inode.
 // If that was the last reference, the inode table entry can
 // be recycled.
@@ -359,8 +388,8 @@ int writei(struct inode *ip, int user_src, void *src, uint off, uint n) {
 // Lock the given inode.
 // Reads the inode from disk if necessary.
 void ilock(struct inode *ip) {
-    struct buf *bp;
-    struct dinode *dip;
+    //struct buf *bp;
+    //struct dinode *dip;
 
     if (ip == 0 || ip->ref < 1)
         panic("ilock");
@@ -368,15 +397,15 @@ void ilock(struct inode *ip) {
     acquire_mutex_sleep(&ip->lock);
 
     if (ip->valid == 0) {
-        bp = acquire_buf_and_read(ip->dev, BLOCK_CONTAINING_INODE(ip->inum, sb));
-        dip = (struct dinode *)bp->data + ip->inum % INODES_PER_BLOCK;
-        ip->type = dip->type;
-        ip->major = dip->major;
-        ip->minor = dip->minor;
-        ip->num_link = dip->num_link;
-        ip->size = dip->size;
-        memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
-        release_buf(bp);
+        //bp = acquire_buf_and_read(ip->dev, BLOCK_CONTAINING_INODE(ip->inum, sb));
+        //dip = (struct dinode *)bp->data + ip->inum % INODES_PER_BLOCK;
+        //ip->type = dip->type;
+        //ip->major = dip->major;
+        //ip->minor = dip->minor;
+        //ip->num_link = dip->num_link;
+        //ip->size = dip->size;
+        //memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
+        //release_buf(bp);
         ip->valid = 1;
         if (ip->type == 0) {
             errorf("dev=%d, inum=%d", (int)ip->dev, (int)ip->inum);
@@ -417,7 +446,7 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name) {
     debugcore("inode_or_parent_by_name");
     if (*path == '/') {
         // absolute path
-        ip = iget(ROOTDEV, ROOTINO);
+        ip = iget(ROOTDEV);
     } else {
         // relative path
         ip = idup(curr_proc()->cwd);
