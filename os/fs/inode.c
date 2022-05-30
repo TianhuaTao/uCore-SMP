@@ -147,21 +147,21 @@ void inode_table_init() {
 // Copy a modified in-memory inode to disk.
 // Must be called after every change to an ip->xxx field
 // that lives on disk.
-void iupdate(struct inode *ip) {
-    struct buf *bp;
-    struct dinode *dip;
+// void iupdate(struct inode *ip) {
+//     struct buf *bp;
+//     struct dinode *dip;
 
-    bp = acquire_buf_and_read(ip->dev, BLOCK_CONTAINING_INODE(ip->inum, sb));
-    dip = (struct dinode *)bp->data + ip->inum % INODES_PER_BLOCK;
-    dip->type = ip->type;
-    dip->major = ip->major;
-    dip->minor = ip->minor;
-    dip->num_link = ip->num_link;
-    dip->size = ip->size;
-    memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
-    write_buf_to_disk(bp);
-    release_buf(bp);
-}
+//     bp = acquire_buf_and_read(ip->dev, BLOCK_CONTAINING_INODE(ip->inum, sb));
+//     dip = (struct dinode *)bp->data + ip->inum % INODES_PER_BLOCK;
+//     dip->type = ip->type;
+//     dip->major = ip->major;
+//     dip->minor = ip->minor;
+//     dip->num_link = ip->num_link;
+//     dip->size = ip->size;
+//     memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
+//     write_buf_to_disk(bp);
+//     release_buf(bp);
+// }
 
 // Find the inode with number inum on device dev
 // and return the in-memory copy. Does not read
@@ -200,8 +200,7 @@ void iupdate(struct inode *ip) {
 struct inode *
 iget(uint dev) {
     debugcore("iget");
-    if(dev!=1)
-        panic("rootdev not equal to 1");
+    assert(dev==1);
     struct inode *inode_ptr, *empty;
     acquire(&itable.lock);
     // Is the inode already in the table?
@@ -249,7 +248,7 @@ void iput(struct inode *ip) {
 
         itrunc(ip);
         ip->type = 0;
-        iupdate(ip);
+        // iupdate(ip);
         ip->valid = 0;
 
         release_mutex_sleep(&ip->lock);
@@ -257,20 +256,21 @@ void iput(struct inode *ip) {
         acquire(&itable.lock);
     }
 
-    ip->ref--;
+    // ip->ref--;
+    ip->ref=0;
     release(&itable.lock);
 }
 
 // Increment reference count for ip.
 // Returns ip to enable ip = idup(ip1) idiom.
-struct inode *
-idup(struct inode *ip) {
-    KERNEL_ASSERT(ip != NULL, "inode can not be NULL");
-    acquire(&itable.lock);
-    ip->ref++;
-    release(&itable.lock);
-    return ip;
-}
+// struct inode *
+// idup(struct inode *ip) {
+//     KERNEL_ASSERT(ip != NULL, "inode can not be NULL");
+//     acquire(&itable.lock);
+//     ip->ref++;
+//     release(&itable.lock);
+//     return ip;
+// }
 
 
 
@@ -447,17 +447,15 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name) {
     debugcore("inode_or_parent_by_name");
     if (*path == '/') {
         // absolute path
-        ip = iget(ROOTDEV);
+        ip = root_dir(); // ? 
     } else {
         // relative path
-        printf("IDUP\n");
-        ip = idup(curr_proc()->cwd);
+        ip = curr_proc()->cwd;
     }
-    
+    // 修改dirlookup的参数为path，直接查找
+    // 但是需要主义nameiparent的使用，做相应处理
     while ((path = skipelem(path, name)) != 0) {
-       
         ilock(ip);
-    
         if (ip->type != T_DIR) {
             iunlockput(ip);
             return 0;
@@ -467,7 +465,7 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name) {
             iunlock(ip);
             return ip;
         }
-        if ((next = dirlookup(ip, name, 0)) == 0) {
+        if ((next = dirlookup(ip, name)) == 0) {
             iunlockput(ip);
             return 0;
         }
@@ -478,6 +476,7 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name) {
         iput(ip);
         return 0;
     }
+    // We need to close ip(root_dir()) here!!!!!!
     return ip;
 }
 
