@@ -67,32 +67,56 @@ int namecmp(const char *s, const char *t)
 // }
 
 struct inode *
-dirlookup(struct inode *dp,char*path){
+dirlookup(uint dev,char*path,short type){
+    struct inode* ip=iget(dev);
+    if(type==T_DIR){
+        FRESULT res;
+        DIR dir;
+        UINT i;
+        static FILINFO fno;
 
-    struct inode* ip=iget(dp->dev);
-    FRESULT res;
-    DIR dir;
-    UINT i;
-    static FILINFO fno;
-
-    res = f_opendir(&dir, path);                       /* Open the directory */
-    if (res == FR_OK) {
-        for (;;) {
-            res = f_readdir(&dir, &fno);                   /* Read a directory item */
-            if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
-            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-                i = strlen(path);
-                sprintf(&path[i], "/%s", fno.fname);
-                res = scan_files(path);                    /* Enter the directory */
-                if (res != FR_OK) break;
-                path[i] = 0;
-            } else {                                       /* It is a file. */
-                printf("%s/%s\n", path, fno.fname);
+        res = f_opendir(&dir, path);                       /* Open the directory */
+        if (res == FR_OK) {
+            for (;;) {
+                res = f_readdir(&dir, &fno);                   /* Read a directory item */
+                if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+                if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                    i = strlen(path);
+                    sprintf(&path[i], "/%s", fno.fname);
+                    res = scan_files(path);                    /* Enter the directory */
+                    if (res != FR_OK) break;
+                    path[i] = 0;
+                } else {                                       /* It is a file. */
+                    printf("%s/%s\n", path, fno.fname);
+                }
+            }
+            f_closedir(&dir);
+        }
+        ip->type=T_DIR;
+        ip->DIRECTORY=&dir;
+    }
+    else if(type==T_FILE||type==T_DEVICE){
+        FRESULT res;
+        FIL file;
+        DIR dir;
+        UINT i;
+        static FILINFO fno;
+        res=f_open(&file,path,FA_OPEN_EXISTING);
+        if(res==FR_NO_FILE){
+            res=f_open(&file,path,FA_CREATE_NEW|FA_WRITE|FA_READ);
+            ip->FAT_FILE=&file;
+            if(type==T_FILE){
+                ip->type=T_FILE;
+            }
+            else if(type==T_DEVICE){
+                ip->type=T_DEVICE;
             }
         }
-        f_closedir(&dir);
+        res=f_close(&file);
+        if(res!=FR_OK){
+            panic("close file failed!");
+        }
     }
-    ip->DIRECTORY=&dir;
     return ip;
 }
 

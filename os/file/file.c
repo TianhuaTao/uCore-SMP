@@ -107,11 +107,15 @@ struct inode * create(char *path, short type, short major, short minor) {
         //     return ip;
         // iunlockput(ip);
         // return 0;
+        ip->major = major;
+        ip->minor = minor;
+        ip->num_link = 1;
         if (type == T_FILE && ip->type == T_FILE)
             return ip;
         if (type == T_FILE && ip->type == T_DEVICE){
             FIL * file=ip->FAT_FILE;
             FRESULT res;
+            UINT i=0;
             char buf[12];
             buf[0]='D';
             buf[1]='E';
@@ -119,28 +123,33 @@ struct inode * create(char *path, short type, short major, short minor) {
             buf[3]='X';
             unsigned int ma=major;
             unsigned int mi=minor;
-
+            itoa(major,buf[4],10);
+            itoa(minor,buf[8],10);
+            res=f_write(file,buf,12,&i);
+            if(res!=FR_OK){
+                panic("Write device prefix error!");
+            }
+            return ip;
         }
         iunlockput(ip);
         return 0;
     }
     else{
-        
+        panic("DIRLOOKUP ERROR!");
     }
     // if ((ip = alloc_disk_inode(dp->dev, type)) == 0)
     //     panic("create: ialloc");
 
     ilock(ip);
-    ip->major = major;
-    ip->minor = minor;
-    ip->num_link = 1;
     // iupdate(ip);
     if (type == T_DIR) { // Create . and .. entries.
-        dp->num_link++;  // for ".."
-        iupdate(dp);
+        dp->num_link++;  // for ".." ?
+        // iupdate(dp);
         // No ip->nlink++ for ".": avoid cyclic ref count.
-        if (dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
-            panic("create dots");
+        // if (dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+        //     panic("create dots");
+
+        
     }
 
     if (dirlink(dp, name, ip->inum) < 0)

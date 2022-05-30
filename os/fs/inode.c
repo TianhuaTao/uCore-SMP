@@ -454,30 +454,60 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name) {
     }
     // 修改dirlookup的参数为path，直接查找
     // 但是需要主义nameiparent的使用，做相应处理
-    while ((path = skipelem(path, name)) != 0) {
-        ilock(ip);
-        if (ip->type != T_DIR) {
-            iunlockput(ip);
-            return 0;
-        }
-        if (nameiparent && *path == '\0') {
-            // Stop one level early.
-            iunlock(ip);
-            return ip;
-        }
-        if ((next = dirlookup(ip, name)) == 0) {
-            iunlockput(ip);
-            return 0;
-        }
+
+    ilock(ip);
+    if (ip->type != T_DIR) {
         iunlockput(ip);
-        ip = next;
+        return 0;
     }
-    if (nameiparent) {
+    if(nameiparent){
+        char* lastpath='/';
+        while ((path = skipelem(path, name)) != 0) {
+            //有问题？
+            if (nameiparent && *path == '\0') {
+                // Stop one level early.
+                lastpath+='\0';
+                uint devnum=ip->dev;
+                iunlockput(ip);
+                ip=dirlookup(devnum,lastpath);
+                return ip;
+            }
+            lastpath+=name+"/";
+        }
         iput(ip);
         return 0;
     }
-    // We need to close ip(root_dir()) here!!!!!!
-    return ip;
+    else{
+        uint devnum=ip->dev;
+        iunlockput(ip);
+        ip=dirlookup(devnum,path);
+        return ip;
+    }
+
+    // while ((path = skipelem(path, name)) != 0) {
+    //     ilock(ip);
+    //     if (ip->type != T_DIR) {
+    //         iunlockput(ip);
+    //         return 0;
+    //     }
+    //     if (nameiparent && *path == '\0') {
+    //         // Stop one level early.
+    //         iunlock(ip);
+    //         return ip;
+    //     }
+    //     if ((next = dirlookup(ip, name)) == 0) {
+    //         iunlockput(ip);
+    //         return 0;
+    //     }
+    //     iunlockput(ip);
+    //     ip = next;
+    // }
+    // if (nameiparent) {
+    //     iput(ip);
+    //     return 0;
+    // }
+    // // We need to close ip(root_dir()) here!!!!!!
+    // return ip;
 }
 
 // Inode content
