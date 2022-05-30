@@ -6,6 +6,8 @@
 #include <ucore/types.h>
 #include <device/console.h>
 #include <file/stat.h>
+#include "stdafx.h"
+#include <stdio.h>
 /**
  * @brief The global file pool
  * Every opened file is kept here in system level
@@ -91,29 +93,48 @@ struct file *filealloc() {
 struct inode * create(char *path, short type, short major, short minor) {
     struct inode *ip, *dp;
     char name[DIRSIZ];
-
+    //if dir exist
     if ((dp = inode_parent_by_name(path, name)) == 0)
         return 0;
     ilock(dp);
 
-    if ((ip = dirlookup(dp, name, 0)) != 0) {
+    uint devnum=dp->dev;
+    //如果找得到
+    if ((ip = dirlookup(devnum,path)) != 0) {
         iunlockput(dp);
         ilock(ip);
-        if (type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
+        // if (type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
+        //     return ip;
+        // iunlockput(ip);
+        // return 0;
+        if (type == T_FILE && ip->type == T_FILE)
             return ip;
+        if (type == T_FILE && ip->type == T_DEVICE){
+            FIL * file=ip->FAT_FILE;
+            FRESULT res;
+            char buf[12];
+            buf[0]='D';
+            buf[1]='E';
+            buf[2]='V';
+            buf[3]='X';
+            unsigned int ma=major;
+            unsigned int mi=minor;
+
+        }
         iunlockput(ip);
         return 0;
     }
-
-    if ((ip = alloc_disk_inode(dp->dev, type)) == 0)
-        panic("create: ialloc");
+    else{
+        
+    }
+    // if ((ip = alloc_disk_inode(dp->dev, type)) == 0)
+    //     panic("create: ialloc");
 
     ilock(ip);
     ip->major = major;
     ip->minor = minor;
     ip->num_link = 1;
-    iupdate(ip);
-
+    // iupdate(ip);
     if (type == T_DIR) { // Create . and .. entries.
         dp->num_link++;  // for ".."
         iupdate(dp);
