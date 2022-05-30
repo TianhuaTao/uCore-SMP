@@ -200,7 +200,8 @@ void iupdate(struct inode *ip) {
 struct inode *
 iget(uint dev) {
     debugcore("iget");
-    assert(dev==1);
+    if(dev!=1)
+        panic("rootdev not equal to 1");
     struct inode *inode_ptr, *empty;
     acquire(&itable.lock);
     // Is the inode already in the table?
@@ -449,11 +450,14 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name) {
         ip = iget(ROOTDEV);
     } else {
         // relative path
+        printf("IDUP\n");
         ip = idup(curr_proc()->cwd);
     }
-
+    
     while ((path = skipelem(path, name)) != 0) {
+       
         ilock(ip);
+    
         if (ip->type != T_DIR) {
             iunlockput(ip);
             return 0;

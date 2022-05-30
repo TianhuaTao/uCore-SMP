@@ -94,7 +94,6 @@ struct inode * create(char *path, short type, short major, short minor) {
 
     if ((dp = inode_parent_by_name(path, name)) == 0)
         return 0;
-
     ilock(dp);
 
     if ((ip = dirlookup(dp, name, 0)) != 0) {

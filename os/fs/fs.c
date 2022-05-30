@@ -58,7 +58,7 @@ dirlookup(struct inode *dp, char *name, uint *poff)
             if (poff)
                 *poff = off;
             inum = de.inum;
-            return iget(dp->dev, inum);
+            return iget(dp->dev);
         }
     }
 
@@ -96,7 +96,7 @@ int dirlink(struct inode *dp, char *name, uint inum)
 struct inode *root_dir()
 {
     debugcore("root_dir");
-    struct inode *r = iget(ROOTDEV, ROOTINO);
+    struct inode *r = iget(ROOTDEV);
     ivalid(r);
     return r;
 }
