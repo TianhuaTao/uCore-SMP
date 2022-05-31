@@ -69,28 +69,32 @@ int namecmp(const char *s, const char *t)
 void find_linkfile(struct inode* ip,char* path){
     FIL * file=ip->FAT_FILE;
     UINT i;
+    FRESULT res;
     char* devstr="DEVX";
     char* linkstr="LINK";
-    f_open(file,path,FA_OPEN_EXISTING|FA_READ);
-    char buf[4];
-    f_read(file,buf,4,&i);
-    if(strncmp(buf,devstr,4)==0){
-        ip->type=T_DEVICE;
-        return;
-    }
-    else if(strncmp(buf,linkstr,4)==0){
-        char realpath[MAXPATH];
-        UINT off=4;
-        res=f_read(file,realpath,MAXPATH,&off);
-        f_close(file);
-        find_linkfile(ip,realpath);
-        return;
-    }
-    else{
-        ip->type=T_FILE;
-        return;
+    res=f_open(file,path,FA_OPEN_EXISTING|FA_READ);
+    if(res=FR_OK){
+        char buf[4];
+        f_read(file,buf,4,&i);
+        if(strncmp(buf,devstr,4)==0){
+            ip->type=T_DEVICE;
+            return;
+        }
+        else if(strncmp(buf,linkstr,4)==0){
+            char realpath[MAXPATH];
+            UINT off=4;
+            res=f_read(file,realpath,MAXPATH,&off);
+            f_close(file);
+            find_linkfile(ip,realpath);
+            return;
+        }
+        else{
+            ip->type=T_FILE;
+            return;
+        }
     }
 }
+    
 
 
 //only use for searching the parent inode's directory 

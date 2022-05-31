@@ -67,6 +67,29 @@ skipelem(char *path, char *name) {
     return path;
 }
 
+int 
+getpath_by_level(char *path, char *currentpath,int level){
+    char *s=path;
+    int len;
+    int counter=0;
+    //enter the first dir
+    while (*path == '/')
+        path++;
+    while(counter!=level){
+        while (*path != '/' && *path != 0)
+            path++;
+        counter++;
+    }
+    len=path-s;
+    int curlen=strlen(currentpath);
+    if(curlen+len>MAXPATH){
+        panic("path exceeds MAXPATH!");
+    }
+    memmove(currentpath[curlen], s, len);
+    return len;
+}
+
+
 // Zero a block.
 static void
 set_block_to_zero(int dev, int bno) {
@@ -444,70 +467,43 @@ inode_parent_by_name(char *path, char *name) {
 static struct inode *
 inode_or_parent_by_name(char *path, int nameiparent, char *name) {
     struct inode *ip, *next;
+    char currentpath[MAXPATH];
     debugcore("inode_or_parent_by_name");
     if (*path == '/') {
         // absolute path
-        ip = root_dir(); // ? 
+        ip = root_dir(); // DIR have been open
     } else {
         // relative path
-        ip = curr_proc()->cwd;
+        ip = curr_proc()->cwd;// need to open DIR
+        //get cwd and open
+        //update currentpath to cwd
+        //TO DO ?
     }
-    // 修改dirlookup的参数为path，直接查找
-    // 但是需要主义nameiparent的使用，做相应处理
-
-    ilock(ip);
-    if (ip->type != T_DIR) {
-        iunlockput(ip);
-        return 0;
-    }
-    if(nameiparent){
-        char* lastpath='/';
-        while ((path = skipelem(path, name)) != 0) {
-            //有问题？
-            if (nameiparent && *path == '\0') {
-                // Stop one level early.
-                lastpath+='\0';
-                uint devnum=ip->dev;
-                iunlockput(ip);
-                ip=dirlookup(devnum,lastpath);
-                return ip;
-            }
-            lastpath+=name+"/";
+    //path including name like a.txt
+    while (path = (skipelem(path, name)) != 0){
+        ilock(ip);
+        if (ip->type != T_DIR) {
+            iunlockput(ip);
+            return 0;
         }
+        if (nameiparent && *path == '\0') {
+            // Stop one level early.
+            iunlock(ip);
+            return ip;
+        }
+        uint devnum=ip->dev;
+        if ((next = dirlookup(devnum,ip,name,currentpath)) == 0) {
+            iunlockput(ip);
+            return 0;
+        }
+        iunlockput(ip);
+        ip = next;
+    }
+    if (nameiparent) {
         iput(ip);
         return 0;
     }
-    else{
-        uint devnum=ip->dev;
-        iunlockput(ip);
-        ip=dirlookup(devnum,path);
-        return ip;
-    }
-
-    // while ((path = skipelem(path, name)) != 0) {
-    //     ilock(ip);
-    //     if (ip->type != T_DIR) {
-    //         iunlockput(ip);
-    //         return 0;
-    //     }
-    //     if (nameiparent && *path == '\0') {
-    //         // Stop one level early.
-    //         iunlock(ip);
-    //         return ip;
-    //     }
-    //     if ((next = dirlookup(ip, name)) == 0) {
-    //         iunlockput(ip);
-    //         return 0;
-    //     }
-    //     iunlockput(ip);
-    //     ip = next;
-    // }
-    // if (nameiparent) {
-    //     iput(ip);
-    //     return 0;
-    // }
-    // // We need to close ip(root_dir()) here!!!!!!
-    // return ip;
+    return ip;
 }
 
 // Inode content
