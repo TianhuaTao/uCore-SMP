@@ -66,58 +66,128 @@ int namecmp(const char *s, const char *t)
 
 // }
 
-struct inode *
-dirlookup(uint dev,char*path,short type){
-    struct inode* ip=iget(dev);
-    if(type==T_DIR){
-        FRESULT res;
-        DIR dir;
-        UINT i;
-        static FILINFO fno;
+void find_linkfile(struct inode* ip,char* path){
+    FIL * file=ip->FAT_FILE;
+    UINT i;
+    char* devstr="DEVX";
+    char* linkstr="LINK";
+    f_open(file,path,FA_OPEN_EXISTING|FA_READ);
+    char buf[4];
+    f_read(file,buf,4,&i);
+    if(strncmp(buf,devstr,4)==0){
+        ip->type=T_DEVICE;
+        return;
+    }
+    else if(strncmp(buf,linkstr,4)==0){
+        char realpath[MAXPATH];
+        UINT off=4;
+        res=f_read(file,realpath,MAXPATH,&off);
+        f_close(file);
+        find_linkfile(ip,realpath);
+        return;
+    }
+    else{
+        ip->type=T_FILE;
+        return;
+    }
+}
 
-        res = f_opendir(&dir, path);                       /* Open the directory */
-        if (res == FR_OK) {
-            for (;;) {
-                res = f_readdir(&dir, &fno);                   /* Read a directory item */
-                if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
-                if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-                    i = strlen(path);
-                    sprintf(&path[i], "/%s", fno.fname);
-                    res = scan_files(path);                    /* Enter the directory */
-                    if (res != FR_OK) break;
-                    path[i] = 0;
-                } else {                                       /* It is a file. */
-                    printf("%s/%s\n", path, fno.fname);
+
+//only use for searching the parent inode's directory 
+//parent inode includes a opened
+//find name's inode
+struct inode *
+dirlookup(uint dev,struct inode* parent_inode,char* name,char*currentpath){
+    
+    FRESULT res;
+    DIR* dir=parent_inode->DIRECTORY;
+    UINT i;
+    static FILINFO fno;
+    res = f_opendir(dir, currentpath);                       /* Open the directory */
+    if(res==FR_OK){
+        for (;;) {
+            res = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res != FR_OK || fno.fname[0] == 0){
+                f_closedir(dir);
+                return 0;
+            }   /* Break on error or end of dir */
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                i = strlen(currentpath);
+                if(i>MAXPATH)
+                    panic("path len exceeds MAXPATH!");
+                int namelen=strlen(name);
+                //if name the same
+                if(strncmp(fno.fname,name,namelen)){
+                    sprintf(&currentpath[i], "/%s", fno.fname);
+                    currentpath[i] = 0;
+                    struct inode* ip=iget(dev);
+                    ip->type=T_DIR;
+                    res=f_opendir(ip->DIRECTORY,currentpath);
+                    if(res==FR_OK){
+                        f_closedir(dir);
+                        return ip;
+                    }
+                    else{
+                        f_closedir(dir);
+                        return 0;
+                    }
+                }
+            } else {/* It is a file. or maybe device*/
+                // printf("%s/%s\n", path, fno.fname);
+                i = strlen(currentpath);
+                if(i>MAXPATH)
+                    panic("path len exceeds MAXPATH!");
+                int namelen=strlen(name);
+                //if name the same
+                if(strncmp(fno.fname,name,namelen)){
+                    sprintf(&currentpath[i], "/%s", fno.fname);
+                    currentpath[i] = 0;
+                    struct inode* ip=iget(dev);
+                    //read several bytes from the file
+                    FIL * file=ip->FAT_FILE;
+                    char buf[12];
+                    UINT i;
+                    res=f_open(file,currentpath,FA_READ|FA_OPEN_EXISTING);
+                    if(res==FR_OK){
+                        res=f_read(file,buf,12,&i);
+                        if(res==FR_OK){
+                            //if device
+                            char* devstr="DEVX";
+                            char* linkstr="LINK";
+                            if(strncmp(buf,devstr,4)==0){
+                                ip->type=T_DEVICE;
+                                f_closedir(dir);
+                                return ip;
+                            }
+                            else if(strncmp(buf,linkstr,4)==0){
+                                char realpath[MAXPATH];
+                                UINT off=4;
+                                res=f_read(file,realpath,MAXPATH,&off);
+                                f_close(file);
+                                find_linkfile(ip,realpath);
+                                f_closedir(dir);
+                                return  ip;
+                            }
+                            else{
+                                ip->type=T_FILE;
+                                f_closedir(dir);
+                                return ip;
+                            }
+                        }
+                        else{
+                            //read fail
+                            return 0;
+                        }
+                    }
+                    else{
+                        //open fail 
+                        return 0;
+                    }
                 }
             }
-            f_closedir(&dir);
-        }
-        ip->type=T_DIR;
-        ip->DIRECTORY=&dir;
-    }
-    else if(type==T_FILE||type==T_DEVICE){
-        FRESULT res;
-        FIL file;
-        DIR dir;
-        UINT i;
-        static FILINFO fno;
-        res=f_open(&file,path,FA_OPEN_EXISTING);
-        if(res==FR_NO_FILE){
-            res=f_open(&file,path,FA_CREATE_NEW|FA_WRITE|FA_READ);
-            ip->FAT_FILE=&file;
-            if(type==T_FILE){
-                ip->type=T_FILE;
-            }
-            else if(type==T_DEVICE){
-                ip->type=T_DEVICE;
-            }
-        }
-        res=f_close(&file);
-        if(res!=FR_OK){
-            panic("close file failed!");
         }
     }
-    return ip;
+    return 0;
 }
 
 
@@ -153,9 +223,10 @@ struct inode *root_dir()
 {
     debugcore("root_dir");
     struct inode *r = iget(ROOTDEV);
+    //have been open
     f_opendir(r->DIRECTORY, "/");	
     r->type=T_DIR;
-    ivalid(r);
+    // ivalid(r);
     return r;
 }
 

@@ -127,7 +127,7 @@ void abstract_disk_rw(struct buf *b, int write);
 // fs.c
 void fsinit();
 int dirlink(struct inode *, char *, uint);
-struct inode *dirlookup(struct inode *, char *, uint *);
+struct inode *dirlookup(uint devnum,struct inode *, char *);
 struct inode *alloc_disk_inode(uint, short);
 struct inode *idup(struct inode *);
 void inode_table_init();
