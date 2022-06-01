@@ -73,8 +73,8 @@ void main(uint64 hartid, uint64 a1) {
         plicinit();     // set up interrupt controller
         plicinithart(); // ask PLIC for device interrupts
         binit();        // buffer cache
-        //inode_table_init();        // inode cache
-        //fileinit();     // file table
+        inode_table_init();        // inode cache
+        fileinit();     // file table
         init_trace();
         kvminit();
         infof("kernel vm created");

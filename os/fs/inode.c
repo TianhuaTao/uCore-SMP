@@ -474,12 +474,15 @@ inode_or_parent_by_name(char *path, int nameiparent, char *name) {
         ip = root_dir(); // DIR have been open
     } else {
         // relative path
-        ip = curr_proc()->cwd;// need to open DIR
-        //get cwd and open
-        //update currentpath to cwd
-        //TO DO ?
+        ip=iget(ROOTDEV);
+        FRESULT res;
+        strncpy(currentpath,curr_proc()->cwd,strlen(curr_proc->cwd));
+        res=f_opendir(ip->DIRECTORY,currentpath);
+        if(res!=FR_OK){
+            return 0;
+        }
     }
-    //path including name like a.txt
+    //path including name like a.txt 
     while (path = (skipelem(path, name)) != 0){
         ilock(ip);
         if (ip->type != T_DIR) {

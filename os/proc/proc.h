@@ -6,6 +6,7 @@
 #include "exec.h"
 #include <file/file.h>
 #include <lock/lock.h>
+#include <fs/fs.h>
 #define NPROC (256)
 #define KSTACK_SIZE (8192)
 #define USTACK_SIZE (4096)
@@ -59,6 +60,7 @@ struct proc {
     void * shmem_map_start[MAX_PROC_SHARED_MEM_INSTANCE];
     void* next_shmem_addr;
     char name[PROC_NAME_MAX]; // Process name (debugging)
+    char currentdir[MAXPATH];
 };
 struct proc *findproc(int pid);
 
