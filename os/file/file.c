@@ -6,8 +6,6 @@
 #include <ucore/types.h>
 #include <device/console.h>
 #include <file/stat.h>
-#include "stdafx.h"
-#include <stdio.h>
 /**
  * @brief The global file pool
  * Every opened file is kept here in system level
@@ -93,47 +91,119 @@ struct file *filealloc() {
 struct inode * create(char *path, short type, short major, short minor) {
     struct inode *ip, *dp;
     char name[DIRSIZ];
-
     if ((dp = inode_parent_by_name(path, name)) == 0)
         return 0;
-
     ilock(dp);
     uint devnum=dp->dev;
     if ((ip = dirlookup(devnum,dp,name,path)) != 0) {
         iunlockput(dp);
         ilock(ip);
-        if (type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
+        if (type == T_FILE && ip->type == T_DEVICE){
+            //if major and minor equal
+            if(ip->major==major&&ip->minor==minor)
+                return ip;  
+        }
+        //? 
+        else if (type == T_FILE && ip->type==T_FILE){
+            ip->major=major;
+            ip->minor=minor;
             return ip;
+        }
+        else if (type == T_DIR && ip->type=DIR){
+            return  ip;
+        }
         iunlockput(ip);
         return 0;
     }
     //don't find then create
     else{
-        
+        iunlockput(dp);
+        if(type==T_DEVICE){
+            FRESULT res;
+            ip=iget(devnum);
+            ilock(ip);
+            res=f_open(ip->FAT_FILE,path,FA_CREATE_NEW|FA_WRITE);
+            if(res==FR_OK){
+                UINT i;
+                char buf[12];
+                char* devstr="DEVX";
+                strncpy(buf[0],devstr,4);
+                strncpy(buf[4],(const char*)(major),4);
+                strncpy(buf[8],(const char*)(minor),4);
+                res=f_write(ip->FAT_FILE,buf,12,&i);
+                if(res==FR_OK){
+                    ip->major=major;
+                    ip->minor=minor;
+                    ip->type=T_DEVICE;
+                    return ip;
+                }
+                else{
+                    iunlockput(ip);
+                    return 0;
+                }
+            }
+            else{
+                iunlockput(ip);
+                return 0;
+            }
+        }
+        else if(type== T_DIR){
+            FRESULT res;
+            ip=iget(devnum);
+            ilock(ip);
+            res=f_opendir(ip->DIRECTORY,path);
+            if(res==FR_OK){
+                ip->type=T_DIR;
+                ip->major=major;
+                ip->minor=minor;
+                return ip;
+            }
+            else{
+                iunlockput(ip);
+                return 0;
+            }
+        }
+        else if(type==T_FILE){
+            FRESULT res;
+            ip=iget(devnum);
+            ilock(ip);
+            res=f_open(ip->FAT_FILE,path,FA_CREATE_NEW);
+            if(res==FR_OK){
+                ip->type=T_FILE;
+                ip->major=major;
+                ip->minor=minor;
+                return ip;
+            }
+            else{
+                iunlockput(ip);
+                return 0;
+            }
+        }
+        return 0;
     }
     // if ((ip = alloc_disk_inode(dp->dev, type)) == 0)
     //     panic("create: ialloc");
 
-    ilock(ip);
-    ip->major = major;
-    ip->minor = minor;
-    ip->num_link = 1;
-    iupdate(ip);
+    // ilock(ip);
+    // ip->major = major;
+    // ip->minor = minor;
+    // ip->num_link = 1;
+    // iupdate(ip);
 
-    if (type == T_DIR) { // Create . and .. entries.
-        dp->num_link++;  // for ".."
-        iupdate(dp);
-        // No ip->nlink++ for ".": avoid cyclic ref count.
-        if (dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
-            panic("create dots");
-    }
+    // if (type == T_DIR) { // Create . and .. entries.
+    //     dp->num_link++;  // for ".."
+    //     iupdate(dp);
+    //     // No ip->nlink++ for ".": avoid cyclic ref count.
+    //     if (dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+    //         panic("create dots");
+    // }
 
-    if (dirlink(dp, name, ip->inum) < 0)
-        panic("create: dirlink");
+    // if (dirlink(dp, name, ip->inum) < 0)
+    //     panic("create: dirlink");
 
-    iunlockput(dp);
+    // iunlockput(dp);
 
-    return ip;
+    // return ip;
 }
 
 /**
