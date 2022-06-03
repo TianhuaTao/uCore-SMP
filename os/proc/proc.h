@@ -55,12 +55,11 @@ struct proc {
     uint64 cpu_time;            // ms, user and kernel
     uint64 last_start_time;     // ms
     struct file *files[FD_MAX]; // Opened files
-    struct inode *cwd;          // Current directory
+    char cwd[MAXPATH];          // Current directory
     struct shared_mem * shmem[MAX_PROC_SHARED_MEM_INSTANCE];
     void * shmem_map_start[MAX_PROC_SHARED_MEM_INSTANCE];
     void* next_shmem_addr;
     char name[PROC_NAME_MAX]; // Process name (debugging)
-    char currentdir[MAXPATH];
 };
 struct proc *findproc(int pid);
 

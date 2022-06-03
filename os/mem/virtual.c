@@ -560,3 +560,58 @@ err_t either_copyin(void *dst, void *src, size_t len, int is_user_src) {
         return 0;
     }
 }
+
+static uint64 find_free_space(pagetable_t pagetable, uint64 page_num)
+{
+    uint64 va = USER_TEXT_START;
+
+    // find a free space in user virtual address space
+    for (; va < MAXVA; va += PGSIZE)
+    {
+        uint64 count = 0;
+        for (uint64 i = va; i < MAXVA && i < va + page_num * PGSIZE; i += PGSIZE)
+        {
+            pte_t* pte = walk(pagetable, i, 0);
+            // if the pte is not alloc or the pte is free
+            if(pte == 0 || !(*pte & PTE_V))
+                count++;
+            else
+                break;
+        }
+        if (count == page_num)
+            return va;
+    }
+    // no free space
+    return 0;
+}
+
+uint64
+uvmalloc_pages(pagetable_t pagetable, uint64 page_num)
+{
+
+    // find free space
+    uint64 va = find_free_space(pagetable, page_num);
+    if (!va)
+        return 0;
+
+    // allocate physical pages and map them to user space
+    for (uint64 i = va; i < va + page_num * PGSIZE; i += PGSIZE)
+    {
+        char *mem = alloc_physical_page();
+        if (mem == 0)
+        {
+            // if we failed, we need to rollback,
+            // so we need to dealloc the pages which are allocated in the for loop
+            uvmdealloc(pagetable, i, va);
+            return 0;
+        }
+        memset(mem, 0, PGSIZE);
+        if (mappages(pagetable, i, PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0)
+        {
+            recycle_physical_page(mem);
+            uvmdealloc(pagetable, i, va);
+            return 0;
+        }
+    }
+    return va;
+}

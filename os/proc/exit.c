@@ -58,8 +58,8 @@ void exit(int code)
     // 1. close files
     close_proc_files(p);
 
-    iput(p->cwd);
-    p->cwd = NULL;
+    // iput(p->cwd);
+    p->cwd[0] = 0;
     release(&p->lock);
 
     // 2. reparent this process's children

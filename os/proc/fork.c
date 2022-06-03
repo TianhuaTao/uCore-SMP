@@ -34,7 +34,8 @@ int fork() {
     for (i = 0; i < FD_MAX; i++)
         if (p->files[i])
             np->files[i] = filedup(p->files[i]);
-    np->cwd = idup(p->cwd);
+    // np->cwd = idup(p->cwd);
+    strncpy(np->cwd,p->cwd,strlen(p->cwd));
 
     // dup shared mem
     for (int i = 0; i < MAX_PROC_SHARED_MEM_INSTANCE; i++)

@@ -307,6 +307,7 @@ int sys_openat(int fd, const char *filename, int flags){
             return fileopen(path, flags);
         }
         else{
+            
             struct file *f = p->files[fd];
             if (f == NULL) {
                 return -1;
@@ -315,17 +316,10 @@ int sys_openat(int fd, const char *filename, int flags){
             if(ip==NULL){
                 return -1;
             }
-            DIR *dir=ip->DIRECTORY;
-            if(dir==NULL){
-                return -1;
-            }
-            FRESULT res;
-            UINT i;
-            static FILINFO fno;
-            copyinstr(p->pagetable, path, (uint64)filename, MAXPATH);
-            //TO DO?
-            
-
+            int len=strlen(ip->path);
+            strncpy(path,ip->path,len);
+            copyinstr(p->pagetable, path[len], (uint64)filename, MAXPATH-len);
+            return fileopen(path, flags);
         }
     }
 }

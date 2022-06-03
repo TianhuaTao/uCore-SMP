@@ -139,7 +139,7 @@ void freeproc(struct proc *p) {
 
     KERNEL_ASSERT(p->trapframe == NULL, "p->trapfram is pointing somewhere, did you forget to free trapframe?");
     KERNEL_ASSERT(p->pagetable == NULL, "p->pagetable is pointing somewhere, did you forget to free pagetable?");
-    KERNEL_ASSERT(p->cwd == NULL, "p->cwd is not NULL, did you forget to release the inode?");
+    KERNEL_ASSERT(p->cwd == NULL, "p->cwd is not NULL, did you forget to release the currentpath?");
     KERNEL_ASSERT(p->waiting_target == NULL, "p->cwd is waiting something");
     KERNEL_ASSERT(p->total_size == 0, "memory not freed");
     KERNEL_ASSERT(p->heap_sz == 0, "heap not freed");
@@ -228,7 +228,7 @@ found:
     for (int i = 0; i < FD_MAX; i++) {
         p->files[i] = NULL;
     }
-    p->cwd = NULL;
+    p->cwd[0] = '\0';
     p->name[0] = '\0';
     for (int i = 0; i < MAX_PROC_SHARED_MEM_INSTANCE; i++)
     {

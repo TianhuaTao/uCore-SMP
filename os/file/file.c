@@ -93,6 +93,7 @@ struct inode * create(char *path, short type, short major, short minor) {
     char name[DIRSIZ];
     if ((dp = inode_parent_by_name(path, name)) == 0)
         return 0;
+    int pathlen=strlen(path);
     ilock(dp);
     uint devnum=dp->dev;
     if ((ip = dirlookup(devnum,dp,name,path)) != 0) {
@@ -100,16 +101,21 @@ struct inode * create(char *path, short type, short major, short minor) {
         ilock(ip);
         if (type == T_FILE && ip->type == T_DEVICE){
             //if major and minor equal
-            if(ip->major==major&&ip->minor==minor)
+            if(ip->major==major&&ip->minor==minor){
+                strncpy(ip->path,path,pathlen);
                 return ip;  
+            }
+                
         }
         //? 
         else if (type == T_FILE && ip->type==T_FILE){
             ip->major=major;
             ip->minor=minor;
+            strncpy(ip->path,path,pathlen);
             return ip;
         }
         else if (type == T_DIR && ip->type=DIR){
+            strncpy(ip->path,path,pathlen);
             return  ip;
         }
         iunlockput(ip);
@@ -135,6 +141,7 @@ struct inode * create(char *path, short type, short major, short minor) {
                     ip->major=major;
                     ip->minor=minor;
                     ip->type=T_DEVICE;
+                    strncpy(ip->path,path,pathlen);
                     return ip;
                 }
                 else{
@@ -156,6 +163,7 @@ struct inode * create(char *path, short type, short major, short minor) {
                 ip->type=T_DIR;
                 ip->major=major;
                 ip->minor=minor;
+                strncpy(ip->path,path,pathlen);
                 return ip;
             }
             else{
@@ -172,6 +180,7 @@ struct inode * create(char *path, short type, short major, short minor) {
                 ip->type=T_FILE;
                 ip->major=major;
                 ip->minor=minor;
+                strncpy(ip->path,path,pathlen);
                 return ip;
             }
             else{

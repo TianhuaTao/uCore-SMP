@@ -74,10 +74,12 @@ void find_linkfile(struct inode* ip,char* path){
     char* linkstr="LINK";
     res=f_open(file,path,FA_OPEN_EXISTING|FA_READ);
     if(res=FR_OK){
-        char buf[4];
-        f_read(file,buf,4,&i);
+        char buf[12];
+        f_read(file,buf,12,&i);
         if(strncmp(buf,devstr,4)==0){
             ip->type=T_DEVICE;
+            ip->major=(int)(buf[4]);
+            ip->minor=(int)(buf[8]);
             return;
         }
         else if(strncmp(buf,linkstr,4)==0){
@@ -107,86 +109,91 @@ dirlookup(uint dev,struct inode* parent_inode,char* name,char*currentpath){
     DIR* dir=parent_inode->DIRECTORY;
     UINT i;
     static FILINFO fno;
-    res = f_opendir(dir, currentpath);                       /* Open the directory */
-    if(res==FR_OK){
-        for (;;) {
-            res = f_readdir(&dir, &fno);                   /* Read a directory item */
-            if (res != FR_OK || fno.fname[0] == 0){
-                f_closedir(dir);
-                return 0;
-            }   /* Break on error or end of dir */
-            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-                i = strlen(currentpath);
-                if(i>MAXPATH)
-                    panic("path len exceeds MAXPATH!");
-                int namelen=strlen(name);
-                //if name the same
-                if(strncmp(fno.fname,name,namelen)){
-                    sprintf(&currentpath[i], "/%s", fno.fname);
-                    currentpath[i] = 0;
-                    struct inode* ip=iget(dev);
-                    ip->type=T_DIR;
-                    res=f_opendir(ip->DIRECTORY,currentpath);
+    // res = f_opendir(dir, currentpath);                       /* Open the directory */
+    if(dir==NULL)
+        return 0;
+    for (;;) {
+        res = f_readdir(&dir, &fno);                   /* Read a directory item */
+        if (res != FR_OK || fno.fname[0] == 0){
+            f_closedir(dir);
+            return 0;
+        }   /* Break on error or end of dir */
+        if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+            i = strlen(currentpath);
+            if(i>MAXPATH)
+                panic("path len exceeds MAXPATH!");
+            int namelen=strlen(name);
+            //if name the same
+            if(strncmp(fno.fname,name,namelen)==0){
+                sprintf(&currentpath[i], "/%s", fno.fname);
+                i+=namelen+1;
+                currentpath[i] = 0;
+                struct inode* ip=iget(dev);
+                ip->type=T_DIR;
+                res=f_opendir(ip->DIRECTORY,currentpath);
+                if(res==FR_OK){
+                    f_closedir(dir);
+                    return ip;
+                }
+                else{
+                    f_closedir(dir);
+                    return 0;
+                }
+            }
+        } else {/* It is a file. or maybe device*/
+            // printf("%s/%s\n", path, fno.fname);
+            i = strlen(currentpath);
+            if(i>MAXPATH)
+                panic("path len exceeds MAXPATH!");
+            int namelen=strlen(name);
+            //if name the same
+            if(strncmp(fno.fname,name,namelen)){
+                sprintf(&currentpath[i], "/%s", fno.fname);
+                i+=namelen+1;
+                currentpath[i] = 0;
+                struct inode* ip=iget(dev);
+                //read several bytes from the file
+                FIL * file=ip->FAT_FILE;
+                char buf[12];
+                UINT i;
+                res=f_open(file,currentpath,FA_READ|FA_OPEN_EXISTING);
+                if(res==FR_OK){
+                    res=f_read(file,buf,12,&i);
                     if(res==FR_OK){
-                        f_closedir(dir);
-                        return ip;
+                        //if device
+                        char* devstr="DEVX";
+                        char* linkstr="LINK";
+                        if(strncmp(buf,devstr,4)==0){
+                            ip->type=T_DEVICE;
+                            //fill 
+                            ip->major=(int)(buf[4]);
+                            ip->minor=(int)(buf[8])
+                            f_closedir(dir);
+                            return ip;
+                        }
+                        else if(strncmp(buf,linkstr,4)==0){
+                            char realpath[MAXPATH];
+                            UINT off=4;
+                            res=f_read(file,realpath,MAXPATH,&off);
+                            f_close(file);
+                            find_linkfile(ip,realpath);
+                            f_closedir(dir);
+                            return  ip;
+                        }
+                        else{
+                            ip->type=T_FILE;
+                            f_closedir(dir);
+                            return ip;
+                        }
                     }
                     else{
-                        f_closedir(dir);
+                        //read fail
                         return 0;
                     }
                 }
-            } else {/* It is a file. or maybe device*/
-                // printf("%s/%s\n", path, fno.fname);
-                i = strlen(currentpath);
-                if(i>MAXPATH)
-                    panic("path len exceeds MAXPATH!");
-                int namelen=strlen(name);
-                //if name the same
-                if(strncmp(fno.fname,name,namelen)){
-                    sprintf(&currentpath[i], "/%s", fno.fname);
-                    currentpath[i] = 0;
-                    struct inode* ip=iget(dev);
-                    //read several bytes from the file
-                    FIL * file=ip->FAT_FILE;
-                    char buf[12];
-                    UINT i;
-                    res=f_open(file,currentpath,FA_READ|FA_OPEN_EXISTING);
-                    if(res==FR_OK){
-                        res=f_read(file,buf,12,&i);
-                        if(res==FR_OK){
-                            //if device
-                            char* devstr="DEVX";
-                            char* linkstr="LINK";
-                            if(strncmp(buf,devstr,4)==0){
-                                ip->type=T_DEVICE;
-                                f_closedir(dir);
-                                return ip;
-                            }
-                            else if(strncmp(buf,linkstr,4)==0){
-                                char realpath[MAXPATH];
-                                UINT off=4;
-                                res=f_read(file,realpath,MAXPATH,&off);
-                                f_close(file);
-                                find_linkfile(ip,realpath);
-                                f_closedir(dir);
-                                return  ip;
-                            }
-                            else{
-                                ip->type=T_FILE;
-                                f_closedir(dir);
-                                return ip;
-                            }
-                        }
-                        else{
-                            //read fail
-                            return 0;
-                        }
-                    }
-                    else{
-                        //open fail 
-                        return 0;
-                    }
+                else{
+                    //open fail 
+                    return 0;
                 }
             }
         }
