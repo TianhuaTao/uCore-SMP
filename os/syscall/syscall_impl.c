@@ -95,7 +95,7 @@ pid_t sys_getppid()
     return -1;
 }
 
-pid_t sys_fork() {
+pid_t sys_fork(int (*fn)(void *arg) ,void * arg, void *stack, size_t stack_size, unsigned long flags){
     return fork();
 }
 
@@ -273,14 +273,14 @@ int sys_close(int fd) {
     return 0;
 }
 
-int sys_open( char *pathname_va, int flags){
-    debugcore("sys_open");
-    struct proc *p = curr_proc();
-    char path[MAXPATH];
-    copyinstr(p->pagetable, path, (uint64)pathname_va, MAXPATH);
-    return fileopen(path, flags);
-}
-
+// int sys_open( int fd,char *pathname_va, int flags){
+//     //TODO  open at
+//     debugcore("sys_open");
+//     struct proc *p = curr_proc();
+//     char path[MAXPATH];
+//     copyinstr(p->pagetable, path, (uint64)pathname_va, MAXPATH);
+//     return fileopen(path, flags);
+// }
 int sys_openat(int fd, const char *filename, int flags){
     debugcore("sys_open");
     struct proc *p = curr_proc();
@@ -324,9 +324,8 @@ int sys_openat(int fd, const char *filename, int flags){
     }
 }
 
-
-
-int64 sys_mmap(void *start, uint64 len, int prot) {
+int sys_mmap(void *start, size_t len, int prot,int flags, int fd, int off) 
+{
     if (len == 0)
         return 0;
 
@@ -371,7 +370,7 @@ int64 sys_mmap(void *start, uint64 len, int prot) {
     return map_size;
 }
 
-int64 sys_munmap(void *start, uint64 len) {
+int sys_munmap(void *start, size_t len) {
     uint64 va = (uint64)start;
     uint64 a;
     pte_t *pte;
@@ -521,7 +520,8 @@ int sys_unlink(char *pathname_va) {
     if (namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
         goto bad;
 
-    if ((ip = dirlookup(dp, name, &off)) == 0)
+    // if ((ip = dirlookup(dp, name, &off)) == 0)
+    if ((ip = dirlookup(dp->dev, dp,name, path)) == 0)
         goto bad;
     ilock(ip);
 
@@ -636,8 +636,9 @@ int sys_dup3(int old,int new){
     return new;
 }
 
-int sys_getdents64(){
+int sys_getdents64(int fd,void* buf, size_t len){
     //TO DO
+    return -1;
 }
 
 int copystrings(char *argv_str[],char* argv_va[],const char *argv[],int maxcount,int maxlen){
@@ -695,3 +696,23 @@ int sys_execve(char *path,char* argv_va[],char* envp_va[]){
 }
 
 
+int sys_umount2(char *special, int flags){
+    //TODO
+    return -1;
+}
+
+int sys_mount( char *special,char *dir, char *fstype, unsigned long flags,void *data){
+    // TODO
+    return -1;
+}
+
+int sys_brk(void* addr){
+    // TODO
+    return -1;
+}
+
+
+int sys_wait4(int ipd,void * code,int options){
+    //TODO
+    return -1;
+}

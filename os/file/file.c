@@ -114,8 +114,7 @@ struct inode * create(char *path, short type, short major, short minor) {
             strncpy(ip->path,path,pathlen);
             return ip;
         }
-        else if (type == T_DIR && ip->type=DIR){
-            strncpy(ip->path,path,pathlen);
+        else if (type == T_DIR && ip->type==T_DIR){
             return  ip;
         }
         iunlockput(ip);
