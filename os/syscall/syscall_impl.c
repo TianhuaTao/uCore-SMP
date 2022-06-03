@@ -4,7 +4,11 @@
 #include <proc/proc.h>
 #include <file/stat.h>
 #include <mem/shared.h>
+#include <fatfs/ff.h>
+#include <stdlib.h>  /* malloc, free, rand, system */
 #define min(a, b) (a) < (b) ? (a) : (b);
+
+# define AT_FDCWD -100
 
 int sys_fstat(int fd, struct stat *statbuf_va){
     struct proc *p = curr_proc();
@@ -127,19 +131,20 @@ int sys_chdir(char *path_va) {
     if (copyinstr(p->pagetable, path, (uint64)path_va, MAXPATH) != 0) {
         return -2;
     }
-    ip = inode_by_name(path);
-    if (ip == NULL) {
-        return -1;
-    }
-    ilock(ip);
-    if (ip->type != T_DIR) {
-        iunlockput(ip);
-        return -1;
-    }
-    iunlock(ip);
-    iput(p->cwd);
+    // ip = inode_by_name(path);
+    // if (ip == NULL) {
+    //     return -1;
+    // }
+    // ilock(ip);
+    // if (ip->type != T_DIR) {
+    //     iunlockput(ip);
+    //     return -1;
+    // }
+    // iunlock(ip);
+    // iput(p->cwd);
 
-    p->cwd = ip;
+    // p->cwd = ip;
+    strncpy(p->cwd,path,strlen(path));
     return 0;
 }
 
@@ -275,6 +280,57 @@ int sys_open( char *pathname_va, int flags){
     copyinstr(p->pagetable, path, (uint64)pathname_va, MAXPATH);
     return fileopen(path, flags);
 }
+
+int sys_openat(int fd, const char *filename, int flags){
+    debugcore("sys_open");
+    struct proc *p = curr_proc();
+    char path[MAXPATH];
+    char* rootdir="/";
+    //absolute path
+    if(strncmp(filename,root_dir,1)==0){
+        copyinstr(p->pagetable, path, (uint64)filename, MAXPATH);
+        return fileopen(path, flags);
+    }
+    //relative path
+    else{
+        if(fd==AT_FDCWD){
+            //copy cwd 
+            int len=strlen(p->cwd);
+            strncpy(path,p->cwd,len);
+            char* cwddir=".";
+            if(strncmp(filename,root_dir,1)==0){
+                copyinstr(p->pagetable, path[len], (uint64)filename[1], MAXPATH-(len));
+            }
+            else{
+                copyinstr(p->pagetable, path[len], (uint64)filename, MAXPATH-(len));
+            }
+            return fileopen(path, flags);
+        }
+        else{
+            struct file *f = p->files[fd];
+            if (f == NULL) {
+                return -1;
+            }
+            struct inode *ip=f->ip;
+            if(ip==NULL){
+                return -1;
+            }
+            DIR *dir=ip->DIRECTORY;
+            if(dir==NULL){
+                return -1;
+            }
+            FRESULT res;
+            UINT i;
+            static FILINFO fno;
+            copyinstr(p->pagetable, path, (uint64)filename, MAXPATH);
+            //TO DO?
+            
+
+        }
+    }
+}
+
+
 
 int64 sys_mmap(void *start, uint64 len, int prot) {
     if (len == 0)
@@ -540,44 +596,23 @@ void*sys_sharedmem(char* name_va, size_t len){
     return shmem_va;
 }
 long sys_getcwd(char* buf,size_t size){
-    //TO DO
-    //获取当前进程
+    //TO DO ?
+    //alloc space?
     struct proc *p = curr_proc();
-    //获取当前进程的当工作目录即为inode
-    struct inode *ip=p->cwd;
-
-    //名字咋找？ char*?疑惑
-    uint off, inum;
-    struct dirent de;
-
-    if (ip->type != T_DIR)
-        panic("dirlookup not DIR");
-
-    for (off = 0; off < ip->size; off += sizeof(de))
-    {
-        if (readi(ip, 0, &de, off, sizeof(de)) != sizeof(de))
-            panic("dirlookup read");
-        if (de.inum == 0)
-            continue;
-        if (ip->inum==de.inum)
-        {
-            return de.name;
-        }
+    uint64 pagenum=(size%PGSIZE)+1;
+    if(buf==NULL){
+        buf=uvmalloc_pages(p->pagetable,pagenum);
     }
-
-    return NULL;
+    
+    int pathlen=strlen(p->cwd);
+    if(pathlen+1>size){
+        return NULL;
+    }
+    if(copyout(p->pagetable,buf,p->cwd,pathlen+1)!=0){
+        return NULL;
+    }
+    return buf;
 }
-
-/*
-功能：复制文件描述符，并指定了新的文件描述符；
-
-输入：
-
-old：被复制的文件描述符。
-new：新的文件描述符。
-返回值：成功执行，返回新的文件描述符。失败，返回-1。
-
-*/
 
 int sys_dup3(int old,int new){
     //TO DO
